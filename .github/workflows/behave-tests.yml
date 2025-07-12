@@ -27,4 +27,6 @@ jobs:
           pip install behave
 
       - name: Run Behave Tests
-        run: behave
+        run: |
+          cd features
+          behave
