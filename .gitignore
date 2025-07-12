@@ -1,0 +1,59 @@
+# Binaries
+/yasl
+/yasl.exe
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Build and test output
+*.out
+*.test
+
+# Go modules
+/go.sum
+
+# Dependency directories (vendor/)
+vendor/
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+.venv/
+venv/
+
+# Node.js
+node_modules/
+
+# Test and coverage
+coverage*
+*.coverprofile
+
+# Logs
+*.log
+
+# Misc
+*.tmp
+*.bak
+
+# Behave output
+reports/
+
+# API build artifacts
+api/python/build/
+api/python/dist/
+api/python/*.egg-info/
+api/javascript/dist/

@@ -1,0 +1,45 @@
+# .github/workflows/go-ci.yml
+name: Go CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22' # Or your desired Go version
+
+      - name: Build Linux Executable
+        run: |
+          GOOS=linux GOARCH=amd64 go build -o yasl main.go
+
+      - name: Build Windows Executable
+        run: |
+          GOOS=windows GOARCH=amd64 go build -o yasl.exe main.go
+
+      - name: Check Go Formatting
+        run: |
+          gofmt -l -w main.go main_test.go
+          git diff --exit-code || (echo 'Go files are not properly formatted. Please run gofmt.' && exit 1)
+
+      - name: Run Go Tests
+        run: go test -v ./...
+
+      # --- Static Analysis ---
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v5
+        with:
+          version: v1.59.1
+          args: --config .golangci.yml --timeout=5m --issues-exit-code=1
