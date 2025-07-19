@@ -12,8 +12,23 @@ func main() {
 	yaslFlag := flag.String("yasl", "", "Path to the YASL file")
 	versionFlag := flag.Bool("V", false, "Print version and exit")
 	versionFlagLong := flag.Bool("version", false, "Print version and exit")
+	helpFlag := flag.Bool("h", false, "Show help and exit")
+	helpFlagLong := flag.Bool("help", false, "Show help and exit")
 
 	flag.Parse()
+
+	if *helpFlag || *helpFlagLong {
+		fmt.Println("YASL - YAML Advanced Schema Language CLI")
+		fmt.Println("Usage:")
+		fmt.Println("  yasl <file.yaml> <file.yasl>")
+		fmt.Println("  yasl -yaml <file.yaml> -yasl <file.yasl>")
+		fmt.Println("Options:")
+		fmt.Println("  -yaml <file.yaml>     Path to the YAML file")
+		fmt.Println("  -yasl <file.yasl>     Path to the YASL file")
+		fmt.Println("  -V, --version         Print version and exit")
+		fmt.Println("  -h, --help            Show help and exit")
+		os.Exit(0)
+	}
 
 	if *versionFlag || *versionFlagLong {
 		fmt.Println(core.Version)
