@@ -33,7 +33,7 @@ jobs:
         run: |
           gofmt -l -w main.go main_test.go
           gofmt -l -w ./core/core.go
-          git diff --exit-code || (echo 'Go files are not properly formatted. Please run gofmt.' && exit 1)
+          git diff --exit-code '*.go' || (echo 'Go files are not properly formatted. Please run gofmt.' && exit 1)
 
       - name: Run Go Tests
         run: go test -v ./...
