@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/jondavid-black/YASL/core"
 	"os"
 	"os/exec"
 	"testing"
-	"github.com/jondavid-black/YASL/core"
 )
 
 func TestYASL_CLI_PositionalArgs(t *testing.T) {
