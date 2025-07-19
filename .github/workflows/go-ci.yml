@@ -21,6 +21,11 @@ jobs:
         with:
           go-version: '1.22' # Or your desired Go version
 
+      - name: Ensure Go Dependencies
+        run: |
+          go mod tidy
+          go mod download
+
       - name: Build Linux Executable
         run: |
           GOOS=linux GOARCH=amd64 go build -o yasl main.go
@@ -40,11 +45,11 @@ jobs:
             echo "Version has not been updated! Please bump the Version constant in core/core.go."
             exit 1
           fi
-          
+
       - name: Check Go Formatting
         run: |
           gofmt -l -w main.go main_test.go
-          gofmt -l -w ./core/core.go
+          gofmt -l -w ./core/core.go ./core/logging.go
           git diff --exit-code '*.go' || (echo 'Go files are not properly formatted. Please run gofmt.' && exit 1)
 
       - name: Run Go Tests
