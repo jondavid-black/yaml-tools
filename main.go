@@ -10,7 +10,15 @@ import (
 func main() {
 	yamlFlag := flag.String("yaml", "", "Path to the YAML file")
 	yaslFlag := flag.String("yasl", "", "Path to the YASL file")
+	versionFlag := flag.Bool("V", false, "Print version and exit")
+	versionFlagLong := flag.Bool("version", false, "Print version and exit")
+
 	flag.Parse()
+
+	if *versionFlag || *versionFlagLong {
+		fmt.Println(core.Version)
+		os.Exit(0)
+	}
 
 	var yamlPath, yaslPath string
 	var err error

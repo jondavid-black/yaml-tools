@@ -29,6 +29,18 @@ jobs:
         run: |
           GOOS=windows GOARCH=amd64 go build -o yasl.exe main.go
 
+      - name: Check Version Bump
+        run: |
+          git fetch origin main:refs/remotes/origin/main
+          current_version=$(grep 'const Version' core/core.go | awk -F'"' '{print $2}')
+          main_version=$(git show origin/main:core/core.go | grep 'const Version' | awk -F'"' '{print $2}')
+          echo "Current branch version: $current_version"
+          echo "Main branch version: $main_version"
+          if [ "$current_version" = "$main_version" ]; then
+            echo "Version has not been updated! Please bump the Version constant in core/core.go."
+            exit 1
+          fi
+          
       - name: Check Go Formatting
         run: |
           gofmt -l -w main.go main_test.go
