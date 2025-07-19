@@ -1,20 +1,22 @@
 # YASL - YAML Schema Language Project Instructions for GitHub Copilot
 
 ## Project Overview
-This project, YASL (YAML Schema Language), aims to provide robust YAML schema definition and validation capabilities. The core logic is written in Go, with API wrappers in Python and JavaScript to facilitate broader integration. We emphasize clean code, strong typing, comprehensive testing, and clear documentation.
+This project, YASL (YAML Advanced Schema Language), aims to provide robust YAML schema definition and validation capabilities. The core logic is written in Go, with API wrappers in Python and JavaScript to facilitate broader integration. We emphasize clean code, strong typing, comprehensive testing, and clear documentation.
 
 ## Project Structure
 The project follows a modular structure:
-- `main.go`: The primary entry point for the Go application.
-- `main_test.go`: Contains unit tests for the main application logic.
+- `core/`: Contains the core utility logic for YASL.
+    - `core.go`: Core functionality for schema validation.
+    - `core_test.go`: Unit tests for core functionality.
+- `yasl.go`: Main entry point for the YASL CLI.
+- `yasl_test.go`: Unit tests for YASL CLI functionality.
 - `go.mod` and `go.sum`: Go module files for dependency management.
 - `README.md`: Project documentation and usage instructions.
 - `docs/`: Contains additional documentation, including design decisions and API usage.
 - `api/`: Holds API wrappers for different languages.
-    - `api/python/`: Python API wrapper (uses `google-genai` and will expose YASL validation).
-    - `api/javascript/`: JavaScript API wrapper (uses `@google/genai` and will expose YASL validation).
+    - `api/python/`: Python API wrapper.
+    - `api/javascript/`: JavaScript API wrapper.
 - `features/`: Contains Behave (BDD) feature files and step definitions for acceptance testing.
-- `tests/`: Contains unit and integration tests Python and JavaScript components.
 - `.github/workflows/`: GitHub Actions CI/CD pipeline definitions.
 
 ## Core Technologies

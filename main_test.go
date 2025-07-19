@@ -4,12 +4,10 @@ import (
 	"os"
 	"os/exec"
 	"testing"
-
-	"github.com/jondavid-black/YASL/utils"
+	"github.com/jondavid-black/YASL/core"
 )
 
-func TestMain_CLI_PositionalArgs(t *testing.T) {
-	// Create temp files to simulate YAML and YASL files
+func TestYASL_CLI_PositionalArgs(t *testing.T) {
 	yamlFile, err := os.CreateTemp("", "test-*.yaml")
 	if err != nil {
 		t.Fatalf("Failed to create temp YAML file: %v", err)
@@ -23,8 +21,15 @@ func TestMain_CLI_PositionalArgs(t *testing.T) {
 	defer os.Remove(yaslFile.Name())
 	yaslFile.Close()
 
-	// Sanitize inputs to prevent potential security issues
-	cmd := exec.Command("./yasl", utils.SanitizePath(yamlFile.Name()), utils.SanitizePath(yaslFile.Name())) // #nosec
+	yamlPath, err := core.SanitizePath(yamlFile.Name())
+	if err != nil {
+		t.Fatalf("SanitizePath failed for yaml: %v", err)
+	}
+	yaslPath, err := core.SanitizePath(yaslFile.Name())
+	if err != nil {
+		t.Fatalf("SanitizePath failed for yasl: %v", err)
+	}
+	cmd := exec.Command("./yasl", yamlPath, yaslPath) // #nosec
 	cmd.Env = append(os.Environ(), "GO_WANT_HELPER_PROCESS=1")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -35,8 +40,7 @@ func TestMain_CLI_PositionalArgs(t *testing.T) {
 	}
 }
 
-func TestMain_CLI_Flags(t *testing.T) {
-	// Create temp files to simulate YAML and YASL files
+func TestYASL_CLI_Flags(t *testing.T) {
 	yamlFile, err := os.CreateTemp("", "test-*.yaml")
 	if err != nil {
 		t.Fatalf("Failed to create temp YAML file: %v", err)
@@ -50,8 +54,15 @@ func TestMain_CLI_Flags(t *testing.T) {
 	defer os.Remove(yaslFile.Name())
 	yaslFile.Close()
 
-	// Sanitize inputs to prevent potential security issues
-	cmd := exec.Command("./yasl", "-yaml", utils.SanitizePath(yamlFile.Name()), "-yasl", utils.SanitizePath(yaslFile.Name())) // #nosec
+	yamlPath, err := core.SanitizePath(yamlFile.Name())
+	if err != nil {
+		t.Fatalf("SanitizePath failed for yaml: %v", err)
+	}
+	yaslPath, err := core.SanitizePath(yaslFile.Name())
+	if err != nil {
+		t.Fatalf("SanitizePath failed for yasl: %v", err)
+	}
+	cmd := exec.Command("./yasl", "-yaml", yamlPath, "-yasl", yaslPath) // #nosec
 	cmd.Env = append(os.Environ(), "GO_WANT_HELPER_PROCESS=1")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -62,7 +73,7 @@ func TestMain_CLI_Flags(t *testing.T) {
 	}
 }
 
-func TestMain_CLI_MissingFiles(t *testing.T) {
+func TestYASL_CLI_MissingFiles(t *testing.T) {
 	cmd := exec.Command("./yasl", "missing.yaml", "missing.yasl")
 	cmd.Env = append(os.Environ(), "GO_WANT_HELPER_PROCESS=1")
 	output, err := cmd.CombinedOutput()

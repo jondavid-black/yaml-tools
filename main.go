@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/jondavid-black/YASL/utils"
+	"github.com/jondavid-black/YASL/core"
 	"os"
 )
 
@@ -13,22 +13,21 @@ func main() {
 	flag.Parse()
 
 	var yamlPath, yaslPath string
+	var err error
 
-	// If flags are provided, use them. Otherwise, use positional arguments.
 	if *yamlFlag != "" && *yaslFlag != "" {
 		yamlPath = *yamlFlag
 		yaslPath = *yaslFlag
 	} else {
 		args := flag.Args()
 		if len(args) < 2 {
-			fmt.Fprintln(os.Stderr, "Usage: ./YASL <file.yaml> <file.yasl> OR ./YASL -yaml <file.yaml> -yasl <file.yasl>")
+			fmt.Fprintln(os.Stderr, "Usage: ./yasl <file.yaml> <file.yasl> OR ./yasl -yaml <file.yaml> -yasl <file.yasl>")
 			os.Exit(1)
 		}
 		yamlPath = args[0]
 		yaslPath = args[1]
 	}
 
-	// Check if files exist
 	if _, err := os.Stat(yamlPath); os.IsNotExist(err) {
 		fmt.Fprintf(os.Stderr, "YAML file not found: %s\n", yamlPath)
 		os.Exit(1)
@@ -38,9 +37,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Sanitize inputs to prevent potential security issues
-	yamlPath = utils.SanitizePath(yamlPath)
-	yaslPath = utils.SanitizePath(yaslPath)
+	yamlPath, err = core.SanitizePath(yamlPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "YAML path error: %v\n", err)
+		os.Exit(1)
+	}
+	yaslPath, err = core.SanitizePath(yaslPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "YASL path error: %v\n", err)
+		os.Exit(1)
+	}
 
 	fmt.Println("OK - ", yamlPath, ", ", yaslPath)
 }

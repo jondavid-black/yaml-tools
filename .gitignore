@@ -1,6 +1,5 @@
 # Binaries
-/yasl
-/yasl.exe
+yasl
 *.exe
 *.dll
 *.so
@@ -15,6 +14,9 @@
 
 # Dependency directories (vendor/)
 vendor/
+
+# GitHub Actions Runner (act)
+/bin
 
 # IDE/editor files
 .vscode/
