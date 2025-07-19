@@ -38,9 +38,9 @@ type YAMLFormatter struct{}
 
 func (f *YAMLFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	obj := map[string]interface{}{
-		"time": entry.Time.Format("2006-01-02T15:04:05Z07:00"),
+		"time":  entry.Time.Format("2006-01-02T15:04:05Z07:00"),
 		"level": entry.Level.String(),
-		"msg": entry.Message,
+		"msg":   entry.Message,
 	}
 	out, err := yaml.Marshal(obj)
 	if err != nil {

@@ -73,7 +73,6 @@ func TestYASL_CLI_Flags(t *testing.T) {
 	}
 }
 
-
 func TestYASL_CLI_OutputType_Text(t *testing.T) {
 	yamlFile, err := os.CreateTemp("", "test-*.yaml")
 	if err != nil {

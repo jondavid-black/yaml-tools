@@ -4,8 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/jondavid-black/YASL/core"
-	"os"
 	"github.com/sirupsen/logrus"
+	"os"
 	"strings"
 )
 
