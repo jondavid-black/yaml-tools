@@ -6,7 +6,7 @@ The schema is a YAML file that allows users to define strongly typed data struct
 ## YASL Types & Structures
 
 YASL allows for the definition of data type structures.
-A type definition (denoted as `type_def`) consists of a name, description, and list of fields.
+A type definition (denoted as `type_def`) consists of a name, description, a list of fields, and a list of structure validators.
 Each `type_def` must be uniquely named within the scope of the schema definition.
 The `type_def` name field should correspond to the key that would be present in the yaml if the type were present as a standalone data entry.
 Data types can be used in the same way you use primitives in structure definition.
@@ -19,10 +19,13 @@ Primitive validation options are provided below in the primitive definitions.
 
 Each field defined within a type has the following attributes:
 
-- name: str - The name of the field as it would appear in the yaml file.
-- description (optional): str - The description of the field.
-- type: type - The type of the field (primitive, enum name, or type name).
-- required: bool - True (default) if the field must be present, otherwise false.
+- name: str - The name of the field as it would appear in the yaml file.  Default: none.
+- package (optional): str - The context of the data type.  Default: none.
+- description (optional): str - The description of the field. Default: none.
+- type: type - The type of the field (primitive, enum name, or type name).  Default: none.
+- required: bool - True if the field must be present, otherwise false.  Default: true.
+- unique: bool - True if the value must not repeat across all type usage within the package, otherwise false.  Default: false.
+- default (optional): any - The default value for the field.  It must be of the type defined in the `type` field. Default: none.
 
 YASL allows you to define lists (aka arrays) by adding `[]` after the type name in a field definition.
 Each list entry in the content will be validated based on the type specific attributes.
@@ -78,7 +81,6 @@ type_def:
     - unique_values:
       - leader
       - members
-
 ```
 
 ## YASL Primitives
@@ -167,7 +169,6 @@ Below is a list of cross-field validators provided by YASL.
   - `value`: any | `nil` - Value to compare to `if` for equivalence (i.e. `true` for a bool, `42` for int, `nil` for absence of data, etc.). Default: none.
   - `present`: ref(type_def.fields.name)[] - list of field names in the `type_def` that must be present if the check is `true`. Default: none.
   - `absent`: ref(type_def.fields.name)[] - list of field names in the `type_def` that must be absent of the check is `true`.  Default: none.
-- `unique_values`: ref(type_def.fields.name)[] - list of field names in the `type_def` that must not contain duplicate data entries.  All referenced fields must be of the same type but may be a combination of values and lists.
 
 ```yaml
 type_def:
@@ -210,3 +211,107 @@ type_def:
         absent:
           - radius_len
 ```
+
+## Importing Data
+
+For large or complex data sets, you will likely want to organize content in a more manageable way than a single file.
+YASL provides an import capability that allows you to distribute content across the file system.
+
+Imagine you're tracking data about your company's projects.
+You need a way to define data structures that also leverage information about employees and teams.
+
+`org.yasl`
+``` yaml
+type_def:
+  name: employee
+  description: Information about a individual human.
+  fields:
+    - name: id
+      type: str
+      description: The employee ID within the HR system.
+      str_min: 5
+      str_max: 16
+    - name: first_name
+      type: str
+      description: The first name of the person.
+    - name: last_name
+      type: str
+      description:  The last name of the person.
+    - name: middle_name
+      type: str
+      description:  The middle name or middile initial of the person.
+      required: false
+    - name: email
+      type: str
+      description: The person's email address.
+      required: false
+      regex:
+        - ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$
+
+type_def:
+  name: team
+  description: A collection of employees who work together regularly.
+  fields:
+    - name: name
+      type: str
+      description: The name of the team.
+      str_min: 5
+      str_max: 32
+    - name: leader
+      type: ref(employee.id)
+      description: The designated individual to lead the team.
+    - name: members
+      type: ref(employee.id)[]
+      description: A list of employees (by employee id) who are on the team.  Smallest possible team size is 3 (1 lead and 2 members).
+      list_min: 2
+  validators:
+    - unique_values:
+      - leader
+      - members
+```
+
+Given the `org.yasl` definitions of employees and teams, we need to define our project data structures to reuse these data definitions.  We don't want to repeat the definitions and cause a maintenance nightmare for ourselves.  Instead we will import `org.yasl` so that we have access to the defined data types.
+
+`project.yasl`
+```yaml
+import:
+  - ./org.yasl
+
+enum:
+  name: project_status
+  values:
+    - PROPOSED
+    - DEFERRED
+    - ACTIVE
+    - PAUSED
+    - COMPLETED
+
+type_def:
+  name: project
+  description: A set of work intended to provide customer or business value.
+  fields:
+    - name: name
+      type: str
+      description: The name of the project.
+      unique: true
+      required: true
+    - name: sow
+      type: str
+      description: The statement of work for the project.
+      required: true
+    - name: pm
+      type: employee  # Using org.yasl definition of employee
+      description: The individual serving as the project manager.
+      required: true
+    - name: teams
+      type: team[] # using org.yasl definition of team
+      description: The teams assigned to work the project.
+      list_min: 1
+      required: true
+```
+
+## Comments
+
+YASL is just YAML, so comments work the same way.
+Just start your comment with a `#` and everything after that is comment text.
+You can do full or partial line comments.

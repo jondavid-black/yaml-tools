@@ -1,0 +1,23 @@
+# This is the yasl schema for yasl itself.
+
+type_def:
+  name: type_def
+  description: The definition for a YASL data structure.
+  fields:
+    - name: name
+      type: string
+      description: The name of the type definition.
+      required: true
+      unique: true
+    - name: description
+      type: string
+      description: A description of the type definition.
+      required: false
+    - name: fields
+      type: field[]
+      description: The fields that make up the type definition.
+      required: true
+    - name: validators
+      type: validator[]
+      description: The validators that apply to the type definition.
+      required: false
