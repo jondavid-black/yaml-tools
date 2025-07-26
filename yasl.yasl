@@ -2,6 +2,7 @@
 
 type_def:
   name: type_def
+  package: yasl.lang
   description: The definition for a YASL data structure.
   fields:
     - name: name
@@ -18,6 +19,255 @@ type_def:
       description: The fields that make up the type definition.
       required: true
     - name: validators
-      type: validator[]
+      type: validators
       description: The validators that apply to the type definition.
       required: false
+
+type_def:
+  name: field
+  package: yasl.lang
+  description: A field in a YASL type definition.
+  fields:
+    - name: name
+      type: str
+      description: The name of the field.
+      required: true
+    - name: package
+      type: str
+      description: The package in which the field type is defined.
+      required: false
+    - name: type
+      type: type
+      description: The name of the primitive, enum, or type_def that this field is typed as.
+      required: true
+    - name: description
+      type: str
+      description: A description of the field.
+      required: false
+    - name: required
+      type: bool
+      description: Whether the field is required.
+      required: false
+      default: true
+    - name: unique
+      type: bool
+      description: Whether the field must be unique across instances of the type definition.
+      required: false
+      default: false
+    - name: default
+      type: any
+      description: The default value for the field if not provided.
+      required: false
+
+    # list field constraints
+    - name: list_min
+      type: int
+      description: The minimum number of items in a list field.
+      required: false
+      default: 0
+    - name: list_max
+      type: int
+      description: The maximum number of items in a list field.
+      required: false
+
+    # int and num field constraints
+    - name: min
+      type: any
+      of:
+        - int
+        - num
+      description: The minimum value for int or num fields.
+      required: false
+    - name: max
+      type: any
+      of:
+        - int
+        - num
+      description: The maximum value for int or num fields.
+      required: false
+    - name: exclude
+      type: any[]
+      of:
+        - int
+        - num
+      description: A list of values that are excluded from valid values for the field.
+      required: false
+
+    # str field constraints
+    - name: str_min
+      type: int
+      description: The minimum length of the str.
+      required: false
+    - name: str_len
+      type: int
+      description: The maximum length of the str.
+      required: false
+    - name: str_regex
+      type: str[]
+      description: A list of regular expressions a str field value must match.
+      required: false
+
+    # date field constraints
+    - name: date_format
+      type: str
+      description: The date format to use for date fields per ISO 8601.
+      required: false
+      default: YYYY-MM-DD HH:MM:SS:ssss
+    - name: before
+      type: date
+      description: A date before which the field value must be.
+      required: false
+    - name: after
+      type: date
+      description: A date after which the field value must be.
+      required: false
+
+    # path field constraints
+    - name: path_regex
+      type: str[]
+      description: A list of regular expressions a path field value must match.
+      required: false
+    - name: path_exists
+      type: bool
+      description: Whether the path field value must exist on the file system.
+      required: false
+    - name: is_dir
+      type: bool
+      description: Whether the path field value must be a directory.
+      required: false
+    - name: is_file
+      type: bool
+      description: Whether the path field value must be a file.
+      required: false
+
+    # url field constraints
+    - name: url_protocol
+      type: str[]
+      description: A list of allowed protocols for the URL field (i.e. http, https).
+      required: false
+    - name: url_reachable
+      type: bool
+      description: Whether the URL field value must be reachable on the current network.
+      required: false
+
+    # any field constraints
+    - name: any_of
+      type: type[]
+      description: A list of types that the any field value must match.
+      required: false
+
+    # ref field constraints
+    - name: ref_exists
+      type: bool
+      description: Whether the reference field value must exist in the data.
+      required: false
+      default: true
+    - name: ref_multi
+      type: bool
+      description: Whether the reference field may return multiple values (accounting for optional filters).
+      required: false
+      default: false
+    - name: ref_filters
+      type: ref_filter[]
+      description: A list of filters to apply when resolving the reference field value.
+      required: false
+
+type_def:
+  name: ref_filter
+  package: yasl.lang
+  description: A filter to apply when resolving a reference field value.
+  fields:
+    - name: target
+      type: ref
+      description: The target string to filter by (i.e. type_def/name).
+      required: true
+    - name: value
+      type: any
+      description: The limiting value for the reference field.
+      required: true
+      
+type_def:
+  name: validators
+  package: yasl.lang
+  description: The validators that can be applied to a type definition.
+  fields:
+    - name: only_one
+      type: str[]
+      description: A list of field names that must not be present together.
+      required: false
+    - name: at_least_one
+      type: str[]
+      description: A list of field names where one or more must be present.
+      required: false
+    - name: if_then
+      type: if_then
+      description: A list of conditions that must be met for the type definition.
+      required: false
+
+type_def:
+  name: if_then
+  package: yasl.lang
+  description: A condition that must be met for the type definition.
+  fields:
+    - name: if
+      type: string
+      description: The name of the field to evaluate.
+      required: true
+    - name: value
+      type: any[]
+      description: The values to compare to `if` for equivalence (i.e. `true` for a bool, `42` for int, `nil` for absence of data, etc.).
+      required: true
+      list_min: 1
+    - name: present
+      type: ref(../../fields/name)[]
+      description: A list of field names in the type definition that must be present if the condition is met.
+      required: false
+    - name: absent
+      type: ref(../../fields/name)[]
+      description: A list of field names in the type definition that must be absent if the condition is met.
+      required: false
+  validators:
+    at_least_one:
+      - present
+      - absent
+
+type_def:
+  name: enum
+  package: yasl.lang
+  description: An enumerated value for a YASL type definition.
+  fields:
+    - name: name
+      type: str
+      description: The name of the enumerated value.
+      required: true
+      unique: true
+    - name: description
+      type: str
+      description: A description of the enumerated value.
+      required: false
+    - name: values[]
+      type: str
+      description: The values of the enumerated value.
+      required: true
+      list_min: 1
+
+type_def:
+  name: import
+  package: yasl.lang
+  description: An import statement for a YASL type definition.
+  fields:
+    - name: local
+      type: path[]
+      description: The paths to the YASL file to import.
+      required: true
+      list_min: 1
+    - name: remote
+      type: url[]
+      description: The URLs to the YASL file to import.
+      required: false
+      list_min: 1
+  validators:
+    at_least_one:
+      - paths
+      - urls
+
