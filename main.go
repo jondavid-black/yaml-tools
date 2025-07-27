@@ -166,5 +166,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Collect context inputs from environment variables or CLI flags
+    context := make(map[string]string)
+
+	// add any CLI flags
+	context["quiet"] = fmt.Sprintf("%t", *quietFlag || *quietFlagLong)
+	context["verbose"] = fmt.Sprintf("%t", *verboseFlag || *verboseFlagLong)
+
+	// add any environment variables
+	envVars := []string{"YASL_SSL_VERIFY", "YASL_HTTP_PROXY", "YASL_HTTPS_PROXY"}
+    for _, envVar := range envVars {
+        if val, exists := os.LookupEnv(envVar); exists {
+            context[strings.TrimPrefix(envVar, "YASL_")] = val
+        }
+    }
+
 	logrus.Infof("OK - %s, %s", yamlPath, yaslPath)
 }
