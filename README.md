@@ -65,13 +65,23 @@ The string primitive is represented by the type name `str` when defining fields 
 
 String validators include:
 
-- `str_len`: int - The minimum length of the string. Default: none.
-- `str_len`: int - The maximum length of the string. Default: none.
+- `str_min`: int - The minimum length of the string. Default: none.
+- `str_max`: int - The maximum length of the string. Default: none.
 - `str_regex`: str[] - List of regular expression validation rules. Default: none.
 
 A string field definition within a defined type may look like...
 ```yaml
-
+type_def:
+  name: person
+  description: A person data item.
+  fields:
+    - name: name
+      type: str
+      description: A person's full name.  Must include a first name, optional middle name(s), and a last name.
+      str_min: 2
+      str_max: 50
+      str_regex: ^[A-Z][a-zA-Z]*\s(?:[A-Z][a-zA-Z]*\s)*[A-Z][a-zA-Z]*$
+  
 ```
 
 #### Integer
@@ -88,7 +98,18 @@ Integer validators include:
 
 An integer field definition within a defined type may look like...
 ```yaml
-
+type_def:
+  name: person
+  description: A person data item.
+  fields:
+    - name: name
+      type: str
+      description: A person's full name
+    - name: age
+      type: int
+      description: A person's age in years.
+      min: 0
+      max: 150
 ```
 
 #### Number
@@ -105,7 +126,18 @@ Number validators include:
 
 A number field definition within a defined type may look like...
 ```yaml
-
+type_def:
+  name: person
+  description: A person data item.
+  fields:
+    - name: name
+      type: str
+      description: A person's full name
+    - name: height
+      type: int
+      description: A person's height in meters.
+      min: 0.0
+      max: 2.9  # ~0.2m taller than the tallest person ever recorded
 ```
 
 #### Boolean
@@ -118,7 +150,16 @@ There are no YASL validators for boolean values.
 
 A number field definition within a defined type may look like...
 ```yaml
-
+type_def:
+  name: person
+  description: A person data item.
+  fields:
+    - name: name
+      type: str
+      description: A person's full name
+    - name: citizen
+      type: bool
+      description: True if the person is a citizen, false otherwise.
 ```
 
 #### Date
@@ -135,7 +176,18 @@ Date validators include:
 
 A date field definition within a defined type may look like...
 ```yaml
-
+type_def:
+  name: person
+  description: A person data item.
+  fields:
+    - name: name
+      type: str
+      description: A person's full name
+    - name: birthdate
+      type: date
+      description: The date a person was born.
+      date_format: YYYY-MM-DD
+      after: 1907-03-03  # current oldest person is 117 yrs old, so 1 day before her birthday
 ```
 
 #### Path
@@ -153,7 +205,18 @@ Path validators include:
 
 A path field definition within a defined type may look like...
 ```yaml
-
+type_def:
+  name: person
+  description: A person data item.
+  fields:
+    - name: name
+      type: str
+      description: A person's full name
+    - name: birth_certificate
+      type: path
+      description: A scan of the person's birth certificate.
+      exists: true
+      is_file: true
 ```
 
 #### URL
@@ -169,7 +232,17 @@ URL validators include:
 
 A URL field definition within a defined type may look like...
 ```yaml
-
+type_def:
+  name: person
+  description: A person data item.
+  fields:
+    - name: name
+      type: str
+      description: A person's full name
+    - name: bio
+      type: url
+      description: URL to a person's online bio.
+      url_reachable: true
 ```
 
 #### TYPE
@@ -180,29 +253,19 @@ The type primitive is represented by the type name `type` when defining fields i
 
 There are no YASL validators for type values.
 
-A type field definition within a defined type may look like...
-```yaml
-
-```
-
 #### Reference
 
 A reference is used to refere to a data element within the YAML being evaluated by YASL.
 The ref primitive is represented by the type name `ref(target)` where target orients the reference when defining fields in schemas.
 Reference types are parameterized with the `target` of the reference location.
 The format of the target emulates file system paths and allows for absolute and by-reference definition with the defined type structure of the schema.
-Defining and using references can get complex, so a detailed description of references is provided below.
+Defining and using references can get complex, so a detailed description of references with examples is provided below.
 
 Reference validators include:
 
 - `ref_exists`: bool - True if reference target must exist in the data, false othersise. Default: true.
 - `ref_multi`: bool - True if a reference target may return multiple values (i.e. act as a list), false otherwise. Default: false.
 - `ref_filters`: ref_filter[] - List of filters defined by reference and value to constrain the ref lookup in the data set. Default: none.
-
-A reference field definition within a defined type may look like...
-```yaml
-
-```
 
 #### Any
 
@@ -215,7 +278,23 @@ Any validators include:
 
 An any field definition within a defined type may look like...
 ```yaml
-
+type_def:
+  name: person
+  description: A person data item.
+  fields:
+    - name: name
+      type: str
+      description: A person's full name
+    - name: favorite_pet
+      type: any
+      description: The person's favorite pet.
+      any_of:  # The types of pets known to the schema
+        - cat
+        - dog
+        - fish
+        - bird
+        - reptile
+        - rabbit
 ```
 
 ### YASL Enumeration Definitions

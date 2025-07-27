@@ -98,7 +98,7 @@ type_def:
       type: int
       description: The minimum length of the str.
       required: false
-    - name: str_len
+    - name: str_max
       type: int
       description: The maximum length of the str.
       required: false
