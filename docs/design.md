@@ -125,7 +125,7 @@ To accomplish this, we must build the `core` YASL capability as a shared library
 
 ```bash
 # This creates yasl.so on Linux/macOS or yasl.dll on Windows
-go build -buildmode=c-shared -o yasl.so ./core/core.go
+go build -buildmode=c-shared -o yasl.so main.go
 ```
 
 Note: On Windows, you may want to name the output yasl.dll. On macOS, use yasl.dylib.

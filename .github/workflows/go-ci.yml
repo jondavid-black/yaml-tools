@@ -34,6 +34,11 @@ jobs:
         run: |
           GOOS=windows GOARCH=amd64 go build -o yasl.exe main.go
 
+      - name: Build shared library
+        run: |
+          GOOS=linux GOARCH=amd64 go build -buildmode=c-shared -o yasl.so main.go
+          GOOS=windows GOARCH=amd64 go build -buildmode=c-shared -o yasl.dll main.go
+
       - name: Check Version Bump
         run: |
           git fetch origin main:refs/remotes/origin/main
