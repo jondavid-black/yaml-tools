@@ -5,7 +5,7 @@ import (
 )
 
 // Version is the semantic version for the YASL CLI.
-const Version = "v0.0.3"
+const Version = "v0.0.4"
 
 func SanitizePath(path string) (string, error) {
 	// Example sanitization logic: ensure no special characters or invalid paths

@@ -1,6 +1,9 @@
 # Binaries
 yasl
 *.exe
+
+# Shared Library Files
+*.h
 *.dll
 *.so
 *.dylib
