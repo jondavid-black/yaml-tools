@@ -19,7 +19,7 @@ type ReturnValue struct {
 }
 
 // process_yasl contains the original Go logic.
-func process_yasl(yamlStr string, yaslStr string, context map[string]string) (map[string]any, error) {
+func processYASL(yamlStr string, yaslStr string, context map[string]string) (map[string]any, error) {
 	fmt.Println("▶️  Executing logic in Go...")
 
 	if yamlStr == "" {
@@ -52,12 +52,12 @@ func ProcessYASL(yaml *C.char, yasl *C.char, contextJSON *C.char) *C.char {
 	// Unmarshal the context map from JSON
 	var context map[string]string
 	if err := json.Unmarshal([]byte(contextJSONStr), &context); err != nil {
-		errJson, _ := json.Marshal(ReturnValue{Error: "failed to parse context JSON"})
-		return C.CString(string(errJson))
+		errJSON, _ := json.Marshal(ReturnValue{Error: "failed to parse context JSON"})
+		return C.CString(string(errJSON))
 	}
 
 	// Call the main Go logic
-	data, err := process_yasl(yamlStr, yaslStr, context)
+	data, err := processYASL(yamlStr, yaslStr, context)
 
 	// Create a standardized return value (with either data or an error)
 	var retVal ReturnValue
