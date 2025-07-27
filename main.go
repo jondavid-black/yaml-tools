@@ -1,6 +1,9 @@
 package main
 
+import "C"
 import (
+	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/jondavid-black/YASL/core"
@@ -8,6 +11,68 @@ import (
 	"os"
 	"strings"
 )
+
+// ReturnValue is a standardized struct for the JSON response to Python.
+type ReturnValue struct {
+	Data  map[string]any `json:"data"`
+	Error string         `json:"error"`
+}
+
+// process_yasl contains the original Go logic.
+func processYASL(yamlStr string, yaslStr string, context map[string]string) (map[string]any, error) {
+	fmt.Println("▶️  Executing logic in Go...")
+
+	if yamlStr == "" {
+		return nil, errors.New("YAML input cannot be empty")
+	}
+	if yaslStr == "" {
+		return nil, errors.New("YASL input cannot be empty")
+	}
+
+	// Placeholder for the full processing logic
+	dataModel := make(map[string]any)
+	dataModel["status"] = "verified"
+	dataModel["source"] = "Go"
+	dataModel["contextReceived"] = context
+
+	fmt.Println("✅ Go logic complete.")
+	return dataModel, nil
+}
+
+// ProcessYASL is the C-compatible exported function.
+// It takes C strings as input and returns a single C string containing JSON.
+//
+//export ProcessYASL
+func ProcessYASL(yaml *C.char, yasl *C.char, contextJSON *C.char) *C.char {
+	// Convert C inputs to Go strings
+	yamlStr := C.GoString(yaml)
+	yaslStr := C.GoString(yasl)
+	contextJSONStr := C.GoString(contextJSON)
+
+	// Unmarshal the context map from JSON
+	var context map[string]string
+	if err := json.Unmarshal([]byte(contextJSONStr), &context); err != nil {
+		errJSON, _ := json.Marshal(ReturnValue{Error: "failed to parse context JSON"})
+		return C.CString(string(errJSON))
+	}
+
+	// Call the main Go logic
+	data, err := processYASL(yamlStr, yaslStr, context)
+
+	// Create a standardized return value (with either data or an error)
+	var retVal ReturnValue
+	if err != nil {
+		retVal.Error = err.Error()
+	} else {
+		retVal.Data = data
+	}
+
+	// Marshal the final response to a JSON byte array
+	jsonBytes, _ := json.Marshal(retVal)
+
+	// Return the JSON as a C string (Python will be responsible for this memory)
+	return C.CString(string(jsonBytes))
+}
 
 func main() {
 	yamlFlag := flag.String("yaml", "", "Path to the YAML file")

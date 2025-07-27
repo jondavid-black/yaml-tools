@@ -1,0 +1,65 @@
+import ctypes
+import json
+import os
+import platform
+
+class YASL:
+    """A Python wrapper for the Go YASL processor shared library."""
+
+    def __init__(self):
+        """Initializes the wrapper by loading the Go shared library."""
+        lib_name = self._get_lib_name()
+        if not os.path.exists(lib_name):
+            raise FileNotFoundError(
+                f"Shared library '{lib_name}' not found. "
+                f"Please compile it first with: go build -buildmode=c-shared -o {lib_name} yasl_processor.go"
+            )
+
+        # Load the shared library
+        self._lib = ctypes.CDLL(lib_name)
+
+        # Define the argument and return types for the exported Go function
+        self._process_func = self._lib.ProcessYASL
+        self._process_func.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
+        self._process_func.restype = ctypes.c_char_p
+
+    def _get_lib_name(self) -> str:
+        """Determines the correct shared library file name based on the OS."""
+        if platform.system() == "Windows":
+            return "yasl.dll"
+        if platform.system() == "Darwin":
+            return "yasl.dylib"
+        return "yasl.so"
+
+    def process_yasl(self, yaml: str, yasl: str, context: dict) -> dict:
+        """
+        Calls the Go function to process YAML and YASL content.
+
+        Args:
+            yaml: A string containing the YAML content.
+            yasl: A string containing the YASL schema content.
+            context: A dictionary for context (e.g., from CLI).
+
+        Returns:
+            A dictionary representing the processed data model.
+
+        Raises:
+            Exception: If the Go function returns an error.
+        """
+        # Convert Python types to C-compatible types (UTF-8 encoded bytes)
+        yaml_c = ctypes.c_char_p(yaml.encode('utf-8'))
+        yasl_c = ctypes.c_char_p(yasl.encode('utf-8'))
+        context_json_c = ctypes.c_char_p(json.dumps(context).encode('utf-8'))
+
+        # Call the Go function
+        result_ptr = self._process_func(yaml_c, yasl_c, context_json_c)
+        
+        # Decode the resulting C string (JSON) into a Python string
+        result_json = result_ptr.decode('utf-8')
+        response = json.loads(result_json)
+
+        # Check for errors returned from Go
+        if response.get("error"):
+            raise Exception(f"Go processor error: {response['error']}")
+
+        return response.get("data", {})

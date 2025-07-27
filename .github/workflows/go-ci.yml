@@ -16,6 +16,9 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Install mingw-w64 for Windows CGO
+        run: sudo apt-get update && sudo apt-get install -y mingw-w64
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -30,9 +33,25 @@ jobs:
         run: |
           GOOS=linux GOARCH=amd64 go build -o yasl main.go
 
-      - name: Build Windows Executable
+      - name: Build Windows Executable (CGO)
+        env:
+          CC: x86_64-w64-mingw32-gcc
+          CGO_ENABLED: 1
+          GOOS: windows
+          GOARCH: amd64
+        run: go build -o yasl.exe main.go
+
+      - name: Build shared library
         run: |
-          GOOS=windows GOARCH=amd64 go build -o yasl.exe main.go
+          GOOS=linux GOARCH=amd64 go build -buildmode=c-shared -o yasl.so main.go
+      
+      - name: Build Windows Shared Library (CGO)
+        env:
+          CC: x86_64-w64-mingw32-gcc
+          CGO_ENABLED: 1
+          GOOS: windows
+          GOARCH: amd64
+        run: go build -buildmode=c-shared -o yasl.dll main.go
 
       - name: Check Version Bump
         run: |

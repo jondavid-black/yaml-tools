@@ -8,8 +8,8 @@ The project follows a modular structure:
 - `core/`: Contains the core utility logic for YASL.
     - `core.go`: Core functionality for schema validation.
     - `core_test.go`: Unit tests for core functionality.
-- `yasl.go`: Main entry point for the YASL CLI.
-- `yasl_test.go`: Unit tests for YASL CLI functionality.
+- `main.go`: Main entry point for the YASL CLI.
+- `main_test.go`: Unit tests for YASL CLI functionality.
 - `go.mod` and `go.sum`: Go module files for dependency management.
 - `README.md`: Project documentation and usage instructions.
 - `docs/`: Contains additional documentation, including design decisions and API usage.
