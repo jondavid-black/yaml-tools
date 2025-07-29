@@ -35,8 +35,8 @@ func TestYASL_CLI_PositionalArgs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected success, got error: %v, output: %s", err, output)
 	}
-	if len(output) < 2 || string(output[:2]) != "OK" {
-		t.Errorf("Expected output to start with 'OK', got: %s", output)
+	if !containsOKText(string(output)) {
+		t.Errorf("Expected plain text output with '✅ YASL processing complete', got: %s", output)
 	}
 }
 
@@ -68,8 +68,8 @@ func TestYASL_CLI_Flags(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected success, got error: %v, output: %s", err, output)
 	}
-	if len(output) < 2 || string(output[:2]) != "OK" {
-		t.Errorf("Expected output to start with 'OK', got: %s", output)
+	if !containsOKText(string(output)) {
+		t.Errorf("Expected plain text output with '✅ YASL processing complete', got: %s", output)
 	}
 }
 
@@ -101,7 +101,7 @@ func TestYASL_CLI_OutputType_Text(t *testing.T) {
 		t.Fatalf("Expected success, got error: %v, output: %s", err, output)
 	}
 	if !containsOKText(string(output)) {
-		t.Errorf("Expected plain text output with 'OK', got: %s", output)
+		t.Errorf("Expected plain text output with '✅ YASL processing complete', got: %s", output)
 	}
 }
 
@@ -171,8 +171,8 @@ func TestYASL_CLI_OutputType_YAML(t *testing.T) {
 
 // Helper functions for log output checks
 func containsOKText(out string) bool {
-	// Should contain 'OK - ' and not look like JSON or YAML
-	return len(out) > 0 && out[:3] == "OK "
+	// Should contain '✅ YASL processing complete.' and not look like JSON or YAML
+    return len(out) > 0 && contains(out, "✅ YASL processing complete.")
 }
 
 func containsJSONLog(out string) bool {

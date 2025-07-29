@@ -70,8 +70,8 @@ func processYASL(yamlStr string, yaslStr string, context map[string]string) Proc
 
 	// debug logging for context variables
 	var contextInputs string = "YASL context variables: /n"
-	contextInputs += fmt.Sprintf("  - quiet: %s", quiet)
-	contextInputs += fmt.Sprintf("  - verbose: %s", verbose)
+	contextInputs += fmt.Sprintf("  - quiet: %t", quiet)
+	contextInputs += fmt.Sprintf("  - verbose: %t", verbose)
 	contextInputs += fmt.Sprintf("  - ssl_verify: %t", sslVerify)
 	contextInputs += fmt.Sprintf("  - http_proxy: %s", httpProxy)
 	contextInputs += fmt.Sprintf("  - https_proxy: %s", httpsProxy)
@@ -80,7 +80,7 @@ func processYASL(yamlStr string, yaslStr string, context map[string]string) Proc
 
 	// TODO: add processing logic
 
-	fmt.Println("✅ Go logic complete.")
+	fmt.Println("✅ YASL processing complete.")
 	result.Logs = append(result.Logs, LogEntry{Level: "debug", Message: "✅ YASL processing complete."})
 	return result
 }
