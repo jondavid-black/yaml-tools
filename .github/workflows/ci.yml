@@ -1,26 +1,85 @@
-name: YASL CI
+# .github/workflows/go-ci.yml
+name: Go CI/CD
 
 on:
   push:
-    branches: [ main, inputs ]
+    branches:
+      - main
   pull_request:
-    branches: [ main, inputs ]
+    branches:
+      - main
 
 jobs:
-  build-go:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install mingw-w64 for Windows CGO
+        run: sudo apt-get update && sudo apt-get install -y mingw-w64
+
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
-      - name: Build Go shared library
+          go-version: '1.22' # Or your desired Go version
+
+      - name: Ensure Go Dependencies
         run: |
-          go build -buildmode=c-shared -o api/python/yasl.so main.go
-          go build -buildmode=c-shared -o api/javascript/yasl.so main.go
-      - name: Run Go tests
-        run: go test ./...
+          go mod tidy
+          go mod download
+
+      - name: Build Linux Executable
+        run: |
+          GOOS=linux GOARCH=amd64 go build -o yasl main.go
+
+      - name: Build Windows Executable (CGO)
+        env:
+          CC: x86_64-w64-mingw32-gcc
+          CGO_ENABLED: 1
+          GOOS: windows
+          GOARCH: amd64
+        run: go build -o yasl.exe main.go
+
+      - name: Build shared library
+        run: |
+          GOOS=linux GOARCH=amd64 go build -buildmode=c-shared -o yasl.so main.go
+      
+      - name: Build Windows Shared Library (CGO)
+        env:
+          CC: x86_64-w64-mingw32-gcc
+          CGO_ENABLED: 1
+          GOOS: windows
+          GOARCH: amd64
+        run: go build -buildmode=c-shared -o yasl.dll main.go
+
+      - name: Check Version Bump
+        run: |
+          git fetch origin main:refs/remotes/origin/main
+          current_version=$(grep 'const Version' core/core.go | awk -F'"' '{print $2}')
+          main_version=$(git show origin/main:core/core.go | grep 'const Version' | awk -F'"' '{print $2}')
+          echo "Current branch version: $current_version"
+          echo "Main branch version: $main_version"
+          if [ "$current_version" = "$main_version" ]; then
+            echo "Version has not been updated! Please bump the Version constant in core/core.go."
+            exit 1
+          fi
+
+      - name: Check Go Formatting
+        run: |
+          gofmt -l -w main.go main_test.go
+          gofmt -l -w ./core/core.go ./core/logging.go
+          git diff --exit-code '*.go' || (echo 'Go files are not properly formatted. Please run gofmt.' && exit 1)
+
+      - name: Run Go Tests
+        run: go test -v ./...
+
+      # --- Static Analysis ---
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v5
+        with:
+          version: v1.59.1
+          args: --config .golangci.yml --timeout=5m --issues-exit-code=1
 
   test-python:
     runs-on: ubuntu-latest
@@ -36,7 +95,7 @@ jobs:
           python -m pip install --upgrade pip
       - name: Run Python API tests
         run: |
-          cp api/python/yasl.so tests/python/
+          cp yasl.so tests/python/
           python -m unittest discover -s tests/python
 
   test-javascript:
@@ -54,5 +113,7 @@ jobs:
           npm install jest
       - name: Run JavaScript API tests
         run: |
-          cp api/javascript/yasl.so tests/javascript/
+          cp yasl.so tests/javascript/
           npx jest tests/javascript/test_yasl_api.test.js
+
+      
