@@ -14,38 +14,25 @@ class YASL:
                 f"Shared library '{lib_name}' not found. "
                 f"Please compile it first with: go build -buildmode=c-shared -o {lib_name} yasl_processor.go"
             )
+        else:
+            print(f"DEBUG: Loading shared library: {lib_name}")
 
         # Load the shared library
         self._lib = ctypes.CDLL(lib_name)
 
         # Define the argument and return types for the exported Go function
         self._process_func = self._lib.ProcessYASL
-        self._process_func.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
+        self._process_func.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
         self._process_func.restype = ctypes.c_char_p
 
     def _get_lib_name(self) -> str:
-        """Determines the correct shared library file name based on the OS."""
+        root = os.path.dirname(os.path.abspath(__file__))
         if platform.system() == "Windows":
-            return "yasl.dll"
+            return os.path.join(root, "yasl.dll")
         if platform.system() == "Darwin":
-            return "yasl.dylib"
-        return "yasl.so"
+            return os.path.join(root, "yasl.dylib")
+        return os.path.join(root, "yasl.so")
 
-    def process_yasl(self, yaml: str, yasl: str, context: dict) -> dict:
-        """
-        Calls the Go function to process YAML and YASL content.
-
-        Args:
-            yaml: A string containing the YAML content.
-            yasl: A string containing the YASL schema content.
-            context: A dictionary for context (e.g., from CLI).
-
-        Returns:
-            A dictionary representing the processed data model.
-
-        Raises:
-            Exception: If the Go function returns an error.
-        """
     def process_yasl(self, yaml: str, yasl: str, context: dict, yaml_data: dict = None, yasl_data: dict = None) -> dict:
         """
         Calls the Go function to process YAML and YASL, with optional import maps.
@@ -63,10 +50,6 @@ class YASL:
         context_json_c = ctypes.c_char_p(json.dumps(context).encode('utf-8'))
         yaml_data_json_c = ctypes.c_char_p(json.dumps(yaml_data or {}).encode('utf-8'))
         yasl_data_json_c = ctypes.c_char_p(json.dumps(yasl_data or {}).encode('utf-8'))
-        # Update C function signature
-        self._process_func = self._lib.ProcessYASL
-        self._process_func.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
-        self._process_func.restype = ctypes.c_char_p
         result_ptr = self._process_func(yaml_c, yasl_c, context_json_c, yaml_data_json_c, yasl_data_json_c)
         result_json = result_ptr.decode('utf-8')
         response = json.loads(result_json)

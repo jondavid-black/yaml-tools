@@ -2,7 +2,8 @@ import unittest
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../api/python')))
-from yasl import YASL
+from yasl_py import YASL
+
 
 class TestYASLPythonAPI(unittest.TestCase):
     def setUp(self):
@@ -11,7 +12,7 @@ class TestYASLPythonAPI(unittest.TestCase):
     def test_process_yasl_basic(self):
         yaml = "foo: bar"
         yasl = "type: object"
-        context = {"quiet": False}
+        context = {}
         yaml_data = {}
         yasl_data = {}
         result = self.yasl.process_yasl(yaml, yasl, context, yaml_data, yasl_data)
@@ -21,7 +22,7 @@ class TestYASLPythonAPI(unittest.TestCase):
     def test_process_yasl_error(self):
         yaml = ""
         yasl = "type: object"
-        context = {"quiet": False}
+        context = {}
         yaml_data = {}
         yasl_data = {}
         with self.assertRaises(Exception) as cm:
