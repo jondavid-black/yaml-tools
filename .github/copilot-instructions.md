@@ -15,7 +15,6 @@ The project follows a modular structure:
 - `docs/`: Contains additional documentation, including design decisions and API usage.
 - `api/`: Holds API wrappers for different languages.
     - `api/python/`: Python API wrapper.
-    - `api/javascript/`: JavaScript API wrapper.
 - `features/`: Contains Behave (BDD) feature files and step definitions for acceptance testing.
 - `.github/workflows/`: GitHub Actions CI/CD pipeline definitions.
 

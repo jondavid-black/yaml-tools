@@ -3,7 +3,6 @@ package main
 import "C"
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"github.com/jondavid-black/YASL/core"
@@ -12,65 +11,126 @@ import (
 	"strings"
 )
 
-// ReturnValue is a standardized struct for the JSON response to Python.
-type ReturnValue struct {
-	Data  map[string]any `json:"data"`
-	Error string         `json:"error"`
+// LogEntry defines a single structured log message.
+type LogEntry struct {
+	Level   string `json:"level"` // e.g., "info", "warn", "error"
+	Message string `json:"message"`
+}
+
+// ProcessingResult is the single, unified return object.
+// It will be serialized to JSON.
+type ProcessingResult struct {
+	Logs  []LogEntry `json:"logs"`
+	Error string     `json:"error,omitempty"`
 }
 
 // process_yasl contains the original Go logic.
-func processYASL(yamlStr string, yaslStr string, context map[string]string) (map[string]any, error) {
-	fmt.Println("▶️  Executing logic in Go...")
+func processYASL(yamlStr string, yaslStr string, context map[string]string, yamlData map[string]string, yaslData map[string]string) ProcessingResult {
+
+	var result ProcessingResult
+	result.Logs = make([]LogEntry, 0)
+	result.Logs = append(result.Logs, LogEntry{Level: "debug", Message: "▶️  Starting YASL processing."})
 
 	if yamlStr == "" {
-		return nil, errors.New("YAML input cannot be empty")
+		result.Logs = append(result.Logs, LogEntry{Level: "error", Message: "YAML input cannot be empty"})
+		result.Error = "YAML input cannot be empty"
+		return result
 	}
 	if yaslStr == "" {
-		return nil, errors.New("YASL input cannot be empty")
+		result.Logs = append(result.Logs, LogEntry{Level: "error", Message: "YASL input cannot be empty"})
+		result.Error = "YASL input cannot be empty"
+		return result
 	}
 
-	// Placeholder for the full processing logic
-	dataModel := make(map[string]any)
-	dataModel["status"] = "verified"
-	dataModel["source"] = "Go"
-	dataModel["contextReceived"] = context
+	// Extract context variables by looping through the map and creating primitive types
+	var quiet bool = false
+	var verbose bool = false
+	var sslVerify bool = true
+	var httpProxy string
+	var httpsProxy string
+	for key, value := range context {
+		switch key {
+		case "quiet":
+			quiet = value == "true"
+		case "verbose":
+			verbose = value == "true"
+		case "ssl_verify":
+			sslVerify = value != "false"
+			if !sslVerify {
+				result.Logs = append(result.Logs, LogEntry{Level: "warn", Message: "SSL verification is disabled."})
+			}
+		case "http_proxy":
+			httpProxy = value
+		case "https_proxy":
+			httpsProxy = value
+		default:
+			result.Logs = append(result.Logs, LogEntry{Level: "warn", Message: fmt.Sprintf("Unknown context variable: %s", key)})
+		}
+	}
 
-	fmt.Println("✅ Go logic complete.")
-	return dataModel, nil
+	// debug logging for context variables
+	var contextInputs string = "YASL context variables: /n"
+	contextInputs += fmt.Sprintf("  - quiet: %t", quiet)
+	contextInputs += fmt.Sprintf("  - verbose: %t", verbose)
+	contextInputs += fmt.Sprintf("  - ssl_verify: %t", sslVerify)
+	contextInputs += fmt.Sprintf("  - http_proxy: %s", httpProxy)
+	contextInputs += fmt.Sprintf("  - https_proxy: %s", httpsProxy)
+	result.Logs = append(result.Logs, LogEntry{Level: "debug", Message: contextInputs})
+
+	// TODO: add processing logic, including yamlData and yaslData usage for imports
+	// For now, just log if maps are provided
+	if yamlData != nil {
+		result.Logs = append(result.Logs, LogEntry{Level: "debug", Message: "yamlData map provided for imports."})
+	}
+	if yaslData != nil {
+		result.Logs = append(result.Logs, LogEntry{Level: "debug", Message: "yaslData map provided for imports."})
+	}
+
+	fmt.Println("✅ YASL processing complete.")
+	result.Logs = append(result.Logs, LogEntry{Level: "debug", Message: "✅ YASL processing complete."})
+	return result
 }
 
 // ProcessYASL is the C-compatible exported function.
 // It takes C strings as input and returns a single C string containing JSON.
 //
 //export ProcessYASL
-func ProcessYASL(yaml *C.char, yasl *C.char, contextJSON *C.char) *C.char {
+func ProcessYASL(yaml *C.char, yasl *C.char, contextJSON *C.char, yamlDataJSON *C.char, yaslDataJSON *C.char) *C.char {
 	// Convert C inputs to Go strings
 	yamlStr := C.GoString(yaml)
 	yaslStr := C.GoString(yasl)
 	contextJSONStr := C.GoString(contextJSON)
+	yamlDataJSONStr := C.GoString(yamlDataJSON)
+	yaslDataJSONStr := C.GoString(yaslDataJSON)
 
 	// Unmarshal the context map from JSON
 	var context map[string]string
 	if err := json.Unmarshal([]byte(contextJSONStr), &context); err != nil {
-		errJSON, _ := json.Marshal(ReturnValue{Error: "failed to parse context JSON"})
+		errJSON, _ := json.Marshal(ProcessingResult{Error: "failed to parse context JSON"})
 		return C.CString(string(errJSON))
 	}
 
-	// Call the main Go logic
-	data, err := processYASL(yamlStr, yaslStr, context)
-
-	// Create a standardized return value (with either data or an error)
-	var retVal ReturnValue
-	if err != nil {
-		retVal.Error = err.Error()
-	} else {
-		retVal.Data = data
+	// Unmarshal yamlData and yaslData maps from JSON
+	var yamlData map[string]string
+	var yaslData map[string]string
+	if yamlDataJSONStr != "" {
+		if err := json.Unmarshal([]byte(yamlDataJSONStr), &yamlData); err != nil {
+			errJSON, _ := json.Marshal(ProcessingResult{Error: "failed to parse yamlData JSON"})
+			return C.CString(string(errJSON))
+		}
+	}
+	if yaslDataJSONStr != "" {
+		if err := json.Unmarshal([]byte(yaslDataJSONStr), &yaslData); err != nil {
+			errJSON, _ := json.Marshal(ProcessingResult{Error: "failed to parse yaslData JSON"})
+			return C.CString(string(errJSON))
+		}
 	}
 
-	// Marshal the final response to a JSON byte array
-	jsonBytes, _ := json.Marshal(retVal)
+	// Call the main Go logic
+	result := processYASL(yamlStr, yaslStr, context, yamlData, yaslData)
 
-	// Return the JSON as a C string (Python will be responsible for this memory)
+	// Marshal the entire result object to a single JSON string
+	jsonBytes, _ := json.Marshal(result)
 	return C.CString(string(jsonBytes))
 }
 
@@ -122,6 +182,10 @@ func main() {
 		fmt.Println("  -q, --quiet           Run in quiet mode (errors only)")
 		fmt.Println("  -v, --verbose         Run in verbose mode (debug/trace)")
 		fmt.Println("  --output-type         Log output type: text, json, yaml")
+		fmt.Println("Environment Variables:")
+		fmt.Println("  SSL_VERIFY            Set to 'false' to disable SSL verification")
+		fmt.Println("  HTTP_PROXY            Set HTTP proxy URL")
+		fmt.Println("  HTTPS_PROXY           Set HTTPS proxy URL")
 		os.Exit(0)
 	}
 
@@ -164,6 +228,57 @@ func main() {
 	if err != nil {
 		logrus.Errorf("YASL path error: %v", err)
 		os.Exit(1)
+	}
+
+	// Collect context inputs from environment variables or CLI flags
+	context := make(map[string]string)
+
+	// add any CLI flags
+	context["quiet"] = fmt.Sprintf("%t", *quietFlag || *quietFlagLong)
+	context["verbose"] = fmt.Sprintf("%t", *verboseFlag || *verboseFlagLong)
+
+	// add any environment variables
+	envVars := []string{"SSL_VERIFY", "HTTP_PROXY", "HTTPS_PROXY"}
+	for _, envVar := range envVars {
+		if val, exists := os.LookupEnv(envVar); exists {
+			context[strings.TrimPrefix(envVar, envVar)] = val
+		}
+	}
+
+	result := processYASL(yamlPath, yaslPath, context, nil, nil)
+
+	if result.Error != "" {
+		logrus.Errorf("YASL rocessing error: %s", result.Error)
+		os.Exit(1)
+	} else {
+		logrus.Infof("YASL processing completed successfully.")
+	}
+
+	// Print the result logs
+	for _, logEntry := range result.Logs {
+		var level logrus.Level
+		switch strings.ToLower(logEntry.Level) {
+		case "trace":
+			level = logrus.TraceLevel
+		case "debug":
+			level = logrus.DebugLevel
+		case "info":
+			level = logrus.InfoLevel
+		case "warn", "warning":
+			level = logrus.WarnLevel
+		case "error":
+			level = logrus.ErrorLevel
+		case "fatal":
+			level = logrus.FatalLevel
+		case "panic":
+			level = logrus.PanicLevel
+		default:
+			level = logrus.InfoLevel
+		}
+		logrus.WithFields(logrus.Fields{
+			"level":   logEntry.Level,
+			"message": logEntry.Message,
+		}).Log(level)
 	}
 
 	logrus.Infof("OK - %s, %s", yamlPath, yaslPath)
