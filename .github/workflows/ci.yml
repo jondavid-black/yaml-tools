@@ -126,28 +126,3 @@ jobs:
         run: |
           cp yasl.so api/python/
           python -m unittest discover -s tests/python
-
-  test-javascript:
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Download shared library
-        uses: actions/download-artifact@v4
-        with:
-          name: yasl-so
-          path: .
-      - name: Install dependencies
-        run: |
-          npm install ffi-napi
-          npm install jest
-      - name: Run JavaScript API tests
-        run: |
-          cp yasl.so tests/javascript/
-          npx jest tests/javascript/test_yasl_api.test.js
-
-      

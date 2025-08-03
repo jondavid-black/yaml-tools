@@ -120,7 +120,7 @@ Terminate the application.
 
 ## Cross-Language Support
 
-YASL is designed to support use by other languages, initially Python and JavaScript.
+YASL is designed to support use by other languages, initially Python.
 To accomplish this, we must build the `core` YASL capability as a shared library.
 
 ```bash
@@ -135,16 +135,3 @@ Note: On Windows, you may want to name the output yasl.dll. On macOS, use yasl.d
 TODO Add details on python library creation and usage.
 The Gemini 2.5 Pro generated Python wrapper is in the /api/python/yasl.py file.
 Still need to look into Python packaging and publication to PyPi.
-
-### JavaScript
-
-The YASL JavaScript wrapper will only work in a Node.js environment, not in a web browser.
-To call the native library from Node.js, you'll need a Foreign Function Interface (FFI) library. The modern standard is `ffi-napi`.
-
-```bash
-# Install the FFI library
-npm install ffi-napi
-```
-
-The Gemini 2.5 Pro generated JavaScript wrapper is in the /api/javascript/yasl.js file.
-TODO Still need to look into JavaScript packaging and publication to NPM.
