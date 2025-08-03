@@ -83,7 +83,7 @@ jobs:
 
   test-python:
     runs-on: ubuntu-latest
-    needs: build-go
+    needs: build-and-test
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
@@ -100,7 +100,7 @@ jobs:
 
   test-javascript:
     runs-on: ubuntu-latest
-    needs: build-go
+    needs: build-and-test
     steps:
       - uses: actions/checkout@v3
       - name: Set up Node.js
