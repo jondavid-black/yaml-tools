@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/jondavid-black/YASL/core"
 	"os"
 	"os/exec"
 	"testing"
@@ -21,11 +20,11 @@ func TestYASL_CLI_PositionalArgs(t *testing.T) {
 	defer os.Remove(yaslFile.Name())
 	yaslFile.Close()
 
-	yamlPath, err := core.SanitizePath(yamlFile.Name())
+	yamlPath, err := SanitizePath(yamlFile.Name())
 	if err != nil {
 		t.Fatalf("SanitizePath failed for yaml: %v", err)
 	}
-	yaslPath, err := core.SanitizePath(yaslFile.Name())
+	yaslPath, err := SanitizePath(yaslFile.Name())
 	if err != nil {
 		t.Fatalf("SanitizePath failed for yasl: %v", err)
 	}
@@ -54,11 +53,11 @@ func TestYASL_CLI_Flags(t *testing.T) {
 	defer os.Remove(yaslFile.Name())
 	yaslFile.Close()
 
-	yamlPath, err := core.SanitizePath(yamlFile.Name())
+	yamlPath, err := SanitizePath(yamlFile.Name())
 	if err != nil {
 		t.Fatalf("SanitizePath failed for yaml: %v", err)
 	}
-	yaslPath, err := core.SanitizePath(yaslFile.Name())
+	yaslPath, err := SanitizePath(yaslFile.Name())
 	if err != nil {
 		t.Fatalf("SanitizePath failed for yasl: %v", err)
 	}
@@ -87,11 +86,11 @@ func TestYASL_CLI_OutputType_Text(t *testing.T) {
 	defer os.Remove(yaslFile.Name())
 	yaslFile.Close()
 
-	yamlPath, err := core.SanitizePath(yamlFile.Name())
+	yamlPath, err := SanitizePath(yamlFile.Name())
 	if err != nil {
 		t.Fatalf("SanitizePath failed for yaml: %v", err)
 	}
-	yaslPath, err := core.SanitizePath(yaslFile.Name())
+	yaslPath, err := SanitizePath(yaslFile.Name())
 	if err != nil {
 		t.Fatalf("SanitizePath failed for yasl: %v", err)
 	}
@@ -119,11 +118,11 @@ func TestYASL_CLI_OutputType_JSON(t *testing.T) {
 	defer os.Remove(yaslFile.Name())
 	yaslFile.Close()
 
-	yamlPath, err := core.SanitizePath(yamlFile.Name())
+	yamlPath, err := SanitizePath(yamlFile.Name())
 	if err != nil {
 		t.Fatalf("SanitizePath failed for yaml: %v", err)
 	}
-	yaslPath, err := core.SanitizePath(yaslFile.Name())
+	yaslPath, err := SanitizePath(yaslFile.Name())
 	if err != nil {
 		t.Fatalf("SanitizePath failed for yasl: %v", err)
 	}
@@ -151,11 +150,11 @@ func TestYASL_CLI_OutputType_YAML(t *testing.T) {
 	defer os.Remove(yaslFile.Name())
 	yaslFile.Close()
 
-	yamlPath, err := core.SanitizePath(yamlFile.Name())
+	yamlPath, err := SanitizePath(yamlFile.Name())
 	if err != nil {
 		t.Fatalf("SanitizePath failed for yaml: %v", err)
 	}
-	yaslPath, err := core.SanitizePath(yaslFile.Name())
+	yaslPath, err := SanitizePath(yaslFile.Name())
 	if err != nil {
 		t.Fatalf("SanitizePath failed for yasl: %v", err)
 	}
@@ -198,4 +197,29 @@ func stringIndex(s, substr string) int {
 		}
 	}
 	return -1
+}
+
+func TestSanitizePath_Valid(t *testing.T) {
+	valid := "file.yaml"
+	result, err := SanitizePath(valid)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if result != valid {
+		t.Errorf("Expected %s, got %s", valid, result)
+	}
+}
+
+func TestSanitizePath_Invalid(t *testing.T) {
+	_, err := SanitizePath("")
+	if err == nil {
+		t.Errorf("Expected error for empty path, got nil")
+	}
+}
+
+func TestSanitizePath_DashPrefix(t *testing.T) {
+	_, err := SanitizePath("-badfile.yaml")
+	if err == nil {
+		t.Errorf("Expected error for dash-prefixed path, got nil")
+	}
 }

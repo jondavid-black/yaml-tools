@@ -5,11 +5,66 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/jondavid-black/YASL/core"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 	"os"
 	"strings"
 )
+
+// Version is the semantic version for the YASL CLI.
+const Version = "v0.0.6"
+
+func SanitizePath(path string) (string, error) {
+	// Example sanitization logic: ensure no special characters or invalid paths
+	if len(path) == 0 || path[0] == '-' {
+		return "", fmt.Errorf("invalid file path: %s", path)
+	}
+	return path, nil
+}
+
+// OutputType represents the supported log output formats.
+type OutputType string
+
+const (
+	OutputText OutputType = "text"
+	OutputJSON OutputType = "json"
+	OutputYAML OutputType = "yaml"
+)
+
+// SetLoggerFormat configures logrus output format based on the outputType.
+func SetLoggerFormat(outputType OutputType) {
+	switch outputType {
+	case OutputText:
+		logrus.SetFormatter(&PlainFormatter{})
+	case OutputJSON:
+		logrus.SetFormatter(&logrus.JSONFormatter{})
+	case OutputYAML:
+		logrus.SetFormatter(&YAMLFormatter{})
+	}
+}
+
+// PlainFormatter outputs only the log message, no timestamp or level.
+type PlainFormatter struct{}
+
+func (f *PlainFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+	return append([]byte(entry.Message), '\n'), nil
+}
+
+// YAMLFormatter outputs logs as YAML objects (timestamp, level, message).
+type YAMLFormatter struct{}
+
+func (f *YAMLFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+	obj := map[string]interface{}{
+		"time":  entry.Time.Format("2006-01-02T15:04:05Z07:00"),
+		"level": entry.Level.String(),
+		"msg":   entry.Message,
+	}
+	out, err := yaml.Marshal(obj)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 // LogEntry defines a single structured log message.
 type LogEntry struct {
@@ -68,7 +123,7 @@ func processYASL(yamlStr string, yaslStr string, context map[string]string, yaml
 		}
 	}
 
-	// debug logging for context variables
+	fmt.Println(Version)
 	var contextInputs string = "YASL context variables: /n"
 	contextInputs += fmt.Sprintf("  - quiet: %t", quiet)
 	contextInputs += fmt.Sprintf("  - verbose: %t", verbose)
@@ -160,14 +215,14 @@ func main() {
 	}
 
 	// Set log output format
-	outputType := core.OutputText
+	outputType := OutputText
 	switch strings.ToLower(*outputTypeFlag) {
 	case "json":
-		outputType = core.OutputJSON
+		outputType = OutputJSON
 	case "yaml":
-		outputType = core.OutputYAML
+		outputType = OutputYAML
 	}
-	core.SetLoggerFormat(outputType)
+	SetLoggerFormat(outputType)
 
 	if *helpFlag || *helpFlagLong {
 		fmt.Println("YASL - YAML Advanced Schema Language CLI")
@@ -190,7 +245,7 @@ func main() {
 	}
 
 	if *versionFlag || *versionFlagLong {
-		fmt.Println(core.Version)
+		fmt.Println(Version)
 		os.Exit(0)
 	}
 
@@ -219,12 +274,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	yamlPath, err = core.SanitizePath(yamlPath)
+	yamlPath, err = SanitizePath(yamlPath)
 	if err != nil {
 		logrus.Errorf("YAML path error: %v", err)
 		os.Exit(1)
 	}
-	yaslPath, err = core.SanitizePath(yaslPath)
+	yaslPath, err = SanitizePath(yaslPath)
 	if err != nil {
 		logrus.Errorf("YASL path error: %v", err)
 		os.Exit(1)

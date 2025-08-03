@@ -68,7 +68,6 @@ jobs:
       - name: Check Go Formatting
         run: |
           gofmt -l -w main.go main_test.go
-          gofmt -l -w ./core/core.go ./core/logging.go
           git diff --exit-code '*.go' || (echo 'Go files are not properly formatted. Please run gofmt.' && exit 1)
 
       - name: Run Go Tests
