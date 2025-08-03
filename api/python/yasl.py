@@ -46,20 +46,30 @@ class YASL:
         Raises:
             Exception: If the Go function returns an error.
         """
-        # Convert Python types to C-compatible types (UTF-8 encoded bytes)
+    def process_yasl(self, yaml: str, yasl: str, context: dict, yaml_data: dict = None, yasl_data: dict = None) -> dict:
+        """
+        Calls the Go function to process YAML and YASL, with optional import maps.
+        Args:
+            yaml: Main YAML file path or content.
+            yasl: Main YASL file path or content.
+            context: Context dictionary.
+            yaml_data: Optional map of YAML imports.
+            yasl_data: Optional map of YASL imports.
+        Returns:
+            dict: Processed result.
+        """
         yaml_c = ctypes.c_char_p(yaml.encode('utf-8'))
         yasl_c = ctypes.c_char_p(yasl.encode('utf-8'))
         context_json_c = ctypes.c_char_p(json.dumps(context).encode('utf-8'))
-
-        # Call the Go function
-        result_ptr = self._process_func(yaml_c, yasl_c, context_json_c)
-        
-        # Decode the resulting C string (JSON) into a Python string
+        yaml_data_json_c = ctypes.c_char_p(json.dumps(yaml_data or {}).encode('utf-8'))
+        yasl_data_json_c = ctypes.c_char_p(json.dumps(yasl_data or {}).encode('utf-8'))
+        # Update C function signature
+        self._process_func = self._lib.ProcessYASL
+        self._process_func.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
+        self._process_func.restype = ctypes.c_char_p
+        result_ptr = self._process_func(yaml_c, yasl_c, context_json_c, yaml_data_json_c, yasl_data_json_c)
         result_json = result_ptr.decode('utf-8')
         response = json.loads(result_json)
-
-        # Check for errors returned from Go
         if response.get("error"):
             raise Exception(f"Go processor error: {response['error']}")
-
         return response.get("data", {})

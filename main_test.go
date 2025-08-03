@@ -172,7 +172,7 @@ func TestYASL_CLI_OutputType_YAML(t *testing.T) {
 // Helper functions for log output checks
 func containsOKText(out string) bool {
 	// Should contain '✅ YASL processing complete.' and not look like JSON or YAML
-    return len(out) > 0 && contains(out, "✅ YASL processing complete.")
+	return len(out) > 0 && contains(out, "✅ YASL processing complete.")
 }
 
 func containsJSONLog(out string) bool {

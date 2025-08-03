@@ -25,10 +25,10 @@ type ProcessingResult struct {
 }
 
 // process_yasl contains the original Go logic.
-func processYASL(yamlStr string, yaslStr string, context map[string]string) ProcessingResult {
+func processYASL(yamlStr string, yaslStr string, context map[string]string, yamlData map[string]string, yaslData map[string]string) ProcessingResult {
 
 	var result ProcessingResult
-	result.Logs = make([]LogEntry, 0) // Initialize the logs slice
+	result.Logs = make([]LogEntry, 0)
 	result.Logs = append(result.Logs, LogEntry{Level: "debug", Message: "▶️  Starting YASL processing."})
 
 	if yamlStr == "" {
@@ -43,11 +43,11 @@ func processYASL(yamlStr string, yaslStr string, context map[string]string) Proc
 	}
 
 	// Extract context variables by looping through the map and creating primitive types
-	var quiet bool = false    // default value
-	var verbose bool = false  // default value
-	var sslVerify bool = true // default value
-	var httpProxy string      // default empty
-	var httpsProxy string     // default empty
+	var quiet bool = false
+	var verbose bool = false
+	var sslVerify bool = true
+	var httpProxy string
+	var httpsProxy string
 	for key, value := range context {
 		switch key {
 		case "quiet":
@@ -55,7 +55,7 @@ func processYASL(yamlStr string, yaslStr string, context map[string]string) Proc
 		case "verbose":
 			verbose = value == "true"
 		case "ssl_verify":
-			sslVerify = value != "false" // true unless explicitly set to "false"
+			sslVerify = value != "false"
 			if !sslVerify {
 				result.Logs = append(result.Logs, LogEntry{Level: "warn", Message: "SSL verification is disabled."})
 			}
@@ -75,10 +75,16 @@ func processYASL(yamlStr string, yaslStr string, context map[string]string) Proc
 	contextInputs += fmt.Sprintf("  - ssl_verify: %t", sslVerify)
 	contextInputs += fmt.Sprintf("  - http_proxy: %s", httpProxy)
 	contextInputs += fmt.Sprintf("  - https_proxy: %s", httpsProxy)
-
 	result.Logs = append(result.Logs, LogEntry{Level: "debug", Message: contextInputs})
 
-	// TODO: add processing logic
+	// TODO: add processing logic, including yamlData and yaslData usage for imports
+	// For now, just log if maps are provided
+	if yamlData != nil {
+		result.Logs = append(result.Logs, LogEntry{Level: "debug", Message: "yamlData map provided for imports."})
+	}
+	if yaslData != nil {
+		result.Logs = append(result.Logs, LogEntry{Level: "debug", Message: "yaslData map provided for imports."})
+	}
 
 	fmt.Println("✅ YASL processing complete.")
 	result.Logs = append(result.Logs, LogEntry{Level: "debug", Message: "✅ YASL processing complete."})
@@ -89,11 +95,13 @@ func processYASL(yamlStr string, yaslStr string, context map[string]string) Proc
 // It takes C strings as input and returns a single C string containing JSON.
 //
 //export ProcessYASL
-func ProcessYASL(yaml *C.char, yasl *C.char, contextJSON *C.char) *C.char {
+func ProcessYASL(yaml *C.char, yasl *C.char, contextJSON *C.char, yamlDataJSON *C.char, yaslDataJSON *C.char) *C.char {
 	// Convert C inputs to Go strings
 	yamlStr := C.GoString(yaml)
 	yaslStr := C.GoString(yasl)
 	contextJSONStr := C.GoString(contextJSON)
+	yamlDataJSONStr := C.GoString(yamlDataJSON)
+	yaslDataJSONStr := C.GoString(yaslDataJSON)
 
 	// Unmarshal the context map from JSON
 	var context map[string]string
@@ -102,8 +110,24 @@ func ProcessYASL(yaml *C.char, yasl *C.char, contextJSON *C.char) *C.char {
 		return C.CString(string(errJSON))
 	}
 
+	// Unmarshal yamlData and yaslData maps from JSON
+	var yamlData map[string]string
+	var yaslData map[string]string
+	if yamlDataJSONStr != "" {
+		if err := json.Unmarshal([]byte(yamlDataJSONStr), &yamlData); err != nil {
+			errJSON, _ := json.Marshal(ProcessingResult{Error: "failed to parse yamlData JSON"})
+			return C.CString(string(errJSON))
+		}
+	}
+	if yaslDataJSONStr != "" {
+		if err := json.Unmarshal([]byte(yaslDataJSONStr), &yaslData); err != nil {
+			errJSON, _ := json.Marshal(ProcessingResult{Error: "failed to parse yaslData JSON"})
+			return C.CString(string(errJSON))
+		}
+	}
+
 	// Call the main Go logic
-	result := processYASL(yamlStr, yaslStr, context)
+	result := processYASL(yamlStr, yaslStr, context, yamlData, yaslData)
 
 	// Marshal the entire result object to a single JSON string
 	jsonBytes, _ := json.Marshal(result)
@@ -158,6 +182,10 @@ func main() {
 		fmt.Println("  -q, --quiet           Run in quiet mode (errors only)")
 		fmt.Println("  -v, --verbose         Run in verbose mode (debug/trace)")
 		fmt.Println("  --output-type         Log output type: text, json, yaml")
+		fmt.Println("Environment Variables:")
+		fmt.Println("  SSL_VERIFY            Set to 'false' to disable SSL verification")
+		fmt.Println("  HTTP_PROXY            Set HTTP proxy URL")
+		fmt.Println("  HTTPS_PROXY           Set HTTPS proxy URL")
 		os.Exit(0)
 	}
 
@@ -217,7 +245,7 @@ func main() {
 		}
 	}
 
-	result := processYASL(yamlPath, yaslPath, context)
+	result := processYASL(yamlPath, yaslPath, context, nil, nil)
 
 	if result.Error != "" {
 		logrus.Errorf("YASL rocessing error: %s", result.Error)

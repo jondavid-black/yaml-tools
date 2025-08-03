@@ -25,7 +25,7 @@ const libraryPath = getLibraryPath();
 // The first element of the array is the return type ('string' for *C.char).
 // The second is an array of argument types (three *C.char).
 const yaslProcessor = ffi.Library(libraryPath, {
-  ProcessYASL: ['string', ['string', 'string', 'string']],
+  ProcessYASL: ['string', ['string', 'string', 'string', 'string', 'string']],
 });
 
 /**
@@ -33,15 +33,19 @@ const yaslProcessor = ffi.Library(libraryPath, {
  * @param {string} yaml - A string containing the YAML content.
  * @param {string} yasl - A string containing the YASL schema content.
  * @param {object} context - An object for context (e.g., from CLI).
+ * @param {object} yamlData - Additional data for YAML processing.
+ * @param {object} yaslData - Additional data for YASL processing.
  * @returns {object} A dictionary representing the processed data model.
  * @throws {Error} If the Go function returns an error.
  */
-export function processYasl(yaml, yasl, context) {
+export function processYasl(yaml, yasl, context, yamlData = {}, yaslData = {}) {
   // Convert the context object to a JSON string.
   const contextJson = JSON.stringify(context);
+  const yamlDataJson = JSON.stringify(yamlData);
+  const yaslDataJson = JSON.stringify(yaslData);
 
   // 3. Call the Go function via the FFI interface.
-  const resultJson = yaslProcessor.ProcessYASL(yaml, yasl, contextJson);
+  const resultJson = yaslProcessor.ProcessYASL(yaml, yasl, contextJson, yamlDataJson, yaslDataJson);
 
   // 4. Parse the JSON response from Go.
   const response = JSON.parse(resultJson);
