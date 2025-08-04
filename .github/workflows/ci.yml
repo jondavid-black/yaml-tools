@@ -104,6 +104,34 @@ jobs:
           name: yasl-dll
           path: yasl.dll
 
+
+      # Tag the repo with the version number if on main branch and all steps succeed
+      - name: Tag repo with version
+        if: github.ref == 'refs/heads/main' && success()
+        run: |
+          version=$(grep 'const Version' main.go | awk -F'"' '{print $2}')
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git tag "$version"
+          git push origin "$version"
+
+      # Create a GitHub release if on main branch and all steps succeed
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main' && success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag_repo_with_version.outputs.version || (grep('const Version', 'main.go') | awk -F'"' '{print $2}') }}
+          name: Release ${{ steps.tag_repo_with_version.outputs.version || (grep('const Version', 'main.go') | awk -F'"' '{print $2}') }}
+          draft: false
+          prerelease: false
+          files: |
+            yasl
+            yasl.so
+            yasl.exe
+            yasl.h
+            yasl.dll
+            yasl.yasl
+
   test-python:
     runs-on: ubuntu-latest
     needs: build-and-test

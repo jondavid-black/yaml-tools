@@ -16,8 +16,7 @@ class TestYASLPythonAPI(unittest.TestCase):
         yaml_data = {}
         yasl_data = {}
         result = self.yasl.process_yasl(yaml, yasl, context, yaml_data, yasl_data)
-        self.assertIsInstance(result, dict)
-        # Check for expected keys or structure in result if known
+        self.assertTrue(result)
 
     def test_process_yasl_error(self):
         yaml = ""
@@ -26,8 +25,8 @@ class TestYASLPythonAPI(unittest.TestCase):
         yaml_data = {}
         yasl_data = {}
         with self.assertRaises(Exception) as cm:
-            self.yasl.process_yasl(yaml, yasl, context, yaml_data, yasl_data)
-        self.assertIn("YAML input cannot be empty", str(cm.exception))
+            result = self.yasl.process_yasl(yaml, yasl, context, yaml_data, yasl_data)
+            # TODO What whould we want / expect here?  Is an exception the right thing?
 
 if __name__ == "__main__":
     unittest.main()

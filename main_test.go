@@ -28,7 +28,7 @@ func TestYASL_CLI_PositionalArgs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SanitizePath failed for yasl: %v", err)
 	}
-	cmd := exec.Command("./yasl", yamlPath, yaslPath) // #nosec
+	cmd := exec.Command("./yasl", "--verbose", yamlPath, yaslPath) // #nosec
 	cmd.Env = append(os.Environ(), "GO_WANT_HELPER_PROCESS=1")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -61,7 +61,7 @@ func TestYASL_CLI_Flags(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SanitizePath failed for yasl: %v", err)
 	}
-	cmd := exec.Command("./yasl", "-yaml", yamlPath, "-yasl", yaslPath) // #nosec
+	cmd := exec.Command("./yasl", "--verbose", "-yaml", yamlPath, "-yasl", yaslPath) // #nosec
 	cmd.Env = append(os.Environ(), "GO_WANT_HELPER_PROCESS=1")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -94,7 +94,7 @@ func TestYASL_CLI_OutputType_Text(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SanitizePath failed for yasl: %v", err)
 	}
-	cmd := exec.Command("./yasl", yamlPath, yaslPath, "--output-type", "text")
+	cmd := exec.Command("./yasl", "--verbose", yamlPath, yaslPath, "--output-type", "text")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("Expected success, got error: %v, output: %s", err, output)
@@ -126,7 +126,7 @@ func TestYASL_CLI_OutputType_JSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SanitizePath failed for yasl: %v", err)
 	}
-	cmd := exec.Command("./yasl", "--output-type", "json", yamlPath, yaslPath)
+	cmd := exec.Command("./yasl", "--output", "json", yamlPath, yaslPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("Expected success, got error: %v, output: %s", err, output)
@@ -158,7 +158,7 @@ func TestYASL_CLI_OutputType_YAML(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SanitizePath failed for yasl: %v", err)
 	}
-	cmd := exec.Command("./yasl", "--output-type", "yaml", yamlPath, yaslPath)
+	cmd := exec.Command("./yasl", "--output", "yaml", yamlPath, yaslPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("Expected success, got error: %v, output: %s", err, output)

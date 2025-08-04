@@ -33,7 +33,7 @@ class YASL:
             return os.path.join(root, "yasl.dylib")
         return os.path.join(root, "yasl.so")
 
-    def process_yasl(self, yaml: str, yasl: str, context: dict, yaml_data: dict = None, yasl_data: dict = None) -> dict:
+    def process_yasl(self, yaml: str, yasl: str, context: dict, yaml_data: dict = None, yasl_data: dict = None) -> bool:
         """
         Calls the Go function to process YAML and YASL, with optional import maps.
         Args:
@@ -53,6 +53,6 @@ class YASL:
         result_ptr = self._process_func(yaml_c, yasl_c, context_json_c, yaml_data_json_c, yasl_data_json_c)
         result_json = result_ptr.decode('utf-8')
         response = json.loads(result_json)
-        if response.get("error"):
+        if response.get("error") not in (None, "null"):
             raise Exception(f"Go processor error: {response['error']}")
-        return response.get("data", {})
+        return True
