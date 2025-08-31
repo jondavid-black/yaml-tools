@@ -1,13 +1,15 @@
 package main
 
-import "C"
 import (
-	"encoding/json"
+	"archive/zip"
 	"flag"
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
+	"io"
+	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -114,21 +116,44 @@ func processContext(context map[string]string) (quiet, verbose, sslVerify bool, 
 	return
 }
 
-// process_yasl contains the original Go logic.
-func processYASL(yamlRootFile string, yaslRootFile string, context map[string]string, yamlData map[string]string, yaslData map[string]string) error {
-	logrus.Infof("YASL version: %s", Version)
-	logrus.Debug("▶️  Starting YASL processing.")
+// processYASL parses the YAML input file and returns its AST and a list of error messages.
+// The AST is a JSON-serializable structure mirroring yaml.Node, including Kind, Tag, Value, Content, Anchor, Alias, Style, Line, Column, HeadComment, FootComment, LineComment.
+// Limitations: Anchors and aliases are included as-is, but cross-references are not resolved. Custom Go types in yaml.Node are mapped to JSON-friendly types.
+//
+// Parameters:
+//
+//	yamlRootFile: path to the YAML file (required)
+//	yaslRootFile: path to the YASL file (required)
+//	quiet: suppress non-error output (optional)
+//	verbose: enable verbose logging (optional)
+//	output: log output type: "text", "json", or "yaml" (optional)
+//	sslVerify: enable/disable SSL verification (optional)
+//	httpProxy: HTTP proxy URL (optional)
+//	httpsProxy: HTTPS proxy URL (optional)
+//  treatWarningsAsErrors: if true, warnings are treated as errors and will cause a nonzero exit code
+//
+// Returns:
+//
+//	hasError: true if there were errors during processing
+//	hasWarning: true if there were warnings (only if treatWarningsAsErrors is false)
+//
+// Example usage:
+//
+//	hasError, hasWarning := processYASL("input.yaml", "schema.yasl", false, false, "text", true, "", "", false)
 
-	if yamlRootFile == "" {
-		logrus.Error("YAML input cannot be empty")
-		return fmt.Errorf("YAML input cannot be empty")
-	}
-	if yaslRootFile == "" {
-		logrus.Error("YASL input cannot be empty")
-		return fmt.Errorf("YASL input cannot be empty")
-	}
-
-	quiet, verbose, sslVerify, output, httpProxy, httpsProxy := processContext(context)
+func processYASL(
+	yamlRootFile string,
+	yaslRootFile string,
+	quiet bool,
+	verbose bool,
+	output string,
+	sslVerify bool,
+	httpProxy string,
+	httpsProxy string,
+	treatWarningsAsErrors bool,
+) (bool, bool) {
+	hasError := false
+	hasWarning := false
 
 	// Set log level based on flags
 	switch {
@@ -148,64 +173,59 @@ func processYASL(yamlRootFile string, yaslRootFile string, context map[string]st
 		SetLoggerFormat(OutputYAML)
 	}
 
-	logrus.Debugf("YASL context variables: \n  - quiet: %t\n  - verbose: %t\n  - output: %s\n  - ssl_verify: %t\n  - http_proxy: %s\n  - https_proxy: %s\n", quiet, verbose, output, sslVerify, httpProxy, httpsProxy)
-
-	// TODO: add processing logic, including yamlData and yaslData usage for imports
-	// For now, just log if maps are provided
-	if yamlData != nil {
-		logrus.Debug("yamlData map provided for imports.")
+	// Log and check for missing YAML file
+	if yamlRootFile == "" {
+		logrus.Error("YAML input cannot be empty")
+		hasError = true
 	}
-	if yaslData != nil {
-		logrus.Debug("yaslData map provided for imports.")
+	// Log and check for missing YASL file
+	if yaslRootFile == "" {
+		logrus.Error("YASL input cannot be empty")
+		hasError = true
 	}
-
-	logrus.Debug("✅ YASL processing complete.")
-	return nil
-}
-
-// ProcessYASL is the C-compatible exported function.
-// It takes C strings as input and returns a single C string containing JSON.
-//
-//export ProcessYASL
-func ProcessYASL(yaml *C.char, yasl *C.char, contextJSON *C.char, yamlDataJSON *C.char, yaslDataJSON *C.char) *C.char {
-	// Convert C inputs to Go strings
-	yamlStr := C.GoString(yaml)
-	yaslStr := C.GoString(yasl)
-	contextJSONStr := C.GoString(contextJSON)
-	yamlDataJSONStr := C.GoString(yamlDataJSON)
-	yaslDataJSONStr := C.GoString(yaslDataJSON)
-
-	// Unmarshal the context map from JSON
-	var context map[string]string
-	if err := json.Unmarshal([]byte(contextJSONStr), &context); err != nil {
-		return C.CString(`{"error": "failed to parse context JSON"}`)
+	if hasError {
+		return hasError, hasWarning
 	}
 
-	// Unmarshal yamlData and yaslData maps from JSON
-	var yamlData map[string]string
-	var yaslData map[string]string
-	if yamlDataJSONStr != "" {
-		if err := json.Unmarshal([]byte(yamlDataJSONStr), &yamlData); err != nil {
-			return C.CString(`{"error": "failed to parse yamlData JSON"}`)
+	var yaslData []interface{}
+	var yaslError []error
+
+	// Use file:// URI for local files
+    baseURI := yaslRootFile
+    if !strings.HasPrefix(yaslRootFile, "http://") && !strings.HasPrefix(yaslRootFile, "https://") && !strings.HasPrefix(yaslRootFile, "file://") {
+        abs, _ := filepath.Abs(yaslRootFile)
+        baseURI = "file://" + abs
+    }
+    yaslData, yaslError := collectAllYASLData(baseURI, make(map[string]struct{}))
+
+	// log errors and exit if any
+	if len(yaslError) > 0 {
+		for _, err := range yaslError {
+			logrus.Error(err)
 		}
+		hasError = true
+		return hasError, hasWarning
 	}
-	if yaslDataJSONStr != "" {
-		if err := json.Unmarshal([]byte(yaslDataJSONStr), &yaslData); err != nil {
-			return C.CString(`{"error": "failed to parse yaslData JSON"}`)
-		}
+	
+
+
+
+
+
+	
+	
+
+	if len(yamlData) == 0 {
+		logrus.Error("YAML file is empty or invalid")
+		hasError = true
+		return hasError, hasWarning
 	}
 
-	// Call the main Go logic
-	err := processYASL(yamlStr, yaslStr, context, yamlData, yaslData)
-	if err != nil {
-		return C.CString(fmt.Sprintf(`{"error": "%s"}`, err.Error()))
-	}
-	return C.CString(`{"error": null}`)
+	return hasError, hasWarning
 }
 
 func main() {
-	yamlFlag := flag.String("yaml", "", "Path to the YAML file")
-	yaslFlag := flag.String("yasl", "", "Path to the YASL file")
+	projFlag := flag.String("proj", "", "Path to the project file (default: proj.yasl)")
 	versionFlag := flag.Bool("V", false, "Print version and exit")
 	versionFlagLong := flag.Bool("version", false, "Print version and exit")
 	helpFlag := flag.Bool("h", false, "Show help and exit")
@@ -214,23 +234,28 @@ func main() {
 	quietFlagLong := flag.Bool("quiet", false, "Run in quiet mode (errors only)")
 	verboseFlag := flag.Bool("v", false, "Run in verbose mode (debug/trace)")
 	verboseFlagLong := flag.Bool("verbose", false, "Run in verbose mode (debug/trace)")
-	outputFlag := flag.String("output", "text", "Log output type: text, json, yaml")
+	outputFlag := flag.String("output", "", "Log output type: text, json, yaml (overrides project)")
+	werrorFlag := flag.Bool("werror", false, "Treat warnings as errors (nonzero exit code on warnings)")
 
 	flag.Parse()
 
 	if *helpFlag || *helpFlagLong {
 		fmt.Println("YASL - YAML Advanced Schema Language CLI")
 		fmt.Println("Usage:")
-		fmt.Println("  yasl <file.yaml> <file.yasl>")
-		fmt.Println("  yasl -yaml <file.yaml> -yasl <file.yasl>")
+		fmt.Println("  yasl [options] <command> [args...]")
+		fmt.Println("Commands:")
+		fmt.Println("  init         Initialize a new proj.yasl in the current directory")
+		fmt.Println("  import       Add an external dependency by URI (downloads to yasl_modules)")
+		fmt.Println("  check        Validate one or more YAML files using the project schema")
+		fmt.Println("  package      Assemble project and schema into a zip for release/publication")
 		fmt.Println("Options:")
-		fmt.Println("  -yaml <file.yaml>     Path to the YAML file")
-		fmt.Println("  -yasl <file.yasl>     Path to the YASL file")
+		fmt.Println("  -proj <proj.yasl>     Path to the project file (default: proj.yasl)")
 		fmt.Println("  -V, --version         Print version and exit")
 		fmt.Println("  -h, --help            Show help and exit")
 		fmt.Println("  -q, --quiet           Run in quiet mode (errors only)")
 		fmt.Println("  -v, --verbose         Run in verbose mode (debug/trace)")
-		fmt.Println("  --output         Log output type: text, json, yaml")
+		fmt.Println("  --output              Log output type: text, json, yaml (overrides project)")
+		fmt.Println("  --werror              Treat warnings as errors (nonzero exit code on warnings)")
 		fmt.Println("Environment Variables:")
 		fmt.Println("  SSL_VERIFY            Set to 'false' to disable SSL verification")
 		fmt.Println("  HTTP_PROXY            Set HTTP proxy URL")
@@ -243,62 +268,192 @@ func main() {
 		os.Exit(0)
 	}
 
-	var yamlPath, yaslPath string
-	var err error
+	args := flag.Args()
+	if len(args) < 1 {
+		logrus.Error("Usage: yasl [options] <command> [args...]")
+		os.Exit(1)
+	}
+	command := args[0]
 
-	if *yamlFlag != "" && *yaslFlag != "" {
-		yamlPath = *yamlFlag
-		yaslPath = *yaslFlag
-	} else {
-		args := flag.Args()
-		if len(args) < 2 {
-			logrus.Error("Usage: ./yasl <file.yaml> <file.yasl> OR ./yasl -yaml <file.yaml> -yasl <file.yasl>")
+	switch command {
+	case "init":
+		projPath := "proj.yasl"
+		if _, err := os.Stat(projPath); err == nil {
+			logrus.Errorf("Project file already exists: %s", projPath)
 			os.Exit(1)
 		}
-		yamlPath = args[0]
-		yaslPath = args[1]
-	}
-
-	yamlPath, err = SanitizePath(yamlPath)
-	if err != nil {
-		logrus.Errorf("YAML path error: %v", err)
-		os.Exit(1)
-	}
-	yaslPath, err = SanitizePath(yaslPath)
-	if err != nil {
-		logrus.Errorf("YASL path error: %v", err)
-		os.Exit(1)
-	}
-
-	if _, err := os.Stat(yamlPath); os.IsNotExist(err) {
-		logrus.Errorf("YAML file not found: %s", yamlPath)
-		os.Exit(1)
-	}
-	if _, err := os.Stat(yaslPath); os.IsNotExist(err) {
-		logrus.Errorf("YASL file not found: %s", yaslPath)
-		os.Exit(1)
-	}
-
-	// Collect context inputs from environment variables or CLI flags
-	context := make(map[string]string)
-
-	// add any CLI flags
-	context["quiet"] = fmt.Sprintf("%t", *quietFlag || *quietFlagLong)
-	context["verbose"] = fmt.Sprintf("%t", *verboseFlag || *verboseFlagLong)
-	context["output"] = fmt.Sprintf("%s", *outputFlag)
-
-	// add any environment variables
-	envVars := []string{"SSL_VERIFY", "HTTP_PROXY", "HTTPS_PROXY"}
-	for _, envVar := range envVars {
-		if val, exists := os.LookupEnv(envVar); exists {
-			context[strings.TrimPrefix(envVar, envVar)] = val
+		var projName string
+		if len(args) > 1 {
+			projName = args[1]
+		} else {
+			cwd, err := os.Getwd()
+			if err != nil {
+				logrus.Fatalf("Failed to get current directory: %v", err)
+			}
+			projName = filepath.Base(cwd)
 		}
-	}
 
-	err = processYASL(yamlPath, yaslPath, context, nil, nil)
-	if err != nil {
-		logrus.Errorf("YASL processing error: %s", err)
+		projContent = `yasl:
+name: ` + projName + `
+
+`
+				
+	
+
+	case "import":
+		if len(args) < 2 {
+			logrus.Error("Usage: yasl import <dependency-uri>")
+			os.Exit(1)
+		}
+		depURI := args[1]
+		modDir := "yasl_modules"
+		if err := os.MkdirAll(modDir, 0755); err != nil {
+			logrus.Fatalf("Failed to create module directory: %v", err)
+		}
+		resp, err := http.Get(depURI)
+		if err != nil {
+			logrus.Fatalf("Failed to download dependency: %v", err)
+		}
+		defer resp.Body.Close()
+		base := filepath.Base(depURI)
+		outPath := filepath.Join(modDir, base)
+		out, err := os.Create(outPath)
+		if err != nil {
+			logrus.Fatalf("Failed to create dependency file: %v", err)
+		}
+		defer out.Close()
+		if _, err := io.Copy(out, resp.Body); err != nil {
+			logrus.Fatalf("Failed to save dependency: %v", err)
+		}
+		logrus.Infof("Imported dependency to %s", outPath)
+		return
+
+	case "check":
+		if len(args) < 2 {
+			logrus.Error("Usage: yasl check <file.yaml>")
+			os.Exit(1)
+		}
+		yamlPath := args[1]
+		yamlPath, err := SanitizePath(yamlPath)
+		if err != nil {
+			logrus.Errorf("YAML path error: %v", err)
+			os.Exit(1)
+		}
+		if _, err := os.Stat(yamlPath); os.IsNotExist(err) {
+			logrus.Errorf("YAML file not found: %s", yamlPath)
+			os.Exit(1)
+		}
+		projPath := *projFlag
+		if projPath == "" {
+			projPath = "proj.yasl"
+			if _, err := os.Stat(projPath); os.IsNotExist(err) {
+				yamlDir := filepath.Dir(yamlPath)
+				altProj := filepath.Join(yamlDir, "proj.yasl")
+				if _, err := os.Stat(altProj); err == nil {
+					projPath = altProj
+				}
+			}
+		}
+		if _, err := os.Stat(projPath); os.IsNotExist(err) {
+			logrus.Errorf("Project file not found: %s", projPath)
+			os.Exit(1)
+		}
+		type ProjectConfig struct {
+			YAML string `yaml:"yaml"`
+			Output string `yaml:"output"`
+			SSLVerify *bool `yaml:"ssl_verify"`
+			HTTPProxy string `yaml:"http_proxy"`
+			HTTPSProxy string `yaml:"https_proxy"`
+		}
+		var projConfig ProjectConfig
+		{
+			f, err := os.Open(projPath)
+			if err != nil {
+				logrus.Fatalf("Failed to open project file: %v", err)
+			}
+			defer f.Close()
+			dec := yaml.NewDecoder(f)
+			if err := dec.Decode(&projConfig); err != nil && err != io.EOF {
+				logrus.Fatalf("Failed to parse project file: %v", err)
+			}
+		}
+		yaslPath := projConfig.YAML
+		if yaslPath == "" {
+			logrus.Error("YASL file must be specified in the project file under 'yaml'")
+			os.Exit(1)
+		}
+		if _, err := os.Stat(yaslPath); os.IsNotExist(err) {
+			logrus.Errorf("YASL file not found: %s", yaslPath)
+			os.Exit(1)
+		}
+		output := projConfig.Output
+		if *outputFlag != "" {
+			output = *outputFlag
+		}
+		sslVerify := true
+		if projConfig.SSLVerify != nil {
+			sslVerify = *projConfig.SSLVerify
+		}
+		if val, exists := os.LookupEnv("SSL_VERIFY"); exists && val == "false" {
+			sslVerify = false
+		}
+		httpProxy := projConfig.HTTPProxy
+		httpsProxy := projConfig.HTTPSProxy
+		if v := os.Getenv("HTTP_PROXY"); v != "" {
+			httpProxy = v
+		}
+		if v := os.Getenv("HTTPS_PROXY"); v != "" {
+			httpsProxy = v
+		}
+		quiet := *quietFlag || *quietFlagLong
+		verbose := *verboseFlag || *verboseFlagLong
+		warnOnError := *werrorFlag
+		hasError, hasWarning := processYASL(
+			yamlPath,
+			yaslPath,
+			quiet,
+			verbose,
+			output,
+			sslVerify,
+			httpProxy,
+			httpsProxy,
+			warnOnError,
+		)
+		if hasError {
+			os.Exit(1)
+		}
+		if warnOnError && hasWarning {
+			os.Exit(1)
+		}
+		logrus.Infof("✅ YASL check complete.")
+		return
+
+	case "package":
+		projPath := *projFlag
+		if projPath == "" {
+			projPath = "proj.yasl"
+		}
+		if _, err := os.Stat(projPath); os.IsNotExist(err) {
+			logrus.Errorf("Project file not found: %s", projPath)
+			os.Exit(1)
+		}
+		zipName := "yasl_package.zip"
+		zipFile, err := os.Create(zipName)
+		if err != nil {
+			logrus.Fatalf("Failed to create zip file: %v", err)
+		}
+		defer zipFile.Close()
+		zipWriter := zip.NewWriter(zipFile)
+		defer zipWriter.Close()
+		if err := addFileToZip(zipWriter, projPath); err != nil {
+			logrus.Fatalf("Failed to add project file to zip: %v", err)
+		}
+		logrus.Infof("Packaged project as %s", zipName)
+		return
+
+	default:
+		logrus.Errorf("Unknown command: %s", command)
 		os.Exit(1)
 	}
-	logrus.Infof("OK - %s, %s", yamlPath, yaslPath)
+	return err
 }
