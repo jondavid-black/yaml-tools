@@ -758,3 +758,16 @@ type_def:
 ```
 
 By filtering the reference, we can ensure that the value provided in the `rep` field actually matches the specific rep for our region.
+
+
+## Developer Setup
+
+YASl is a python application built with the `UV` tool.
+
+Setup:
+- `curl -LsSf https://astral.sh/uv/install.sh | sh` to install `UV`.
+- `uv venv` to create a virtual environment.
+- `source .venv/bin/activate` to activate the virtual environment.
+- `uv pip install -r requirements.txt` to install dependencies.
+
+Run Unit Tests:  `pytest tests`

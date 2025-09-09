@@ -1,22 +1,6 @@
-# Binaries
-yasl
-*.exe
-
-# Shared Library Files
-*.h
-*.dll
-*.so
-*.dylib
-
 # Build and test output
 *.out
 *.test
-
-# Go modules
-/go.sum
-
-# Dependency directories (vendor/)
-vendor/
 
 # GitHub Actions Runner (act)
 /bin
@@ -57,8 +41,3 @@ coverage*
 # Behave output
 reports/
 
-# API build artifacts
-api/python/build/
-api/python/dist/
-api/python/*.egg-info/
-api/javascript/dist/
