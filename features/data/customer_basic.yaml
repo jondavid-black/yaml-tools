@@ -2,7 +2,7 @@ customers:
   - name: Bob Smith
     age: 30
     email: bob@example.com
-    status: active
+    status: unknown
   - name: Joe Smith
     age: 40
     email: joe@example.com

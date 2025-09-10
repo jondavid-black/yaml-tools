@@ -20,7 +20,7 @@ types:
         type: customer_status
         namespace: acme
         description: The customer's status.
-        required: false
+        required: true
   - name: customer_list
     namespace: acme
     root: true
