@@ -1,6 +1,5 @@
 # validate_config_with_lines.py
 import logging
-from wsgiref import validate
 from ruamel.yaml import YAML
 from pydantic import BaseModel, ValidationError, create_model, field_validator
 from enum import Enum
@@ -8,8 +7,22 @@ from typing import Dict, Type, List, Optional, Tuple, Any, Callable
 from functools import partial
 import re
 import datetime
+import traceback
 
 # yasl validator functions
+yasl_type_defs: Dict[
+    str, Type[BaseModel]
+] = {}  # Global registry for type definitions to support ref validation
+yasl_enumerations: Dict[
+    str, Type[Enum]
+] = {}  # Global registry for enums to support enum validation
+
+
+class YASLBaseModel(BaseModel):
+    def __repr__(self) -> str:
+        fields = self.model_dump()  # For Pydantic v2; use self.dict() for v1
+        return f"{self.__class__.__name__}({fields})"
+
 
 # list validation
 def list_min_validator(cls, value: List[Any], bound: int):
@@ -17,10 +30,12 @@ def list_min_validator(cls, value: List[Any], bound: int):
         raise ValueError(f"List must contain at least {bound} items")
     return value
 
+
 def list_max_validator(cls, value: List[Any], bound: int):
     if len(value) > bound:
         raise ValueError(f"List must contain at most {bound} items")
     return value
+
 
 # numeric validation
 def gt_validator(cls, value, bound):
@@ -28,25 +43,30 @@ def gt_validator(cls, value, bound):
         raise ValueError(f"Value must be greater than {bound}")
     return value
 
+
 def ge_validator(cls, value, bound):
     if value < bound:
         raise ValueError(f"Value must be greater than or equal to {bound}")
     return value
+
 
 def lt_validator(cls, value, bound):
     if value >= bound:
         raise ValueError(f"Value must be less than {bound}")
     return value
 
+
 def le_validator(cls, value, bound):
     if value > bound:
         raise ValueError(f"Value must be less than or equal to {bound}")
     return value
 
+
 def exclude_validator(cls, value, excluded_values):
     if value in excluded_values:
         raise ValueError(f"Value must not be one of {excluded_values}")
     return value
+
 
 # string validation
 def str_min_validator(cls, value: str, min_length: int):
@@ -54,15 +74,18 @@ def str_min_validator(cls, value: str, min_length: int):
         raise ValueError(f"String must be at least {min_length} characters long")
     return value
 
+
 def str_max_validator(cls, value: str, max_length: int):
     if len(value) > max_length:
         raise ValueError(f"String must be at most {max_length} characters long")
     return value
 
+
 def str_regex_validator(cls, value: str, regex: str):
     if not re.fullmatch(regex, value):
         raise ValueError(f"Value '{value}' does not match pattern '{regex}'")
     return value
+
 
 # date validators
 def date_format_validator(cls, value: str, format: str):
@@ -72,15 +95,18 @@ def date_format_validator(cls, value: str, format: str):
         raise ValueError(f"Date '{value}' does not match format '{format}'")
     return value
 
+
 def date_before_validator(cls, value: str, before: str):
     if value >= before:
         raise ValueError(f"Date '{value}' must be before '{before}'")
     return value
 
+
 def date_after_validator(cls, value: str, after: str):
     if value <= after:
         raise ValueError(f"Date '{value}' must be after '{after}'")
     return value
+
 
 # uri validators
 def uri_regex_validator(cls, value: str, regex: str):
@@ -88,23 +114,24 @@ def uri_regex_validator(cls, value: str, regex: str):
         raise ValueError(f"Value '{value}' does not match pattern '{regex}'")
     return value
 
-def uri_exists_validator(cls, value: str, exists: bool):
 
+def uri_exists_validator(cls, value: str, exists: bool):
     def is_uri_accessible(value: str) -> bool:
         # TODO Implement the logic to check if the URI is accessible
         return True
-    
+
     if exists and not is_uri_accessible(value):
         raise ValueError(f"URI '{value}' must exist")
     return value
+
 
 def uri_protocol_validator(cls, value: str, protocols: List[str]):
     if not any(value.startswith(protocol) for protocol in protocols):
         raise ValueError(f"URI '{value}' must start with one of {protocols}")
     return value
 
-def is_dir_validator(cls, value: str, is_dir: bool):
 
+def is_dir_validator(cls, value: str, is_dir: bool):
     def is_uri_directory(cls, value: str):
         # TODO Implement the logic to check if the URI is a directory
         return True
@@ -113,8 +140,8 @@ def is_dir_validator(cls, value: str, is_dir: bool):
         raise ValueError(f"URI '{value}' must be a directory")
     return value
 
-def is_file_validator(cls, value: str, is_file: bool):
 
+def is_file_validator(cls, value: str, is_file: bool):
     def is_uri_file(value: str) -> bool:
         # TODO Implement the logic to check if the URI is a file
         return True
@@ -123,27 +150,32 @@ def is_file_validator(cls, value: str, is_file: bool):
         raise ValueError(f"URI '{value}' must be a file")
     return value
 
+
 # ref validators
 def ref_exists_validator(cls, value: Any, exists: bool):
     # TODO figue out reference validation
     pass
     return value
 
+
 def ref_multi_validator(cls, value: Any, multi: bool):
     # TODO figue out reference validation
     pass
     return value
+
 
 def ref_filters_validator(cls, value: Any, filters: List[Dict[str, str]]):
     # TODO figue out reference validation
     pass
     return value
 
+
 # any validator
 def any_of_validator(cls, value: Any, allowed_types: List[str]):
     if not any(isinstance(value, eval(t)) for t in allowed_types):
         raise ValueError(f"Value '{value}' must be one of {allowed_types}")
     return value
+
 
 # type validators
 def only_one_validator(cls, values: Dict[str, Any], fields: List[str]):
@@ -152,11 +184,13 @@ def only_one_validator(cls, values: Dict[str, Any], fields: List[str]):
         raise ValueError(f"Exactly one of {fields} must be present")
     return values
 
+
 def at_least_one_validator(cls, values: Dict[str, Any], fields: List[str]):
     data = values.get("properties", {})
     if sum(1 for field in fields if field in data) < 1:
         raise ValueError(f"At least one of {fields} must be present")
     return values
+
 
 def if_then_validator(cls, values: Dict[str, Any], if_then: Dict[str, Any]):
     data = values.get("properties", {})
@@ -169,8 +203,15 @@ def if_then_validator(cls, values: Dict[str, Any], if_then: Dict[str, Any]):
                 raise ValueError(f"Property '{field}' must be present")
     return values
 
+
+# enum validator
+def enum_validator(cls, value: Any, values: List[str]):
+    if value not in values:
+        raise ValueError(f"Value '{value}' must be one of {values}")
+    return value
+
+
 def property_validator_factory(property) -> Callable:
-    
     validators = []
     # list validators
     if property.list_min is not None:
@@ -230,11 +271,18 @@ def property_validator_factory(property) -> Callable:
     if property.ref_filters is not None:
         validators.append(partial(ref_filters_validator, bound=property.ref_filters))
 
+    # enum validators
+    if property.type in yasl_enumerations.keys():
+        enum_type = yasl_enumerations[property.type]
+        validators.append(partial(enum_validator, values=[e.value for e in enum_type]))
+
     def multi_validator(cls, value):
         for validator in validators:
             value = validator(value)
         return value
+
     return field_validator(property.name)(multi_validator)
+
 
 # --- YASL Pydantic Models ---
 class Enumeration(BaseModel):
@@ -243,9 +291,8 @@ class Enumeration(BaseModel):
     namespace: Optional[str] = None
     values: List[str]
 
-    model_config = {
-        "extra": "forbid"
-    }
+    model_config = {"extra": "forbid"}
+
 
 def gen_enum_from_enumeration(enum_def: Enumeration) -> Type[Enum]:
     """
@@ -256,15 +303,16 @@ def gen_enum_from_enumeration(enum_def: Enumeration) -> Type[Enum]:
     enum_cls = Enum(enum_def.name, enum_members)
     if enum_def.namespace:
         enum_cls.__module__ = enum_def.namespace
+    yasl_enumerations[enum_def.name] = enum_cls
     return enum_cls
+
 
 class RefFilter(BaseModel):
     target: str
     value: str
 
-    model_config = {
-        "extra": "forbid"
-    }
+    model_config = {"extra": "forbid"}
+
 
 class Property(BaseModel):
     name: str
@@ -314,9 +362,8 @@ class Property(BaseModel):
     ref_multi: Optional[bool] = None
     ref_filters: Optional[List[RefFilter]] = None
 
-    model_config = {
-        "extra": "forbid"
-    }
+    model_config = {"extra": "forbid"}
+
 
 class IfThen(BaseModel):
     eval: str
@@ -324,18 +371,16 @@ class IfThen(BaseModel):
     present: List[str]
     absent: List[str]
 
-    model_config = {
-        "extra": "forbid"
-    }
+    model_config = {"extra": "forbid"}
+
 
 class Validator(BaseModel):
     only_one: Optional[List[str]] = None
     at_least_one: Optional[List[str]] = None
     if_then: Optional[IfThen] = None
 
-    model_config = {
-        "extra": "forbid"
-    }
+    model_config = {"extra": "forbid"}
+
 
 class TypeDef(BaseModel):
     name: str
@@ -345,27 +390,32 @@ class TypeDef(BaseModel):
     properties: List[Property]
     validators: Optional[Validator] = None
 
-    model_config = {
-        "extra": "forbid"
-    }
+    model_config = {"extra": "forbid"}
+
 
 def type_validator_factory(model: TypeDef) -> Callable:
-
     validators = []
     if model.validators is not None:
         if model.validators.only_one is not None:
-            validators.append(partial(only_one_validator, fields=model.validators.only_one))
+            validators.append(
+                partial(only_one_validator, fields=model.validators.only_one)
+            )
         if model.validators.at_least_one is not None:
-            validators.append(partial(at_least_one_validator, fields=model.validators.at_least_one))
+            validators.append(
+                partial(at_least_one_validator, fields=model.validators.at_least_one)
+            )
         if model.validators.if_then is not None:
-            validators.append(partial(if_then_validator, if_then=model.validators.if_then.dict()))
+            validators.append(
+                partial(if_then_validator, if_then=model.validators.if_then.dict())
+            )
 
     def multi_validator(cls, values):
         for validator in validators:
             values = validator(cls, values)
         return values
-    
+
     return multi_validator
+
 
 def gen_pydantic_type_model(type_def: TypeDef) -> Type[BaseModel]:
     """
@@ -385,19 +435,45 @@ def gen_pydantic_type_model(type_def: TypeDef) -> Type[BaseModel]:
             "bool": bool,
             "any": Any,
         }
-        py_type = type_map.get(prop.type, Any)
-        default = prop.default if prop.default is not None else (None if not prop.required else ...)
+        type_lookup = prop.type
+        is_list = False
+        if type_lookup.endswith("[]"):
+            type_lookup = prop.type[:-2]
+            is_list = True
+
+        if type_lookup in yasl_enumerations:
+            py_type = yasl_enumerations[type_lookup]
+        elif type_lookup in yasl_type_defs:
+            py_type = yasl_type_defs[type_lookup]
+        elif type_lookup in type_map:
+            py_type = type_map[type_lookup]
+        else:
+            raise ValueError(f"Unknown type '{prop.type}' for property '{prop.name}'")
+
+        if is_list:
+            py_type = List[py_type]
+
+        if not prop.required:
+            py_type = Optional[py_type]
+
+        default = (
+            prop.default
+            if prop.default is not None
+            else (None if not prop.required else ...)
+        )
         fields[prop.name] = (py_type, default)
         validators[prop.name] = property_validator_factory(prop)
     validators["__validate__"] = type_validator_factory(type_def)
     model = create_model(
         type_def.name,
-        __base__=BaseModel,
+        __base__=YASLBaseModel,
         __module__=type_def.namespace or None,
         __validators__=validators,
-        **fields
+        **fields,
     )
+    yasl_type_defs[type_def.name] = model
     return model
+
 
 class ProjectAttribute(BaseModel):
     quiet: Optional[bool] = False
@@ -408,17 +484,15 @@ class ProjectAttribute(BaseModel):
     https_proxy: Optional[str] = None
     warn_as_error: Optional[bool] = False
 
-    model_config = {
-        "extra": "forbid"
-    }
+    model_config = {"extra": "forbid"}
+
 
 class ProjectImport(BaseModel):
     source: str
     version: Optional[str] = None
 
-    model_config = {
-        "extra": "forbid"
-    }
+    model_config = {"extra": "forbid"}
+
 
 class Project(BaseModel):
     name: str
@@ -430,18 +504,16 @@ class Project(BaseModel):
     content: Optional[str] = None
     imports: Optional[List[ProjectImport]] = None
 
-    model_config = {
-        "extra": "forbid"
-    }
+    model_config = {"extra": "forbid"}
+
 
 class YASL(BaseModel):
     project: Optional[Project] = None
-    types: Optional[List[TypeDef]] = None
     enums: Optional[List[Enumeration]] = None
+    types: Optional[List[TypeDef]] = None
 
-    model_config = {
-        "extra": "forbid"
-    }
+    model_config = {"extra": "forbid"}
+
 
 # --- Helper function to find the line number ---
 def get_line_for_error(data, loc: Tuple[str, ...]) -> Optional[int]:
@@ -452,7 +524,7 @@ def get_line_for_error(data, loc: Tuple[str, ...]) -> Optional[int]:
             current_data = current_data[key]
         # .lc is the line/column accessor in ruamel.yaml
         return current_data.lc.line + 1
-    except (KeyError, IndexError, AttributeError) as e:
+    except (KeyError, IndexError, AttributeError):
         # Fallback if we can't find the exact key (e.g., for a missing key)
         # We can try to get the line of the parent object.
         parent_data = data
@@ -463,42 +535,58 @@ def get_line_for_error(data, loc: Tuple[str, ...]) -> Optional[int]:
         except AttributeError:
             return None
 
+
 # --- Main schema validation logic ---
 def load_and_validate_yasl_with_lines(path: str) -> YASL:
     log = logging.getLogger("yasl")
     log.debug(f"--- Attempting to validate schema '{path}' with line numbers ---")
     try:
-        yaml_loader = YAML(typ='rt')
-        with open(path, 'r') as f:
+        yaml_loader = YAML(typ="rt")
+        with open(path, "r") as f:
             data = yaml_loader.load(f)
         yasl = YASL(**data)
+        if yasl is None:
+            raise ValueError("Failed to parse YASL schema from data {data}")
+        if yasl.project is not None:
+            log.debug(f"Evaluating project: {yasl.project.name}")
+        for enum in yasl.enums or []:
+            # must setup enums before types to support enum validation
+            log.debug(f"Evaluating enum: {enum.name}")
+            gen_enum_from_enumeration(enum)
+        for type_def in yasl.types or []:
+            log.debug(f"Evaluating type definition: {type_def.name}")
+            gen_pydantic_type_model(type_def)
+            # setup_yasl_validators(type_def)
         log.debug("✅ YASL schema validation successful!")
-
         return yasl
     except FileNotFoundError:
         log.error(f"❌ Error: File not found at '{path}'")
     except ValidationError as e:
         log.error(f"❌ Validation failed with {len(e.errors())} error(s):")
         for error in e.errors():
-            line = get_line_for_error(data, error['loc'])
-            path_str = " -> ".join(map(str, error['loc']))
+            line = get_line_for_error(data, error["loc"])
+            path_str = " -> ".join(map(str, error["loc"]))
             if line:
                 log.error(f"  - Line {line}: '{path_str}' -> {error['msg']}")
             else:
                 log.error(f"  - Location '{path_str}' -> {error['msg']}")
     except Exception as e:
         log.error(f"❌ An unexpected error occurred: {e}")
+        traceback.print_exc()
+
 
 # --- Main data validation logic ---
-def load_and_validate_data_with_lines(model: type, path: str) -> Any:
+def load_and_validate_data_with_lines(
+    model: type, models: Dict[str, type], path: str
+) -> Any:
     log = logging.getLogger("yasl")
     log.debug(f"--- Attempting to validate data '{path}' with line numbers ---")
     try:
-        yaml_loader = YAML(typ='rt')
-        with open(path, 'r') as f:
+        yaml_loader = YAML(typ="rt")
+        with open(path, "r") as f:
             data = yaml_loader.load(f)
-        
-    except FileNotFoundError as e:
+
+    except FileNotFoundError:
         log.error(f"❌ Error: File not found at '{path}'")
 
     try:
@@ -508,11 +596,12 @@ def load_and_validate_data_with_lines(model: type, path: str) -> Any:
     except ValidationError as e:
         log.error(f"❌ Validation failed with {len(e.errors())} error(s):")
         for error in e.errors():
-            line = get_line_for_error(data, error['loc'])
-            path_str = " -> ".join(map(str, error['loc']))
+            line = get_line_for_error(data, error["loc"])
+            path_str = " -> ".join(map(str, error["loc"]))
             if line:
                 log.error(f"  - Line {line}: '{path_str}' -> {error['msg']}")
             else:
                 log.error(f"  - Location '{path_str}' -> {error['msg']}")
     except Exception as e:
         log.error(f"❌ An unexpected error occurred: {e}")
+        traceback.print_exc()

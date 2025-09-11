@@ -1,3 +1,10 @@
+enums:
+  - name: customer_status
+    namespace: acme
+    description: The status of the customer.
+    values:
+      - active
+      - inactive
 types:
   - name: customer
     namespace: acme
@@ -29,10 +36,3 @@ types:
       - name: customers
         type: customer[]
         description: Information about a customer.
-enums:
-  - name: customer_status
-    namespace: acme
-    description: The status of the customer.
-    values:
-      - active
-      - inactive
