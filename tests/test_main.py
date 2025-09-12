@@ -84,6 +84,26 @@ types:
         any_of:
           - int
           - bool
+      - name: bio
+        type: path
+        description: Path to a bio file.
+        required: false
+        is_file: true
+        path_exists: false
+      - name: home_directory
+        type: path
+        description: Path to the person's home directory.
+        required: false
+        is_dir: true
+        path_exists: true
+      - name: website
+        type: url
+        description: The person's website.
+        required: false
+        url_base: www.example.com
+        url_protocols:
+          - http
+          - https
 """
 
 def run_cli(args):
@@ -341,6 +361,60 @@ def test_eval_office_float():
 name: Joe Smith
 age: 24
 office: 33.3
+"""
+    yasl_schema = PERSON_YASL
+    run_eval_command(yaml_data, yasl_schema, "person", False)
+
+def test_eval_bio_good():
+    yaml_data = """
+name: Joe Smith
+age: 24
+bio: ./myfile.txt
+"""
+    yasl_schema = PERSON_YASL
+    run_eval_command(yaml_data, yasl_schema, "person", True)
+
+def test_eval_home_dir_good():
+    yaml_data = f"""
+name: Joe Smith
+age: 24
+home_directory: {os.getcwd()}
+"""
+    yasl_schema = PERSON_YASL
+    run_eval_command(yaml_data, yasl_schema, "person", True)
+
+def test_eval_home_dir_not_exist():
+    yaml_data = """
+name: Joe Smith
+age: 24
+home_directory: /not/a/real/dir
+"""
+    yasl_schema = PERSON_YASL
+    run_eval_command(yaml_data, yasl_schema, "person", False)
+
+def test_eval_website_good():
+    yaml_data = """
+name: Joe Smith
+age: 24
+website: https://www.example.com/joe_smith
+"""
+    yasl_schema = PERSON_YASL
+    run_eval_command(yaml_data, yasl_schema, "person", True)
+
+def test_eval_website_bad_protocol():
+    yaml_data = """
+name: Joe Smith
+age: 24
+website: ftp://www.example.com/joe_smith
+"""
+    yasl_schema = PERSON_YASL
+    run_eval_command(yaml_data, yasl_schema, "person", False)
+
+def test_eval_website_bad_base():
+    yaml_data = """
+name: Joe Smith
+age: 24
+website: ftp://www.notexample.com/joe_smith
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)

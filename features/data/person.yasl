@@ -30,3 +30,22 @@ types:
         any_of:
           - int
           - bool
+      - name: bio
+        type: path
+        description: Path to a file containing the person's biography.
+        required: false
+        path_exists: false
+        is_file: true
+      - name: home_directory
+        type: path
+        description: Path to the person's home directory.
+        required: false
+        path_exists: true
+        is_dir: true
+      - name: website
+        type: url
+        description: The person's website.
+        required: false
+        url_protocols:
+          - http
+          - https

@@ -7,7 +7,8 @@ from typing import Dict, Type, List, Optional, Tuple, Any, Callable
 from functools import partial
 import re
 import datetime
-import traceback
+from pathlib import Path
+from urllib.parse import urlparse
 
 # yasl validator functions
 yasl_type_defs: Dict[
@@ -105,48 +106,47 @@ def date_after_validator(cls, value: datetime.datetime, after: datetime.datetime
     return value
 
 
-# uri validators
-def uri_regex_validator(cls, value: str, regex: str):
-    if not re.fullmatch(regex, value):
-        raise ValueError(f"Value '{value}' does not match pattern '{regex}'")
+# url validators
+def url_base_validator(cls, value: str, url_base: str):
+    parsed = urlparse(value)
+    if url_base != parsed.netloc:
+        raise ValueError(f"URL '{value}' does not have a base of '{url_base}'")
     return value
 
 
-def uri_exists_validator(cls, value: str, exists: bool):
-    def is_uri_accessible(value: str) -> bool:
-        # TODO Implement the logic to check if the URI is accessible
-        return True
-
-    if exists and not is_uri_accessible(value):
-        raise ValueError(f"URI '{value}' must exist")
+def url_protocol_validator(cls, value: str, protocols: List[str]):
+    parsed = urlparse(value)
+    if parsed.scheme and parsed.scheme not in protocols:
+        raise ValueError(f"URL '{value}' must use one of the protocols {protocols}")
     return value
 
-
-def uri_protocol_validator(cls, value: str, protocols: List[str]):
-    if not any(value.startswith(protocol) for protocol in protocols):
-        raise ValueError(f"URI '{value}' must start with one of {protocols}")
+def url_reachable_valiator(cls, value: str, regex: bool):
+    # TODO implement actual URL reachability check
+    # For now, just a placeholder that always passes
     return value
 
 
 def is_dir_validator(cls, value: str, is_dir: bool):
-    def is_uri_directory(cls, value: str):
-        # TODO Implement the logic to check if the URI is a directory
-        return True
-
-    if is_dir and not is_uri_directory(value):
-        raise ValueError(f"URI '{value}' must be a directory")
+    path = Path(value)
+    # Check if the path looks like a directory (ends with separator or no suffix)
+    if not(path.suffix == '' or value.endswith(('/', '\\'))):
+        raise ValueError(f"Path '{value}' must be a directory")
     return value
 
 
 def is_file_validator(cls, value: str, is_file: bool):
-    def is_uri_file(value: str) -> bool:
-        # TODO Implement the logic to check if the URI is a file
-        return True
-
-    if is_file and not is_uri_file(value):
-        raise ValueError(f"URI '{value}' must be a file")
+    path = Path(value)
+    # Check if the path looks like a file (does not end with a separator, has a suffix)
+    if not(path.suffix != '' and not value.endswith(('/', '\\'))):
+        raise ValueError(f"Path '{value}' must be a file")
     return value
 
+def path_exists_validator(cls, value: str, exists: bool):
+    path = Path(value)
+    # Check if the path exists on the filesystem
+    if exists and not path.exists():
+        raise ValueError(f"Path '{value}' must exist on the filesystem")
+    return value
 
 # ref validators
 def ref_exists_validator(cls, value: Any, exists: bool):
@@ -245,17 +245,21 @@ def property_validator_factory(property) -> Callable:
     if property.after is not None:
         validators.append(partial(date_after_validator, after=property.after))
 
-    # uri validators
-    if property.uri_regex is not None:
-        validators.append(partial(uri_regex_validator, regex=property.uri_regex))
-    if property.uri_exists is not None:
-        validators.append(partial(uri_exists_validator, exists=property.uri_exists))
+    # path validators
+    if property.path_exists is not None:
+        validators.append(partial(path_exists_validator, exists=property.path_exists))
     if property.is_dir is not None:
         validators.append(partial(is_dir_validator, is_dir=property.is_dir))
     if property.is_file is not None:
         validators.append(partial(is_file_validator, is_file=property.is_file))
-    if property.uri_protocol is not None:
-        validators.append(partial(uri_protocol_validator, protocols=property.uri_protocol))
+
+    # uri validators
+    if property.url_base is not None:
+        validators.append(partial(url_base_validator, url_base=property.url_base))
+    if property.url_protocols is not None:
+        validators.append(partial(url_protocol_validator, protocols=property.url_protocols))
+    if property.url_reachable is not None:
+        validators.append(partial(url_reachable_valiator, regex=property.url_reachable))
 
     # any validator
     if property.any_of is not None:
@@ -343,13 +347,16 @@ class Property(BaseModel):
     before: Optional[datetime.date] = None
     after: Optional[datetime.date] = None
 
-    # uri constraints
-    uri_regex: Optional[str] = None
-    uri_exists: Optional[bool] = None
+    # path constraints
+    
+    path_exists: Optional[bool] = None
     is_dir: Optional[bool] = None
     is_file: Optional[bool] = None
-    uri_protocol: Optional[str] = None
-    uri_reachable: Optional[bool] = None
+
+    # url constraints
+    url_base: Optional[str] = None
+    url_protocols: Optional[List[str]] = None
+    url_reachable: Optional[bool] = False
 
     # any constraints
     any_of: Optional[List[str]] = None
@@ -431,6 +438,8 @@ def gen_pydantic_type_model(type_def: TypeDef) -> Type[BaseModel]:
             "int": int,
             "num": float,
             "bool": bool,
+            "path": str,
+            "url": str,
             "any": Any,
         }
         type_lookup = prop.type
