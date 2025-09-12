@@ -77,6 +77,13 @@ types:
         required: false
         after: "1900-01-01"
         before: "2050-12-31"
+      - name: office
+        type: any
+        description: The person's office number, or true / false to indicate need.
+        required: false
+        any_of:
+          - int
+          - bool
 """
 
 def run_cli(args):
@@ -254,7 +261,7 @@ age: 35
 def test_eval_name_short():
     yaml_data = """
 name: Joe
-age: 25
+age: 24
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
@@ -262,7 +269,7 @@ age: 25
 def test_eval_name_long():
     yaml_data = """
 name: Joseph Reginold Smithington the Third
-age: 25
+age: 24
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
@@ -270,24 +277,24 @@ age: 25
 def test_eval_name_invalid():
     yaml_data = """
 name: Joe-Smith123
-age: 25
+age: 24
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
 
 def test_eval_birthday_good():
     yaml_data = """
-name: Joe-Smith123
-age: 25
+name: Joe Smith
+age: 24
 birthday: 1970-01-01
 """
     yasl_schema = PERSON_YASL
-    run_eval_command(yaml_data, yasl_schema, "person", False)
+    run_eval_command(yaml_data, yasl_schema, "person", True)
 
 def test_eval_birthday_before():
     yaml_data = """
-name: Joe-Smith123
-age: 25
+name: Joe Smith
+age: 24
 birthday: 1800-01-01
 """
     yasl_schema = PERSON_YASL
@@ -295,9 +302,45 @@ birthday: 1800-01-01
 
 def test_eval_birthday_after():
     yaml_data = """
-name: Joe-Smith123
-age: 25
+name: Joe Smith
+age: 24
 birthday: 2800-01-01
+"""
+    yasl_schema = PERSON_YASL
+    run_eval_command(yaml_data, yasl_schema, "person", False)
+
+def test_eval_office_int_good():
+    yaml_data = """
+name: Joe Smith
+age: 24
+office: 42
+"""
+    yasl_schema = PERSON_YASL
+    run_eval_command(yaml_data, yasl_schema, "person", True)
+
+def test_eval_office_bool_good():
+    yaml_data = """
+name: Joe Smith
+age: 24
+office: true
+"""
+    yasl_schema = PERSON_YASL
+    run_eval_command(yaml_data, yasl_schema, "person", True)
+
+def test_eval_office_str():
+    yaml_data = """
+name: Joe Smith
+age: 24
+office: please
+"""
+    yasl_schema = PERSON_YASL
+    run_eval_command(yaml_data, yasl_schema, "person", False)
+
+def test_eval_office_float():
+    yaml_data = """
+name: Joe Smith
+age: 24
+office: 33.3
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)

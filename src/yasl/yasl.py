@@ -168,9 +168,9 @@ def ref_filters_validator(cls, value: Any, filters: List[Dict[str, str]]):
 
 
 # any validator
-def any_of_validator(cls, value: Any, allowed_types: List[str]):
-    if not any(isinstance(value, eval(t)) for t in allowed_types):
-        raise ValueError(f"Value '{value}' must be one of {allowed_types}")
+def any_of_validator(cls, value: Any, any_of: List[str]):
+    if not any(isinstance(value, eval(t)) for t in any_of):
+        raise ValueError(f"Value '{value}' must be one of {any_of}")
     return value
 
 
@@ -259,7 +259,7 @@ def property_validator_factory(property) -> Callable:
 
     # any validator
     if property.any_of is not None:
-        validators.append(partial(any_of_validator, allowed_types=property.any_of))
+        validators.append(partial(any_of_validator, any_of=property.any_of))
 
     # ref validators
     if property.ref_exists is not None:

@@ -23,3 +23,10 @@ types:
         required: false
         after: "1900-01-01"
         before: "2050-12-31"
+      - name: office
+        type: any
+        description: The person's office location.
+        required: false
+        any_of:
+          - int
+          - bool
