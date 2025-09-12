@@ -8,6 +8,7 @@ import logging
 from io import StringIO
 from ruamel.yaml import YAML
 import json
+import traceback
 
 from yasl import (
     gen_pydantic_type_model,
@@ -104,7 +105,7 @@ def main():
     args = parser.parse_args()
 
     if args.verbose and args.quiet:
-        print("Cannot use both --quiet and --verbose.", file=sys.stderr)
+        print("❌ Cannot use both --quiet and --verbose.", file=sys.stderr)
         sys.exit(1)
 
     setup_logging(args.verbose, args.quiet, args.logfmt)
@@ -116,26 +117,26 @@ def main():
     # project-based commands
     if args.command == "init":
         if not args.param:
-            log.error("'init' requires a project name as parameter.")
+            log.error("❌ 'init' requires a project name as parameter.")
             sys.exit(1)
         project_name = args.param
         log.info(f"Initializing YASL project: {project_name}")
         # TODO: Implement init logic using project_name
     elif args.command == "check":
         if not args.param:
-            log.error("'check' requires a YAML file as parameter.")
+            log.error("❌ 'check' requires a YAML file as parameter.")
             sys.exit(1)
         log.info(f"Checking YAML file: {args.param}")
         # TODO: Implement check logic
     elif args.command == "package":
         if not args.param:
-            log.error("'package' requires a YAML file as parameter.")
+            log.error("❌ 'package' requires a YAML file as parameter.")
             sys.exit(1)
         log.info(f"Packaging YAML file: {args.param}")
         # TODO: Implement package logic
     elif args.command == "import":
         if not args.param:
-            log.error("'import' requires a URI as parameter.")
+            log.error("❌ 'import' requires a URI as parameter.")
             sys.exit(1)
         log.info(f"Importing from URI: {args.param}")
         # TODO: Implement import logic
@@ -143,23 +144,31 @@ def main():
     elif args.command == "eval":
         if not args.param or not args.schema or not args.model_name:
             log.error(
-                "'eval' requires a YAML file, a YASL schema file, and a model name as parameters."
+                "❌ 'eval' requires a YAML file, a YASL schema file, and a model name as parameters."
             )
             sys.exit(1)
         log.debug(
             f"Evaluating YAML file '{args.param}' against schema '{args.schema}' and model '{args.model_name}'"
         )
         models = {}
-        yasl = load_and_validate_yasl_with_lines(args.schema)
-        for type_def in yasl.types or []:
-            model = gen_pydantic_type_model(type_def)
-            models[type_def.name] = model
-        if args.model_name not in models:
-            log.error(f"Model '{args.model_name}' not found in schema.")
+        try:
+            yasl = load_and_validate_yasl_with_lines(args.schema)
+            if yasl is None:
+                sys.exit(1)
+            for type_def in yasl.types or []:
+                model = gen_pydantic_type_model(type_def)
+                models[type_def.name] = model
+            if args.model_name not in models:
+                log.error(f"❌ Model '{args.model_name}' not found in schema.")
+                sys.exit(1)
+            result = load_and_validate_data_with_lines(models[args.model_name], args.param)
+            if result is None:
+                sys.exit(1)
+        except Exception as e:
+            log.error(f"❌ An unexpected error occurred: {e}")
             sys.exit(1)
-        load_and_validate_data_with_lines(models[args.model_name], models, args.param)
     else:
-        log.error(f"Unknown command: {args.command}")
+        log.error(f"❌ Unknown command: {args.command}")
         sys.exit(1)
 
 

@@ -1,0 +1,25 @@
+types:
+  - name: person
+    namespace: acme
+    root: true
+    description: Information about a person.
+    properties:
+      - name: name
+        type: str
+        description: The person's name.
+        required: true
+      - name: age
+        type: int
+        description: The person's age.
+        required: true
+        ge: 18
+        lt: 125
+        whole_number: true
+        exclude:
+          - 65
+      - name: birthday
+        type: date
+        description: The person's birthday.
+        required: false
+        after: "1900-01-01"
+        before: "2050-12-31"

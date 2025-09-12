@@ -1,6 +1,6 @@
 # validate_config_with_lines.py
 import logging
-from ruamel.yaml import YAML
+from ruamel.yaml import YAML, YAMLError
 from pydantic import BaseModel, ValidationError, create_model, field_validator
 from enum import Enum
 from typing import Dict, Type, List, Optional, Tuple, Any, Callable
@@ -67,6 +67,11 @@ def exclude_validator(cls, value, excluded_values):
         raise ValueError(f"Value must not be one of {excluded_values}")
     return value
 
+def multiple_of_validator(cls, value, bound):
+    if value % bound != 0:
+        raise ValueError(f"Value must be a multiple of {bound}")
+    return value
+
 
 # string validation
 def str_min_validator(cls, value: str, min_length: int):
@@ -88,21 +93,13 @@ def str_regex_validator(cls, value: str, regex: str):
 
 
 # date validators
-def date_format_validator(cls, value: str, format: str):
-    try:
-        datetime.strptime(value, format)
-    except ValueError:
-        raise ValueError(f"Date '{value}' does not match format '{format}'")
-    return value
-
-
-def date_before_validator(cls, value: str, before: str):
+def date_before_validator(cls, value: datetime.date, before: datetime.date):
     if value >= before:
         raise ValueError(f"Date '{value}' must be before '{before}'")
     return value
 
 
-def date_after_validator(cls, value: str, after: str):
+def date_after_validator(cls, value: datetime.datetime, after: datetime.datetime):
     if value <= after:
         raise ValueError(f"Date '{value}' must be after '{after}'")
     return value
@@ -206,7 +203,8 @@ def if_then_validator(cls, values: Dict[str, Any], if_then: Dict[str, Any]):
 
 # enum validator
 def enum_validator(cls, value: Any, values: List[str]):
-    if value not in values:
+    str_value = str(value)
+    if str_value.split('.')[-1] not in values:
         raise ValueError(f"Value '{value}' must be one of {values}")
     return value
 
@@ -215,7 +213,7 @@ def property_validator_factory(property) -> Callable:
     validators = []
     # list validators
     if property.list_min is not None:
-        validators.append(partial(list_min_validator, bound=property.list_min))
+        validators.append((partial(list_min_validator, bound=property.list_min)))
     if property.list_max is not None:
         validators.append(partial(list_max_validator, bound=property.list_max))
 
@@ -229,47 +227,47 @@ def property_validator_factory(property) -> Callable:
     if property.le is not None:
         validators.append(partial(le_validator, bound=property.le))
     if property.exclude is not None:
-        validators.append(partial(exclude_validator, bound=property.exclude))
+        validators.append(partial(exclude_validator, excluded_values=property.exclude))
+    if property.multiple_of is not None:
+        validators.append(partial(multiple_of_validator, bound=property.multiple_of))
 
     # string validators
     if property.str_min is not None:
-        validators.append(partial(str_min_validator, bound=property.str_min))
+        validators.append(partial(str_min_validator, min_length=property.str_min))
     if property.str_max is not None:
-        validators.append(partial(str_max_validator, bound=property.str_max))
+        validators.append(partial(str_max_validator, max_length=property.str_max))
     if property.str_regex is not None:
-        validators.append(partial(str_regex_validator, bound=property.str_regex))
+        validators.append(partial(str_regex_validator, regex=property.str_regex))
 
     # date validators
-    if property.date_format is not None:
-        validators.append(partial(date_format_validator, bound=property.date_format))
     if property.before is not None:
-        validators.append(partial(date_before_validator, bound=property.before))
+        validators.append(partial(date_before_validator, before=property.before))
     if property.after is not None:
-        validators.append(partial(date_after_validator, bound=property.after))
+        validators.append(partial(date_after_validator, after=property.after))
 
     # uri validators
     if property.uri_regex is not None:
-        validators.append(partial(uri_regex_validator, bound=property.uri_regex))
+        validators.append(partial(uri_regex_validator, regex=property.uri_regex))
     if property.uri_exists is not None:
-        validators.append(partial(uri_exists_validator, bound=property.uri_exists))
+        validators.append(partial(uri_exists_validator, exists=property.uri_exists))
     if property.is_dir is not None:
-        validators.append(partial(is_dir_validator, bound=property.is_dir))
+        validators.append(partial(is_dir_validator, is_dir=property.is_dir))
     if property.is_file is not None:
-        validators.append(partial(is_file_validator, bound=property.is_file))
+        validators.append(partial(is_file_validator, is_file=property.is_file))
     if property.uri_protocol is not None:
-        validators.append(partial(uri_protocol_validator, bound=property.uri_protocol))
+        validators.append(partial(uri_protocol_validator, protocols=property.uri_protocol))
 
     # any validator
     if property.any_of is not None:
-        validators.append(partial(any_of_validator, bound=property.any_of))
+        validators.append(partial(any_of_validator, allowed_types=property.any_of))
 
     # ref validators
     if property.ref_exists is not None:
-        validators.append(partial(ref_exists_validator, bound=property.ref_exists))
+        validators.append(partial(ref_exists_validator, exists=property.ref_exists))
     if property.ref_multi is not None:
-        validators.append(partial(ref_multi_validator, bound=property.ref_multi))
+        validators.append(partial(ref_multi_validator, multi=property.ref_multi))
     if property.ref_filters is not None:
-        validators.append(partial(ref_filters_validator, bound=property.ref_filters))
+        validators.append(partial(ref_filters_validator, filters=property.ref_filters))
 
     # enum validators
     if property.type in yasl_enumerations.keys():
@@ -278,7 +276,7 @@ def property_validator_factory(property) -> Callable:
 
     def multi_validator(cls, value):
         for validator in validators:
-            value = validator(value)
+            value = validator(cls, value)
         return value
 
     return field_validator(property.name)(multi_validator)
@@ -342,9 +340,8 @@ class Property(BaseModel):
     str_regex: Optional[str] = None
 
     # date constraints
-    date_format: Optional[str] = None
-    before: Optional[str] = None
-    after: Optional[str] = None
+    before: Optional[datetime.date] = None
+    after: Optional[datetime.date] = None
 
     # uri constraints
     uri_regex: Optional[str] = None
@@ -430,6 +427,7 @@ def gen_pydantic_type_model(type_def: TypeDef) -> Type[BaseModel]:
         type_map = {
             "str": str,
             "string": str,
+            "date": datetime.date,
             "int": int,
             "num": float,
             "bool": bool,
@@ -462,7 +460,7 @@ def gen_pydantic_type_model(type_def: TypeDef) -> Type[BaseModel]:
             else (None if not prop.required else ...)
         )
         fields[prop.name] = (py_type, default)
-        validators[prop.name] = property_validator_factory(prop)
+        validators[f"{prop.name}__validator"] = property_validator_factory(prop)
     validators["__validate__"] = type_validator_factory(type_def)
     model = create_model(
         type_def.name,
@@ -562,7 +560,7 @@ def load_and_validate_yasl_with_lines(path: str) -> YASL:
     except FileNotFoundError:
         log.error(f"❌ Error: File not found at '{path}'")
     except ValidationError as e:
-        log.error(f"❌ Validation failed with {len(e.errors())} error(s):")
+        log.error(f"❌ YASL schema validation failed with {len(e.errors())} error(s):")
         for error in e.errors():
             line = get_line_for_error(data, error["loc"])
             path_str = " -> ".join(map(str, error["loc"]))
@@ -571,13 +569,12 @@ def load_and_validate_yasl_with_lines(path: str) -> YASL:
             else:
                 log.error(f"  - Location '{path_str}' -> {error['msg']}")
     except Exception as e:
-        log.error(f"❌ An unexpected error occurred: {e}")
-        traceback.print_exc()
+        log.error(f"❌ An unexpected error occurred: {type(e)} - {e}")
 
 
 # --- Main data validation logic ---
 def load_and_validate_data_with_lines(
-    model: type, models: Dict[str, type], path: str
+    model: type, path: str
 ) -> Any:
     log = logging.getLogger("yasl")
     log.debug(f"--- Attempting to validate data '{path}' with line numbers ---")
@@ -588,7 +585,16 @@ def load_and_validate_data_with_lines(
 
     except FileNotFoundError:
         log.error(f"❌ Error: File not found at '{path}'")
-
+        return None
+    except YAMLError as e:
+        log.error(f"❌ Error: YAML error while parsing data '{path}'\n  - {e}")
+        return None
+    except ValueError as e:
+        log.error(f"❌ Error: value error while parsing data '{path}'\n  - {e}")
+        return None
+    except Exception as e:
+        log.error(f"❌ An unexpected error [{type(e)}] occurred in parsing yaml data file: {e}")
+        return None
     try:
         result = model(**data)
         log.info("✅ YAML data validation successful!")
@@ -602,6 +608,7 @@ def load_and_validate_data_with_lines(
                 log.error(f"  - Line {line}: '{path_str}' -> {error['msg']}")
             else:
                 log.error(f"  - Location '{path_str}' -> {error['msg']}")
+        return None
     except Exception as e:
-        log.error(f"❌ An unexpected error occurred: {e}")
-        traceback.print_exc()
+        log.error(f"❌ An unexpected error occurred in load_and_validate_data_with_lines: {e}")
+        return None
