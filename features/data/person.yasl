@@ -1,3 +1,5 @@
+imports:
+  - ./address.yasl
 types:
   - name: person
     namespace: acme
@@ -52,3 +54,7 @@ types:
         url_protocols:
           - http
           - https
+      - name: address
+        type: address
+        description: The person's address.
+        required: false

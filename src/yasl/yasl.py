@@ -575,46 +575,14 @@ def gen_pydantic_type_model(type_def: TypeDef) -> Type[BaseModel]:
         __base__=YASLBaseModel,
         __module__=type_def.namespace or None,
         __validators__=validators,
+        __config__={"extra": "forbid"},
         **fields,
     )
     yasl_type_defs[type_def.name] = model
     return model
 
-
-class ProjectAttribute(BaseModel):
-    quiet: Optional[bool] = False
-    verbose: Optional[bool] = False
-    logfmt: Optional[str] = "text"
-    ssl_verify: Optional[bool] = True
-    http_proxy: Optional[str] = None
-    https_proxy: Optional[str] = None
-    warn_as_error: Optional[bool] = False
-
-    model_config = {"extra": "forbid"}
-
-
-class ProjectImport(BaseModel):
-    source: str
-    version: Optional[str] = None
-
-    model_config = {"extra": "forbid"}
-
-
-class Project(BaseModel):
-    name: str
-    description: Optional[str] = None
-    license: Optional[str] = None
-    version: Optional[str] = None
-    keywords: Optional[List[str]] = None
-    attributes: Optional[ProjectAttribute] = None
-    content: Optional[str] = None
-    imports: Optional[List[ProjectImport]] = None
-
-    model_config = {"extra": "forbid"}
-
-
 class YaslRoot(BaseModel):
-    project: Optional[Project] = None
+    imports: Optional[List[str]] = None
     enums: Optional[List[Enumeration]] = None
     types: Optional[List[TypeDef]] = None
 
@@ -653,8 +621,18 @@ def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
         yasl = YaslRoot(**data)
         if yasl is None:
             raise ValueError("Failed to parse YASL schema from data {data}")
-        if yasl.project is not None:
-            log.debug(f"Evaluating project: {yasl.project.name}")
+        if yasl.imports is not None:
+            for imp in yasl.imports:
+                imp_path = imp
+                if not Path(imp_path).exists():
+                    # try relative to current schema file
+                    imp_path = Path(path).parent / imp
+                    if not imp_path.exists():
+                        raise FileNotFoundError(f"Import file '{imp}' not found")
+                log.debug(f"Importing additional schema: {imp}  - resolved to {imp_path}")
+                imported_yasl = load_and_validate_yasl_with_lines(imp_path)
+                if not imported_yasl:
+                    raise ValueError(f"Failed to import YASL schema from '{imp}'")
         for enum in yasl.enums or []:
             # must setup enums before types to support enum validation
             log.debug(f"Evaluating enum: {enum.name}")
@@ -668,7 +646,7 @@ def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
     except FileNotFoundError:
         log.error(f"❌ Error: File not found at '{path}'")
     except ValidationError as e:
-        log.error(f"❌ YASL schema validation failed with {len(e.errors())} error(s):")
+        log.error(f"❌ YASL schema validation of {path} failed with {len(e.errors())} error(s):")
         for error in e.errors():
             line = get_line_for_error(data, error["loc"])
             path_str = " -> ".join(map(str, error["loc"]))

@@ -1,0 +1,23 @@
+people:
+  - name: John Doe
+    office: 123
+    age: 30
+    address:
+      street: 123 Main St
+      city: Anytown
+      zip_code: 55454
+      other:
+        - one
+        - two
+        - three
+  - name: Jane Doe
+    office: 123
+    age: 30
+    address:
+      street: 456 Elm St
+      city: Othertown
+      zip_code: 55454
+      other:
+        - hello
+        - world
+    

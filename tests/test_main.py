@@ -417,7 +417,6 @@ types:
 """
     yaml_data = """
 name: Joe Smith
-age: 24
 website: https://www.google.com
 """
     run_eval_command(yaml_data, yasl_schema, "person", True)
