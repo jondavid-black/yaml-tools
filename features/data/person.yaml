@@ -2,5 +2,6 @@ name: John Doe
 age: 30
 birthday: 1975-11-01
 office: 55
-bio: ./docs/design.mds
+bio: ./docs/design.md
 home_directory: ./docs/
+website: https://192.168.1.155

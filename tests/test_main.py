@@ -90,6 +90,9 @@ types:
         required: false
         is_file: true
         path_exists: false
+        file_ext:
+          - txt
+          - md
       - name: home_directory
         type: path
         description: Path to the person's home directory.
@@ -108,46 +111,18 @@ types:
 
 def run_cli(args):
     result = subprocess.run(
-        [sys.executable, "./src/yasl/main.py"] + args,
+        [sys.executable, "./src/yasl/cli.py"] + args,
         capture_output=True,
         text=True
     )
+    print(f"DEBUG: stdout: {result.stdout}")
+    print(f"DEBUG: stderr: {result.stderr}")
     return result
 
-def test_init_command():
-    result = run_cli(["init", "proj_name"])
-    assert result.returncode == 0
-    assert "Initializing YASL project" in result.stderr
-
-def test_check_command_missing_param():
-    result = run_cli(["check"])
-    assert result.returncode != 0
-    assert "requires a YAML file" in result.stderr
-
-def test_package_command_missing_param():
-    result = run_cli(["package"])
-    assert result.returncode != 0
-    assert "requires a YAML file" in result.stderr
-
-def test_import_command_missing_param():
-    result = run_cli(["import"])
-    assert result.returncode != 0
-    assert "requires a URI" in result.stderr
-
 def test_quiet_and_verbose():
-    result = run_cli(["init", "--quiet", "--verbose"])
+    result = run_cli(["file.yasl", "file.yaml", "--quiet", "--verbose"])
     assert result.returncode != 0
-    assert "Cannot use both" in result.stderr
-
-def test_eval_command_missing_params():
-    # Missing both params
-    result = run_cli(["eval"])
-    assert result.returncode != 0
-    assert "requires a YAML file, a YASL schema file, and a model name" in result.stderr
-    # Missing schema param
-    result = run_cli(["eval", "foo.yaml"])
-    assert result.returncode != 0
-    assert "requires a YAML file, a YASL schema file, and a model name" in result.stderr
+    assert "Cannot use both" in result.stdout
 
 def run_eval_command(yaml_data, yasl_schema, model_name, expect_valid):
     
@@ -158,13 +133,13 @@ def run_eval_command(yaml_data, yasl_schema, model_name, expect_valid):
             f.write(yaml_data)
         with open(yasl_path, "w") as f:
             f.write(yasl_schema)
-        result = run_cli(["eval", yaml_path, yasl_path, model_name])
+        result = run_cli([yasl_path, yaml_path, model_name])
         if not expect_valid:
             assert result.returncode != 0
-            assert "Validation failed" in result.stderr
+            assert "Validation failed" in result.stdout
         else:
             assert result.returncode == 0
-            assert "YAML data validation successful" in result.stderr
+            assert "YAML data validation successful" in result.stdout
 
 def test_eval_nested_types_and_enum():
     yaml_data = """
@@ -374,6 +349,15 @@ bio: ./myfile.txt
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", True)
 
+def test_eval_bio_bad_ext():
+    yaml_data = """
+name: Joe Smith
+age: 24
+bio: ./myfile.docx
+"""
+    yasl_schema = PERSON_YASL
+    run_eval_command(yaml_data, yasl_schema, "person", False)
+
 def test_eval_home_dir_good():
     yaml_data = f"""
 name: Joe Smith
@@ -410,6 +394,34 @@ website: ftp://www.example.com/joe_smith
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
 
+def test_eval_website_reachable():
+    yasl_schema = """
+types:
+  - name: person
+    namespace: acme
+    root: true
+    description: Information about a person.
+    properties:
+      - name: name
+        type: str
+        description: The person's name.
+        required: true
+        str_min: 5
+        str_max: 15
+        str_regex: '^[A-Za-z ]+$'
+      - name: website
+        type: url
+        description: The person's website.
+        required: false
+        url_reachable: true
+"""
+    yaml_data = """
+name: Joe Smith
+age: 24
+website: https://www.google.com
+"""
+    run_eval_command(yaml_data, yasl_schema, "person", True)
+
 def test_eval_website_bad_base():
     yaml_data = """
 name: Joe Smith
@@ -420,6 +432,7 @@ website: ftp://www.notexample.com/joe_smith
     run_eval_command(yaml_data, yasl_schema, "person", False)
 
 def test_version_command():
-    result = run_cli(["version"])
+    result = run_cli(["--version"])
+    print(f"DEBUG: stdout: {result.stdout}")
     assert result.returncode == 0
-    assert "YASL version" in result.stderr
+    assert "YASL version" in result.stdout

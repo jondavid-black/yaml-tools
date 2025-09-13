@@ -9,6 +9,63 @@ import re
 import datetime
 from pathlib import Path
 from urllib.parse import urlparse
+import requests
+import json
+from io import StringIO
+import sys
+
+YASL_VERSION = "0.1.0"
+
+# --- Logging Setup ---
+class YamlFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        yaml = YAML()
+        log_dict = {
+            "level": record.levelname,
+            "name": record.name,
+            "message": record.getMessage(),
+            "time": self.formatTime(record, self.datefmt),
+        }
+        stream = StringIO()
+        log_list = []
+        log_list.append(log_dict)
+        yaml.dump(log_list, stream)
+        return stream.getvalue().strip()
+
+
+class JsonFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        log_dict = {
+            "level": record.levelname,
+            "name": record.name,
+            "message": record.getMessage(),
+            "time": self.formatTime(record, self.datefmt),
+        }
+        return json.dumps(log_dict)
+    
+def setup_logging(disable: bool, verbose: bool, quiet: bool, logfmt: str):
+    logger = logging.getLogger()
+    logger.handlers.clear()
+    if disable:
+        logger.disabled = True
+        return
+    if verbose:
+        level = logging.DEBUG
+    elif quiet:
+        level = logging.ERROR
+    else:
+        level = logging.INFO
+    logger.setLevel(level)
+    handler = logging.StreamHandler(sys.stdout)
+    if logfmt == "json":
+        handler.setFormatter(JsonFormatter())
+    elif logfmt == "yaml":
+        handler.setFormatter(YamlFormatter())
+    else:
+        handler.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(handler)
+
+# --- YASL Models and Validation Logic ---
 
 # yasl validator functions
 yasl_type_defs: Dict[
@@ -18,6 +75,30 @@ yasl_enumerations: Dict[
     str, Type[Enum]
 ] = {}  # Global registry for enums to support enum validation
 
+def yasl_version() -> str:
+    return YASL_VERSION
+
+def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_log: bool = False, quiet_log: bool = False, verbose_log: bool = False, log_fmt: str = "text") -> Optional[BaseModel]:
+    from yasl import setup_logging, load_and_validate_yasl_with_lines, load_and_validate_data_with_lines
+
+    setup_logging(disable=disable_log, verbose=verbose_log, quiet=quiet_log, logfmt=log_fmt)
+    log = logging.getLogger("yasl")
+    log.debug(f"YASL Version:  {YASL_VERSION}")
+    log.debug(f"YASL Schema:   {yasl_schema}")
+    log.debug(f"YAML Data:    {yaml_data}")
+    yasl = load_and_validate_yasl_with_lines(yasl_schema)
+    if yasl is None:
+        log.error("❌ YASL schema validation failed. Exiting.")
+        return None
+    if model_name is None:
+        pass  # TODO: determine root model from root keys in the data file
+    if model_name not in yasl_type_defs:
+        log.error(f"❌ Error: Model '{model_name}' not found in YASL schema definitions.")
+        return None
+    model = yasl_type_defs[model_name]
+    log.debug(f"Using model '{model_name}' for data validation.")
+    data = load_and_validate_data_with_lines(model, yaml_data)
+    return data
 
 class YASLBaseModel(BaseModel):
     def __repr__(self) -> str:
@@ -120,9 +201,14 @@ def url_protocol_validator(cls, value: str, protocols: List[str]):
         raise ValueError(f"URL '{value}' must use one of the protocols {protocols}")
     return value
 
-def url_reachable_valiator(cls, value: str, regex: bool):
-    # TODO implement actual URL reachability check
-    # For now, just a placeholder that always passes
+def url_reachable_valiator(cls, value: str, reachable: bool):
+    if reachable:
+        try:
+            response = requests.head(value, allow_redirects=True, timeout=3)
+            if response.status_code >= 400:
+                raise ValueError(f"URL '{value}' is not reachable (status {response.status_code})")
+        except requests.RequestException as e:
+            raise ValueError(f"URL '{value}' is not reachable: {e}")
     return value
 
 
@@ -139,6 +225,16 @@ def is_file_validator(cls, value: str, is_file: bool):
     # Check if the path looks like a file (does not end with a separator, has a suffix)
     if not(path.suffix != '' and not value.endswith(('/', '\\'))):
         raise ValueError(f"Path '{value}' must be a file")
+    return value
+
+def file_ext_validator(cls, value: str, extensions: List[str]):
+    path = Path(value)
+    print(f"Validating file extension '{path.suffix}' against {extensions}")
+    # First, ensure it's a file
+    is_file_validator(cls, value, True)
+    # Check if the file has one of the allowed extensions
+    if extensions and path.suffix not in [f".{ext}" if not ext.startswith('.') else ext for ext in extensions] :
+        raise ValueError(f"File '{value}' must have one of the following extensions: {extensions}")
     return value
 
 def path_exists_validator(cls, value: str, exists: bool):
@@ -252,6 +348,8 @@ def property_validator_factory(property) -> Callable:
         validators.append(partial(is_dir_validator, is_dir=property.is_dir))
     if property.is_file is not None:
         validators.append(partial(is_file_validator, is_file=property.is_file))
+    if property.file_ext is not None:
+        validators.append(partial(file_ext_validator, extensions=property.file_ext))
 
     # uri validators
     if property.url_base is not None:
@@ -259,7 +357,7 @@ def property_validator_factory(property) -> Callable:
     if property.url_protocols is not None:
         validators.append(partial(url_protocol_validator, protocols=property.url_protocols))
     if property.url_reachable is not None:
-        validators.append(partial(url_reachable_valiator, regex=property.url_reachable))
+        validators.append(partial(url_reachable_valiator, reachable=property.url_reachable))
 
     # any validator
     if property.any_of is not None:
@@ -352,6 +450,7 @@ class Property(BaseModel):
     path_exists: Optional[bool] = None
     is_dir: Optional[bool] = None
     is_file: Optional[bool] = None
+    file_ext: Optional[List[str]] = None
 
     # url constraints
     url_base: Optional[str] = None
@@ -514,7 +613,7 @@ class Project(BaseModel):
     model_config = {"extra": "forbid"}
 
 
-class YASL(BaseModel):
+class YaslRoot(BaseModel):
     project: Optional[Project] = None
     enums: Optional[List[Enumeration]] = None
     types: Optional[List[TypeDef]] = None
@@ -544,14 +643,14 @@ def get_line_for_error(data, loc: Tuple[str, ...]) -> Optional[int]:
 
 
 # --- Main schema validation logic ---
-def load_and_validate_yasl_with_lines(path: str) -> YASL:
+def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
     log = logging.getLogger("yasl")
     log.debug(f"--- Attempting to validate schema '{path}' with line numbers ---")
     try:
         yaml_loader = YAML(typ="rt")
         with open(path, "r") as f:
             data = yaml_loader.load(f)
-        yasl = YASL(**data)
+        yasl = YaslRoot(**data)
         if yasl is None:
             raise ValueError("Failed to parse YASL schema from data {data}")
         if yasl.project is not None:

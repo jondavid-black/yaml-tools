@@ -36,6 +36,9 @@ types:
         required: false
         path_exists: false
         is_file: true
+        file_ext:
+          - txt
+          - .md
       - name: home_directory
         type: path
         description: Path to the person's home directory.
