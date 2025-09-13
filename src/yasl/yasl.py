@@ -91,7 +91,18 @@ def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_
         log.error("❌ YASL schema validation failed. Exiting.")
         return None
     if model_name is None:
-        pass  # TODO: determine root model from root keys in the data file
+        yaml_loader = YAML(typ="rt")
+        with open(yaml_data, "r") as f:
+            data = yaml_loader.load(f)
+        root_keys: List[str] = list(data.keys())
+        for type_def in yasl.types or []:
+            type_def_root_keys: List[str] = [k for k in type_def.properties]
+            if type_def.root and all(k.name in root_keys for k in type_def_root_keys):
+                model_name = type_def.name
+                log.debug(f"Auto-detected root model: '{model_name}'")
+                break
+            else:
+                log.debug(f"Model '{type_def.name}' with root keys {type_def_root_keys} is not a match for root keys {root_keys}")
     if model_name not in yasl_type_defs:
         log.error(f"❌ Error: Model '{model_name}' not found in YASL schema definitions.")
         return None
@@ -613,7 +624,7 @@ def get_line_for_error(data, loc: Tuple[str, ...]) -> Optional[int]:
 # --- Main schema validation logic ---
 def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
     log = logging.getLogger("yasl")
-    log.debug(f"--- Attempting to validate schema '{path}' with line numbers ---")
+    log.debug(f"--- Attempting to validate schema '{path}' ---")
     try:
         yaml_loader = YAML(typ="rt")
         with open(path, "r") as f:
@@ -663,7 +674,7 @@ def load_and_validate_data_with_lines(
     model: type, path: str
 ) -> Any:
     log = logging.getLogger("yasl")
-    log.debug(f"--- Attempting to validate data '{path}' with line numbers ---")
+    log.debug(f"--- Attempting to validate data '{path}' ---")
     try:
         yaml_loader = YAML(typ="rt")
         with open(path, "r") as f:
