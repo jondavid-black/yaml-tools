@@ -2,6 +2,10 @@ import subprocess
 import sys
 import tempfile
 import os
+from io import StringIO
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src/yasl")))
+
+from yasl import yasl_eval
 
 CUSTOMER_LIST_YASL = """
 enums:
@@ -214,6 +218,20 @@ def run_eval_command(yaml_data, yasl_schema, model_name, expect_valid):
             f.write(yaml_data)
         with open(yasl_path, "w") as f:
             f.write(yasl_schema)
+
+        # Test via the API
+        test_log = StringIO()
+        yasl_model = yasl_eval(yasl_path, yaml_path, model_name, verbose_log=True, log_fmt="text", log_stream=test_log)
+        print(f"DEBUG: log output:\n{test_log.getvalue()}")
+        print(f"DEBUG: yasl_model: {yasl_model}")
+        if not expect_valid:
+            assert yasl_model is None
+            assert "❌" in test_log.getvalue()
+        else:
+            assert yasl_model is not None
+            assert "YAML data validation successful" in test_log.getvalue()
+
+        # Test via the CLI
         result = run_cli([yasl_path, yaml_path, model_name])
         if not expect_valid:
             assert result.returncode != 0

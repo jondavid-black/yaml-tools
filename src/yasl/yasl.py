@@ -98,7 +98,7 @@ class JsonFormatter(logging.Formatter):
         }
         return json.dumps(log_dict)
     
-def setup_logging(disable: bool, verbose: bool, quiet: bool, logfmt: str):
+def setup_logging(disable: bool, verbose: bool, quiet: bool, logfmt: str, stream: StringIO = sys.stdout):
     logger = logging.getLogger()
     logger.handlers.clear()
     if disable:
@@ -111,7 +111,7 @@ def setup_logging(disable: bool, verbose: bool, quiet: bool, logfmt: str):
     else:
         level = logging.INFO
     logger.setLevel(level)
-    handler = logging.StreamHandler(sys.stdout)
+    handler = logging.StreamHandler(stream)
     if logfmt == "json":
         handler.setFormatter(JsonFormatter())
     elif logfmt == "yaml":
@@ -133,10 +133,10 @@ yasl_enumerations: Dict[
 def yasl_version() -> str:
     return YASL_VERSION
 
-def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_log: bool = False, quiet_log: bool = False, verbose_log: bool = False, log_fmt: str = "text") -> Optional[BaseModel]:
+def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_log: bool = False, quiet_log: bool = False, verbose_log: bool = False, log_fmt: str = "text", log_stream: StringIO = sys.stdout) -> Optional[BaseModel]:
     from yasl import setup_logging, load_and_validate_yasl_with_lines, load_and_validate_data_with_lines
 
-    setup_logging(disable=disable_log, verbose=verbose_log, quiet=quiet_log, logfmt=log_fmt)
+    setup_logging(disable=disable_log, verbose=verbose_log, quiet=quiet_log, logfmt=log_fmt, stream=log_stream)
     log = logging.getLogger("yasl")
     log.debug(f"YASL Version:  {YASL_VERSION}")
     log.debug(f"YASL Schema:   {yasl_schema}")
@@ -389,6 +389,8 @@ def load_and_validate_data_with_lines(
         return None
     try:
         result = model(**data)
+        if result is None:
+            raise ValueError(f"Failed to parse data from {data}")
         log.info("✅ YAML data validation successful!")
         return result
     except ValidationError as e:

@@ -30,6 +30,8 @@ node_modules/
 # Test and coverage
 coverage*
 *.coverprofile
+.coverage
+htmlcov/
 
 # Logs
 *.log
