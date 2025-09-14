@@ -1,7 +1,11 @@
 from functools import partial
 from typing import Dict, List, Any, Union, Callable
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 import yasl
+from pydantic_types import (
+    IfThen,
+    TypeDef,
+)
 import datetime
 import re
 from urllib.parse import urlparse
@@ -13,7 +17,6 @@ def list_min_validator(cls, value: List[Any], bound: int):
     if len(value) < bound:
         raise ValueError(f"List must contain at least {bound} items")
     return value
-
 
 def list_max_validator(cls, value: List[Any], bound: int):
     if len(value) > bound:
@@ -262,3 +265,61 @@ def property_validator_factory(property) -> Callable:
         return value
 
     return field_validator(property.name)(multi_validator)
+
+# type validators
+def only_one_validator(cls, values: Dict[str, Any], fields: List[str]):
+    data_keys = [key for key, val in values.model_dump().items() if val is not None]
+    if sum(1 for field in fields if field in data_keys) != 1:
+        raise ValueError(f"Exactly one of {fields} must be present")
+    return values
+
+
+def at_least_one_validator(cls, values: Dict[str, Any], fields: List[str]):
+    data_keys = [key for key, val in values.model_dump().items() if val is not None]
+    if sum(1 for field in fields if field in data_keys) < 1:
+        raise ValueError(f"At least one of {fields} must be present")
+    return values
+
+
+def if_then_validator(cls, values: Dict[str, Any], if_then: IfThen):
+    eval_field = if_then.eval
+    eval_value = if_then.value
+    present_fields = if_then.present or []
+    absent_fields = if_then.absent or []
+    values_dict = values.model_dump()
+    if eval_field in values_dict:
+        eval_value_type = type(values_dict[eval_field])
+        typed_eval_value = [eval_value_type(v) for v in eval_value]
+        if values_dict[eval_field] in typed_eval_value:
+            for field in present_fields:
+                if field not in values_dict or values_dict[field] is None:
+                    raise ValueError(f"Field '{field}' must be present when '{eval_field}' is in {eval_value}")
+            for field in absent_fields:
+                if field in values_dict and values_dict[field] is not None:
+                    raise ValueError(f"Field '{field}' must be absent when '{eval_field}' is in {eval_value}")
+    return values
+
+def type_validator_factory(model: TypeDef) -> Callable:
+    validators = []
+    if model.validators is not None:
+        if model.validators.only_one is not None:
+            validators.append(
+                partial(only_one_validator, fields=model.validators.only_one)
+            )
+        if model.validators.at_least_one is not None:
+            validators.append(
+                partial(at_least_one_validator, fields=model.validators.at_least_one)
+            )
+        if model.validators.if_then is not None:
+            for item in model.validators.if_then:
+                validators.append(
+                    partial(if_then_validator, if_then=item)
+                )
+
+    @model_validator(mode="after")
+    def multi_validator(cls, values):
+        for validator in validators:
+            values = validator(cls, values)
+        return values
+
+    return multi_validator

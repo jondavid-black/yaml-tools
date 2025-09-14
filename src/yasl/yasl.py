@@ -1,6 +1,12 @@
 # validate_config_with_lines.py
 import logging
-from validators import property_validator_factory
+from pydantic_types import (
+    Enumeration,
+    TypeDef,
+    YaslRoot,
+    YASLBaseModel
+)
+from validators import property_validator_factory, type_validator_factory
 from ruamel.yaml import YAML, YAMLError
 from pydantic import (
     BaseModel, 
@@ -55,13 +61,13 @@ from pydantic import (
     IPvAnyAddress,
 )
 from enum import Enum
-from typing import Dict, Type, List, Optional, Tuple, Any, Callable, Union
-from functools import partial
+from typing import Dict, Type, List, Optional, Tuple, Any, Callable
 import datetime
 from pathlib import Path
 import json
 from io import StringIO
 import sys
+import traceback
 
 YASL_VERSION = "0.1.0"
 
@@ -160,48 +166,6 @@ def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_
     data = load_and_validate_data_with_lines(model, yaml_data)
     return data
 
-class YASLBaseModel(BaseModel):
-    def __repr__(self) -> str:
-        fields = self.model_dump()  # For Pydantic v2; use self.dict() for v1
-        return f"{self.__class__.__name__}({fields})"
-
-# type validators
-def only_one_validator(cls, values: Dict[str, Any], fields: List[str]):
-    data = values.get("properties", {})
-    if sum(1 for field in fields if field in data) != 1:
-        raise ValueError(f"Exactly one of {fields} must be present")
-    return values
-
-
-def at_least_one_validator(cls, values: Dict[str, Any], fields: List[str]):
-    data = values.get("properties", {})
-    if sum(1 for field in fields if field in data) < 1:
-        raise ValueError(f"At least one of {fields} must be present")
-    return values
-
-
-def if_then_validator(cls, values: Dict[str, Any], if_then: Dict[str, Any]):
-    data = values.get("properties", {})
-    if if_then.get("eval") and not eval(if_then["eval"], {}, data):
-        for field in if_then.get("absent", []):
-            if field in data:
-                raise ValueError(f"Property '{field}' must not be present")
-        for field in if_then.get("present", []):
-            if field not in data:
-                raise ValueError(f"Property '{field}' must be present")
-    return values
-
-
-# --- YASL Pydantic Models ---
-class Enumeration(BaseModel):
-    name: str
-    description: Optional[str] = None
-    namespace: Optional[str] = None
-    values: List[str]
-
-    model_config = {"extra": "forbid"}
-
-
 def gen_enum_from_enumeration(enum_def: Enumeration) -> Type[Enum]:
     """
     Dynamically generate a Python Enum class from an Enumeration instance.
@@ -213,119 +177,6 @@ def gen_enum_from_enumeration(enum_def: Enumeration) -> Type[Enum]:
         enum_cls.__module__ = enum_def.namespace
     yasl_enumerations[enum_def.name] = enum_cls
     return enum_cls
-
-
-class RefFilter(BaseModel):
-    target: str
-    value: str
-
-    model_config = {"extra": "forbid"}
-
-
-class Property(BaseModel):
-    name: str
-    type: str
-    namespace: Optional[str] = None
-    description: Optional[str] = None
-    required: Optional[bool] = True
-    unique: Optional[bool] = False
-    default: Optional[Any] = None
-
-    # list constraints
-    list_min: Optional[int] = None
-    list_max: Optional[int] = None
-
-    # numeric constraints
-    gt: Optional[float] = None
-    ge: Optional[float] = None
-    lt: Optional[float] = None
-    le: Optional[float] = None
-    exclude: Optional[List[float]] = None
-    multiple_of: Optional[float] = None
-    whole_number: Optional[bool] = False
-
-    # string constraints
-    str_min: Optional[int] = None
-    str_max: Optional[int] = None
-    str_regex: Optional[str] = None
-
-    # date / time constraints
-    before: Optional[Union[datetime.date, datetime.datetime, datetime.time]] = None
-    after: Optional[Union[datetime.date, datetime.datetime, datetime.time]] = None
-
-    # path constraints
-    
-    path_exists: Optional[bool] = None
-    is_dir: Optional[bool] = None
-    is_file: Optional[bool] = None
-    file_ext: Optional[List[str]] = None
-
-    # url constraints
-    url_base: Optional[str] = None
-    url_protocols: Optional[List[str]] = None
-    url_reachable: Optional[bool] = False
-
-    # any constraints
-    any_of: Optional[List[str]] = None
-
-    # ref constraints
-    ref_exists: Optional[bool] = None
-    ref_multi: Optional[bool] = None
-    ref_filters: Optional[List[RefFilter]] = None
-
-    model_config = {"extra": "forbid"}
-
-
-class IfThen(BaseModel):
-    eval: str
-    value: List[str]
-    present: List[str]
-    absent: List[str]
-
-    model_config = {"extra": "forbid"}
-
-
-class Validator(BaseModel):
-    only_one: Optional[List[str]] = None
-    at_least_one: Optional[List[str]] = None
-    if_then: Optional[IfThen] = None
-
-    model_config = {"extra": "forbid"}
-
-
-class TypeDef(BaseModel):
-    name: str
-    namespace: Optional[str] = None
-    description: Optional[str] = None
-    root: Optional[bool] = False
-    properties: List[Property]
-    validators: Optional[Validator] = None
-
-    model_config = {"extra": "forbid"}
-
-
-def type_validator_factory(model: TypeDef) -> Callable:
-    validators = []
-    if model.validators is not None:
-        if model.validators.only_one is not None:
-            validators.append(
-                partial(only_one_validator, fields=model.validators.only_one)
-            )
-        if model.validators.at_least_one is not None:
-            validators.append(
-                partial(at_least_one_validator, fields=model.validators.at_least_one)
-            )
-        if model.validators.if_then is not None:
-            validators.append(
-                partial(if_then_validator, if_then=model.validators.if_then.dict())
-            )
-
-    def multi_validator(cls, values):
-        for validator in validators:
-            values = validator(cls, values)
-        return values
-
-    return multi_validator
 
 
 def gen_pydantic_type_model(type_def: TypeDef) -> Type[BaseModel]:
@@ -438,13 +289,6 @@ def gen_pydantic_type_model(type_def: TypeDef) -> Type[BaseModel]:
     yasl_type_defs[type_def.name] = model
     return model
 
-class YaslRoot(BaseModel):
-    imports: Optional[List[str]] = None
-    enums: Optional[List[Enumeration]] = None
-    types: Optional[List[TypeDef]] = None
-
-    model_config = {"extra": "forbid"}
-
 
 # --- Helper function to find the line number ---
 def get_line_for_error(data, loc: Tuple[str, ...]) -> Optional[int]:
@@ -502,6 +346,7 @@ def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
         return yasl
     except FileNotFoundError:
         log.error(f"❌ Error: File not found at '{path}'")
+        return None
     except ValidationError as e:
         log.error(f"❌ YASL schema validation of {path} failed with {len(e.errors())} error(s):")
         for error in e.errors():
@@ -511,8 +356,11 @@ def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
                 log.error(f"  - Line {line}: '{path_str}' -> {error['msg']}")
             else:
                 log.error(f"  - Location '{path_str}' -> {error['msg']}")
+        return None
     except Exception as e:
         log.error(f"❌ An unexpected error occurred: {type(e)} - {e}")
+        traceback.print_exc()
+        return None
 
 
 # --- Main data validation logic ---
@@ -536,7 +384,8 @@ def load_and_validate_data_with_lines(
         log.error(f"❌ Error: value error while parsing data '{path}'\n  - {e}")
         return None
     except Exception as e:
-        log.error(f"❌ An unexpected error [{type(e)}] occurred in parsing yaml data file: {e}")
+        log.error(f"❌ An unexpected error occurred: {type(e)} - {e}")
+        traceback.print_exc()
         return None
     try:
         result = model(**data)
@@ -553,5 +402,6 @@ def load_and_validate_data_with_lines(
                 log.error(f"  - Location '{path_str}' -> {error['msg']}")
         return None
     except Exception as e:
-        log.error(f"❌ An unexpected error occurred in load_and_validate_data_with_lines: {e}")
+        log.error(f"❌ An unexpected error occurred: {type(e)} - {e}")
+        traceback.print_exc()
         return None

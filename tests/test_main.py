@@ -112,14 +112,92 @@ types:
           - https
 """
 
+SHAPE_YASL = """
+types:
+  - name: shape
+    namespace: acme
+    root: true
+    description: Information about a shape.
+    properties:
+      - name: name
+        type: str
+        description: The name of the shape.
+        required: true
+      - name: type
+        type: ShapeType
+        description: The type of shape.
+        required: true
+      - name: radius
+        type: float
+        description: The radius of the circle.
+        required: false
+        gt: 0
+      - name: side_length
+        type: float
+        description: The length of the side of the square or triangle.
+        required: false
+        gt: 0
+      - name: color
+        type: str
+        description: The color of the shape.
+        required: false
+      - name: colour
+        type: str
+        description: The color of the shape (British spelling).
+        required: false
+      - name: location
+        type: str
+        description: The location of the shape.
+        required: false
+      - name: orientation
+        type: str
+        description: The orientation of the shape.
+        required: false
+    validators:
+      only_one:
+        - color
+        - colour
+      at_least_one:
+        - location
+        - orientation
+      if_then:
+        - eval: type
+          value: 
+           - circle
+          present:
+            - radius
+          absent:
+            - side_length
+        - eval: type
+          value: 
+            - square
+          present:
+            - side_length
+          absent:
+            - radius
+        - eval: type
+          value: 
+            - triangle
+          present:
+            - side_length
+          absent:
+            - radius
+enums:
+  - name: ShapeType
+    namespace: acme
+    description: The type of shape.
+    values:
+      - circle
+      - square
+      - triangle
+"""
+
 def run_cli(args):
     result = subprocess.run(
         [sys.executable, "./src/yasl/cli.py"] + args,
         capture_output=True,
         text=True
     )
-    print(f"DEBUG: stdout: {result.stdout}")
-    print(f"DEBUG: stderr: {result.stderr}")
     return result
 
 def test_quiet_and_verbose():
@@ -459,6 +537,69 @@ website: ftp://www.notexample.com/joe_smith
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
+
+def test_eval_shape_good():
+    yaml_data = """
+name: bob
+type: square
+side_length: 10.0
+color: red
+location: top-left
+"""
+    yasl_schema = SHAPE_YASL
+    run_eval_command(yaml_data, yasl_schema, "shape", True)
+
+def test_eval_shape_only_one_fail():
+    yaml_data = """
+name: bob
+type: square
+side_length: 10.0
+color: red
+colour: blue
+location: top-left
+"""
+    yasl_schema = SHAPE_YASL
+    run_eval_command(yaml_data, yasl_schema, "shape", False)
+
+def test_eval_shape_at_least_one_fail():
+    yaml_data = """
+name: bob
+type: square
+side_length: 10.0
+color: red
+"""
+    yasl_schema = SHAPE_YASL
+    run_eval_command(yaml_data, yasl_schema, "shape", False)
+
+def test_eval_shape_if_then_1_fail():
+    yaml_data = """
+name: bob
+type: circle
+side_length: 10.0
+color: red
+"""
+    yasl_schema = SHAPE_YASL
+    run_eval_command(yaml_data, yasl_schema, "shape", False)
+
+def test_eval_shape_if_then_2_fail():
+    yaml_data = """
+name: bob
+type: square
+radius: 10.0
+color: red
+"""
+    yasl_schema = SHAPE_YASL
+    run_eval_command(yaml_data, yasl_schema, "shape", False)
+
+def test_eval_shape_if_then_3_fail():
+    yaml_data = """
+name: bob
+type: triangle
+radius: 10.0
+color: red
+"""
+    yasl_schema = SHAPE_YASL
+    run_eval_command(yaml_data, yasl_schema, "shape", False)
 
 def test_version_command():
     result = run_cli(["--version"])
