@@ -13,7 +13,7 @@ types:
         description: The city.
         required: false
       - name: zip_code
-        type: int
+        type: PositiveInt
         description: The postal code.
         required: true
       - name: other

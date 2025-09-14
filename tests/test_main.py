@@ -1,6 +1,5 @@
 import subprocess
 import sys
-import pytest
 import tempfile
 import os
 
@@ -77,6 +76,10 @@ types:
         required: false
         after: "1900-01-01"
         before: "2050-12-31"
+      - name: favorite_time
+        type: time
+        description: The person's favorite time of day.
+        required: false
       - name: office
         type: any
         description: The person's office number, or true / false to indicate need.
@@ -304,6 +307,33 @@ birthday: 2800-01-01
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
 
+def test_eval_favorite_time_good():
+    yaml_data = """
+name: Joe Smith
+age: 24
+favorite_time: 12:30:00
+"""
+    yasl_schema = PERSON_YASL
+    run_eval_command(yaml_data, yasl_schema, "person", True)
+
+def test_eval_favorite_time_early():
+    yaml_data = """
+name: Joe Smith
+age: 24
+favorite_time: 06:30:00
+"""
+    yasl_schema = PERSON_YASL
+    run_eval_command(yaml_data, yasl_schema, "person", True)
+
+def test_eval_favorite_time_late():
+    yaml_data = """
+name: Joe Smith
+age: 24
+favorite_time: 16:30:00
+"""
+    yasl_schema = PERSON_YASL
+    run_eval_command(yaml_data, yasl_schema, "person", True)
+
 def test_eval_office_int_good():
     yaml_data = """
 name: Joe Smith
@@ -435,3 +465,256 @@ def test_version_command():
     print(f"DEBUG: stdout: {result.stdout}")
     assert result.returncode == 0
     assert "YASL version" in result.stdout
+
+def test_pydantic_types():
+    yasl = """
+types:
+  - name: thing
+    namespace: acme
+    root: true
+    description: Information about a thing.
+    properties:
+      - name: id
+        type: str
+        description: The unique identifier for the thing.
+        required: true
+      - name: strict_bool
+        type: StrictBool
+        description: A strict boolean value.
+        required: false
+      - name: positive_int
+        type: PositiveInt
+        description: A positive integer value.
+        required: false
+      - name: negative_int
+        type: NegativeInt
+        description: A negative integer value.
+        required: false
+      - name: non_positive_int
+        type: NonPositiveInt
+        description: A non-positive integer value.
+        required: false
+      - name: non_negative_int
+        type: NonNegativeInt
+        description: A non-negative integer value.
+        required: false
+      - name: strict_int
+        type: StrictInt
+        description: A strict integer value.
+        required: false
+      - name: positive_float
+        type: PositiveFloat
+        description: A positive float value.
+        required: false
+      - name: negative_float
+        type: NegativeFloat
+        description: A negative float value.
+        required: false
+      - name: non_positive_float
+        type: NonPositiveFloat
+        description: A non-positive float value.
+        required: false
+      - name: non_negative_float
+        type: NonNegativeFloat
+        description: A non-negative float value.
+        required: false
+      - name: strict_float
+        type: StrictFloat
+        description: A strict float value.
+        required: false
+      - name: finite_float
+        type: FiniteFloat
+        description: A finite float value (not NaN or infinite).
+        required: false
+      - name: strict_str
+        type: StrictStr
+        description: A strict string value.
+        required: false
+      - name: uuid1
+        type: UUID1
+        description: A UUID version 1.
+        required: false
+      - name: uuid3
+        type: UUID3
+        description: A UUID version 3.
+        required: false
+      - name: uuid4
+        type: UUID4
+        description: A UUID version 4.
+        required: false
+      - name: uuid5
+        type: UUID5
+        description: A UUID version 5.
+        required: false
+      - name: uuid6
+        type: UUID6
+        description: A UUID version 6.
+        required: false
+      - name: uuid7   
+        type: UUID7
+        description: A UUID version 7.
+        required: false
+      - name: uuid8
+        type: UUID8
+        description: A UUID version 8.
+        required: false
+      - name: file_path
+        type: FilePath
+        description: A valid file path.
+        required: false
+      - name: directory_path
+        type: DirectoryPath
+        description: A valid directory path.
+        required: false
+      - name: base64_bytes
+        type: Base64Bytes
+        description: A base64 encoded byte string.
+        required: false
+      - name: base64_str
+        type: Base64Str
+        description: A base64 encoded string.
+        required: false
+      - name: base64_url_bytes
+        type: Base64UrlBytes
+        description: A base64 URL-safe encoded byte string.
+        required: false
+      - name: base64_url_str
+        type: Base64UrlStr
+        description: A base64 URL-safe encoded string.
+        required: false
+      - name: any_url
+        type: AnyUrl
+        description: Any valid URL.
+        required: false
+      - name: any_http_url
+        type: AnyHttpUrl
+        description: Any valid HTTP or HTTPS URL.
+        required: false
+      - name: http_url
+        type: HttpUrl
+        description: A valid HTTP or HTTPS URL.
+        required: false
+      - name: any_websocket_url
+        type: AnyWebsocketUrl
+        description: Any valid WebSocket or secure WebSocket URL.
+        required: false
+      - name: websocket_url
+        type: WebsocketUrl
+        description: A valid WebSocket or secure WebSocket URL.
+        required: false
+      - name: file_url
+        type: FileUrl
+        description: A valid file URL.
+        required: false
+      - name: ftp_url
+        type: FtpUrl
+        description: A valid FTP or FTPS URL.
+        required: false
+      - name: postgres_dsn
+        type: PostgresDsn
+        description: A valid PostgreSQL DSN.
+        required: false
+      - name: cockroach_dsn
+        type: CockroachDsn
+        description: A valid CockroachDB DSN.
+        required: false
+      - name: amqp_dsn
+        type: AmqpDsn
+        description: A valid AMQP DSN.
+        required: false
+      - name: redis_dsn
+        type: RedisDsn
+        description: A valid Redis DSN.
+        required: false
+      - name: mongo_dsn
+        type: MongoDsn
+        description: A valid MongoDB DSN.
+        required: false
+      - name: kafka_dsn
+        type: KafkaDsn
+        description: A valid Kafka DSN.
+        required: false
+      - name: nats_dsn
+        type: NatsDsn
+        description: A valid NATS DSN.
+        required: false
+      - name: mysql_dsn
+        type: MySQLDsn
+        description: A valid MySQL DSN.
+        required: false
+      - name: mariadb_dsn
+        type: MariaDBDsn
+        description: A valid MariaDB DSN.
+        required: false
+      - name: clickhouse_dsn
+        type: ClickHouseDsn
+        description: A valid ClickHouse DSN.
+        required: false
+      - name: snowflake_dsn
+        type: SnowflakeDsn
+        description: A valid Snowflake DSN.
+        required: false
+      - name: email_str
+        type: EmailStr
+        description: A valid email address.
+        required: false
+      - name: name_email
+        type: NameEmail
+        description: A valid name and email address.
+        required: false
+      - name: ipvany_address
+        type: IPvAnyAddress
+        description: A valid IPv4 or IPv6 address.
+        required: false
+"""
+    yaml_data = """
+id: test
+strict_bool: true
+positive_int: 42
+negative_int: -42
+non_positive_int: -1
+non_negative_int: 0
+strict_int: 100
+positive_float: 3.14
+negative_float: -3.14
+non_positive_float: -0.1
+non_negative_float: 0.0
+strict_float: 2.718
+finite_float: 1.618
+strict_str: "Hello, World!"
+uuid1: "550e8400-e29b-11d4-a716-446655440000"
+uuid3: "550e8400-e29b-31d4-a716-446655440000"
+uuid4: "550e8400-e29b-41d4-a716-446655440000"
+uuid5: "550e8400-e29b-51d4-a716-446655440000"
+uuid6: "550e8400-e29b-61d4-a716-446655440000"
+uuid7: "550e8400-e29b-71d4-a716-446655440000"
+uuid8: "550e8400-e29b-81d4-a716-446655440000"
+file_path: "./features/data/thing.yaml"
+directory_path: "./features/data/"
+base64_bytes: "SGVsbG8sIFdvcmxkIQ=="
+base64_str: "SGVsbG8sIFdvcmxkIQ=="
+base64_url_bytes: "SHc_dHc-TXc=="
+base64_url_str: "SHc_dHc-TXc=="
+any_url: "https://example.com"
+any_http_url: "http://example.com"
+http_url: "http://example.com"
+any_websocket_url: "ws://example.com/socket"
+websocket_url: "ws://example.com/socket"
+file_url: "file:///path/to/file.txt"
+ftp_url: "ftp://example.com/resource"
+postgres_dsn: "postgresql://user:password@localhost:5432/dbname"
+cockroach_dsn: "cockroachdb://user:password@localhost:26257/dbname"
+amqp_dsn: "amqp://user:password@localhost:5672/vhost"
+redis_dsn: "redis://localhost:6379/0"
+mongo_dsn: "mongodb://mongodb0.example.com:27017"
+kafka_dsn: "kafka://localhost:9092"
+nats_dsn: "nats://localhost:4222"
+mysql_dsn: "mysql://user:password@localhost:3306/dbname"
+mariadb_dsn: "mariadb://user:password@localhost:3306/dbname"
+clickhouse_dsn: "clickhouse://user:password@localhost:8123/dbname"
+snowflake_dsn: "snowflake://user:password@account/dbname/schema?warehouse=wh"
+email_str: "user@example.com"
+name_email: "User <user@example.com>"
+ipvany_address: "192.0.2.1"
+"""
+    run_eval_command(yaml_data, yasl, "thing", True)

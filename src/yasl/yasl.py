@@ -1,9 +1,61 @@
 # validate_config_with_lines.py
 import logging
 from ruamel.yaml import YAML, YAMLError
-from pydantic import BaseModel, ValidationError, create_model, field_validator
+from pydantic import (
+    BaseModel, 
+    ValidationError, 
+    create_model, 
+    field_validator, 
+    StrictBool,
+    PositiveInt,
+    NegativeInt,
+    NonPositiveInt,
+    NonNegativeInt,
+    StrictInt,
+    PositiveFloat,
+    NegativeFloat,
+    NonPositiveFloat,
+    NonNegativeFloat,
+    StrictFloat,
+    FiniteFloat,
+    StrictStr,
+    UUID1,
+    UUID3,
+    UUID4,
+    UUID5,
+    UUID6,
+    UUID7,
+    UUID8,
+    FilePath,
+    DirectoryPath,
+    Base64Bytes,
+    Base64Str,
+    Base64UrlBytes,
+    Base64UrlStr,
+    AnyUrl,
+    AnyHttpUrl,
+    HttpUrl,
+    AnyWebsocketUrl,
+    WebsocketUrl,
+    FileUrl,
+    FtpUrl,
+    PostgresDsn,
+    CockroachDsn,
+    AmqpDsn,
+    RedisDsn,
+    MongoDsn,
+    KafkaDsn,
+    NatsDsn,
+    MySQLDsn,
+    MariaDBDsn,
+    ClickHouseDsn,
+    SnowflakeDsn,
+    EmailStr,
+    NameEmail,
+    IPvAnyAddress,
+)
 from enum import Enum
-from typing import Dict, Type, List, Optional, Tuple, Any, Callable
+from typing import Dict, Type, List, Optional, Tuple, Any, Callable, Union
 from functools import partial
 import re
 import datetime
@@ -186,13 +238,21 @@ def str_regex_validator(cls, value: str, regex: str):
 
 
 # date validators
-def date_before_validator(cls, value: datetime.date, before: datetime.date):
+def date_before_validator(cls, 
+                          value: Union[datetime.datetime, datetime.date, datetime.time], 
+                          before: Union[datetime.datetime, datetime.date, datetime.time]):
+    if not isinstance(value, type(before)):
+        raise ValueError(f"Type of value '{type(value)}' does not match type of 'before' '{type(before)}'")
     if value >= before:
         raise ValueError(f"Date '{value}' must be before '{before}'")
     return value
 
 
-def date_after_validator(cls, value: datetime.datetime, after: datetime.datetime):
+def date_after_validator(cls, 
+                         value: Union[datetime.datetime, datetime.date, datetime.time], 
+                         after: Union[datetime.datetime, datetime.date, datetime.time]):
+    if not isinstance(value, type(after)):
+        raise ValueError(f"Type of value '{type(value)}' does not match type of 'after' '{type(after)}'")
     if value <= after:
         raise ValueError(f"Date '{value}' must be after '{after}'")
     return value
@@ -240,7 +300,6 @@ def is_file_validator(cls, value: str, is_file: bool):
 
 def file_ext_validator(cls, value: str, extensions: List[str]):
     path = Path(value)
-    print(f"Validating file extension '{path.suffix}' against {extensions}")
     # First, ensure it's a file
     is_file_validator(cls, value, True)
     # Check if the file has one of the allowed extensions
@@ -452,9 +511,9 @@ class Property(BaseModel):
     str_max: Optional[int] = None
     str_regex: Optional[str] = None
 
-    # date constraints
-    before: Optional[datetime.date] = None
-    after: Optional[datetime.date] = None
+    # date / time constraints
+    before: Optional[Union[datetime.date, datetime.datetime, datetime.time]] = None
+    after: Optional[Union[datetime.date, datetime.datetime, datetime.time]] = None
 
     # path constraints
     
@@ -545,12 +604,61 @@ def gen_pydantic_type_model(type_def: TypeDef) -> Type[BaseModel]:
             "str": str,
             "string": str,
             "date": datetime.date,
+            "datetime": datetime.datetime,
+            "time": datetime.time,
             "int": int,
-            "num": float,
+            "float": float,
             "bool": bool,
             "path": str,
             "url": str,
             "any": Any,
+            "StrictBool": StrictBool,
+            "PositiveInt": PositiveInt,
+            "NegativeInt": NegativeInt,
+            "NonPositiveInt": NonPositiveInt,
+            "NonNegativeInt": NonNegativeInt,
+            "StrictInt": StrictInt,
+            "PositiveFloat": PositiveFloat,
+            "NegativeFloat": NegativeFloat,
+            "NonPositiveFloat": NonPositiveFloat,
+            "NonNegativeFloat": NonNegativeFloat,
+            "StrictFloat": StrictFloat,
+            "FiniteFloat": FiniteFloat,
+            "StrictStr": StrictStr,
+            "UUID1": UUID1,
+            "UUID3": UUID3,
+            "UUID4": UUID4,
+            "UUID5": UUID5,
+            "UUID6": UUID6,
+            "UUID7": UUID7,
+            "UUID8": UUID8,
+            "FilePath": FilePath,
+            "DirectoryPath": DirectoryPath,
+            "Base64Bytes": Base64Bytes,
+            "Base64Str": Base64Str,
+            "Base64UrlBytes": Base64UrlBytes,
+            "Base64UrlStr": Base64UrlStr,
+            "AnyUrl": AnyUrl,
+            "AnyHttpUrl": AnyHttpUrl,
+            "HttpUrl": HttpUrl,
+            "AnyWebsocketUrl": AnyWebsocketUrl,
+            "WebsocketUrl": WebsocketUrl,
+            "FileUrl": FileUrl,
+            "FtpUrl": FtpUrl,
+            "PostgresDsn": PostgresDsn,
+            "CockroachDsn": CockroachDsn,
+            "AmqpDsn": AmqpDsn,
+            "RedisDsn": RedisDsn,
+            "MongoDsn": MongoDsn,
+            "KafkaDsn": KafkaDsn,
+            "NatsDsn": NatsDsn,
+            "MySQLDsn": MySQLDsn,
+            "MariaDBDsn": MariaDBDsn,
+            "ClickHouseDsn": ClickHouseDsn,
+            "SnowflakeDsn": SnowflakeDsn,
+            "EmailStr": EmailStr,
+            "NameEmail": NameEmail,
+            "IPvAnyAddress": IPvAnyAddress,
         }
         type_lookup = prop.type
         is_list = False

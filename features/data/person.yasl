@@ -25,6 +25,12 @@ types:
         required: false
         after: "1900-01-01"
         before: "2050-12-31"
+      - name: favorite_time
+        type: time
+        description: The person's favorite time of day.
+        required: false
+        after: "11:00:00"
+        before: "15:00:00"
       - name: office
         type: any
         description: The person's office location.
