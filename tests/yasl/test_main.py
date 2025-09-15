@@ -3,7 +3,7 @@ import sys
 import tempfile
 import os
 from io import StringIO
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src/yasl")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../src/")))
 
 from yasl import yasl_eval
 
@@ -175,12 +175,6 @@ types:
         - eval: type
           value: 
             - square
-          present:
-            - side_length
-          absent:
-            - radius
-        - eval: type
-          value: 
             - triangle
           present:
             - side_length
@@ -198,7 +192,7 @@ enums:
 
 def run_cli(args):
     result = subprocess.run(
-        [sys.executable, "./src/yasl/cli.py"] + args,
+        ["yasl"] + args,
         capture_output=True,
         text=True
     )

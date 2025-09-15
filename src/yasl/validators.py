@@ -1,8 +1,7 @@
 from functools import partial
 from typing import Dict, List, Any, Union, Callable
 from pydantic import field_validator, model_validator
-import yasl
-from pydantic_types import (
+from yasl.pydantic_types import (
     IfThen,
     TypeDef,
 )
@@ -255,8 +254,9 @@ def property_validator_factory(property) -> Callable:
         validators.append(partial(ref_filters_validator, filters=property.ref_filters))
 
     # enum validators
-    if property.type in yasl.yasl_enumerations.keys():
-        enum_type = yasl.yasl_enumerations[property.type]
+    from yasl import yasl_enumerations
+    if property.type in yasl_enumerations.keys():
+        enum_type = yasl_enumerations[property.type]
         validators.append(partial(enum_validator, values=[e.value for e in enum_type]))
 
     def multi_validator(cls, value):

@@ -4,10 +4,7 @@ YASL CLI main entry point.
 
 import argparse
 import sys
-
-from yasl import (
-    yasl_version, yasl_eval,
-)
+from yasl import yasl_version, yasl_eval
 
 def main():
     parser = argparse.ArgumentParser(

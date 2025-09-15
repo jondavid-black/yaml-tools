@@ -1,12 +1,12 @@
 # validate_config_with_lines.py
 import logging
-from pydantic_types import (
+from yasl.pydantic_types import (
     Enumeration,
     TypeDef,
     YaslRoot,
     YASLBaseModel
 )
-from validators import property_validator_factory, type_validator_factory
+from yasl.validators import property_validator_factory, type_validator_factory
 from ruamel.yaml import YAML, YAMLError
 from pydantic import (
     BaseModel, 
@@ -67,9 +67,9 @@ from pathlib import Path
 import json
 from io import StringIO
 import sys
+import os
+import tomllib
 import traceback
-
-YASL_VERSION = "0.1.0"
 
 # --- Logging Setup ---
 class YamlFormatter(logging.Formatter):
@@ -122,23 +122,21 @@ def setup_logging(disable: bool, verbose: bool, quiet: bool, logfmt: str, stream
 
 # --- YASL Models and Validation Logic ---
 
-# yasl validator functions
-yasl_type_defs: Dict[
-    str, Type[BaseModel]
-] = {}  # Global registry for type definitions to support ref validation
-yasl_enumerations: Dict[
-    str, Type[Enum]
-] = {}  # Global registry for enums to support enum validation
-
 def yasl_version() -> str:
-    return YASL_VERSION
+    try:
+        pyproject_path = os.path.join(os.path.dirname(__file__), "../../pyproject.toml")
+        with open(pyproject_path, "rb") as f:
+            pyproject = tomllib.load(f)
+        return pyproject["project"]["version"]
+    except Exception:
+        # fallback to old version if pyproject.toml is missing or malformed
+        return "Unknown due to internal error reading pyproject.toml"
 
 def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_log: bool = False, quiet_log: bool = False, verbose_log: bool = False, log_fmt: str = "text", log_stream: StringIO = sys.stdout) -> Optional[BaseModel]:
-    from yasl import setup_logging, load_and_validate_yasl_with_lines, load_and_validate_data_with_lines
 
     setup_logging(disable=disable_log, verbose=verbose_log, quiet=quiet_log, logfmt=log_fmt, stream=log_stream)
     log = logging.getLogger("yasl")
-    log.debug(f"YASL Version:  {YASL_VERSION}")
+    log.debug(f"YASL Version:  {yasl_version()}")
     log.debug(f"YASL Schema:   {yasl_schema}")
     log.debug(f"YAML Data:    {yaml_data}")
     yasl = load_and_validate_yasl_with_lines(yasl_schema)
@@ -158,6 +156,7 @@ def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_
                 break
             else:
                 log.debug(f"Model '{type_def.name}' with root keys {type_def_root_keys} is not a match for root keys {root_keys}")
+    from yasl import yasl_type_defs
     if model_name not in yasl_type_defs:
         log.error(f"❌ Error: Model '{model_name}' not found in YASL schema definitions.")
         return None
@@ -171,6 +170,7 @@ def gen_enum_from_enumeration(enum_def: Enumeration) -> Type[Enum]:
     Dynamically generate a Python Enum class from an Enumeration instance.
     Each value in the Enumeration becomes a member of the Enum.
     """
+    from yasl import yasl_enumerations
     enum_members = {value: value for value in enum_def.values}
     enum_cls = Enum(enum_def.name, enum_members)
     if enum_def.namespace:
@@ -255,6 +255,7 @@ def gen_pydantic_type_model(type_def: TypeDef) -> Type[BaseModel]:
             type_lookup = prop.type[:-2]
             is_list = True
 
+        from yasl import (yasl_type_defs, yasl_enumerations)
         if type_lookup in yasl_enumerations:
             py_type = yasl_enumerations[type_lookup]
         elif type_lookup in yasl_type_defs:

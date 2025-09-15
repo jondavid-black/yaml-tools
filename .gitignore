@@ -32,6 +32,8 @@ coverage*
 *.coverprofile
 .coverage
 htmlcov/
+.pytest_cache/
+.ruff_cache/
 
 # Logs
 *.log

@@ -1,4 +1,0 @@
-pydantic
-ruamel.yaml
-behave
-pytest
