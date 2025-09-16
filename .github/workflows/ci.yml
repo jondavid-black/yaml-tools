@@ -1,5 +1,7 @@
 # .github/workflows/ci.yml
 name: YASL CI/CD
+permissions:
+  contents: read
 
 on:
   push:
