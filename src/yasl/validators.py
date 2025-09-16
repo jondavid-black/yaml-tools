@@ -4,12 +4,26 @@ from pydantic import field_validator, model_validator
 from yasl.pydantic_types import (
     IfThen,
     TypeDef,
+    Property
 )
 import datetime
 import re
 from urllib.parse import urlparse
 import requests
 from pathlib import Path
+
+# unique value store
+unique_values_store: Dict[str, Dict[str, set]] = {}
+
+def unique_value_validator(cls, value: Any, type_name: str, property_name: str):
+    if type_name not in unique_values_store:
+        unique_values_store[type_name] = {}
+    if property_name not in unique_values_store[type_name]:
+        unique_values_store[type_name][property_name] = set()
+    if value in unique_values_store[type_name][property_name]:
+        raise ValueError(f"Value '{value}' for property '{type_name}.{property_name}' must be unique")
+    unique_values_store[type_name][property_name].add(value)
+    return value
 
 # list validation
 def list_min_validator(cls, value: List[Any], bound: int):
@@ -156,23 +170,19 @@ def path_exists_validator(cls, value: str, exists: bool):
     return value
 
 # ref validators
-def ref_exists_validator(cls, value: Any, exists: bool):
-    # TODO figue out reference validation
-    pass
+def ref_exists_validator(cls, value: Any, target: str):
+
+    type_name, property_name = target.split('.', 1)
+    if not type_name or not property_name:
+        raise ValueError(f"Target 'ref({target})' is not valid")
+    if type_name not in unique_values_store:
+        raise ValueError(f"Referenced value '{value}' does not exist for 'ref({target})'")
+    if property_name not in unique_values_store[type_name]:
+        raise ValueError(f"Referenced value '{value}' does not exist for 'ref({target})'")
+    if value not in unique_values_store[type_name][property_name]:
+        raise ValueError(f"Referenced value '{value}' does not exist for 'ref({target})'")
+
     return value
-
-
-def ref_multi_validator(cls, value: Any, multi: bool):
-    # TODO figue out reference validation
-    pass
-    return value
-
-
-def ref_filters_validator(cls, value: Any, filters: List[Dict[str, str]]):
-    # TODO figue out reference validation
-    pass
-    return value
-
 
 # any validator
 def any_of_validator(cls, value: Any, any_of: List[str]):
@@ -187,13 +197,17 @@ def enum_validator(cls, value: Any, values: List[str]):
         raise ValueError(f"Value '{value}' must be one of {values}")
     return value
 
-def property_validator_factory(property) -> Callable:
+def property_validator_factory(type_def: TypeDef, property: Property) -> Callable:
     validators = []
     # list validators
     if property.list_min is not None:
         validators.append((partial(list_min_validator, bound=property.list_min)))
     if property.list_max is not None:
         validators.append(partial(list_max_validator, bound=property.list_max))
+
+    # unique validator
+    if property.unique:
+        validators.append(partial(unique_value_validator, type_name=type_def.name, property_name=property.name))
 
     # numeric validators
     if property.gt is not None:
@@ -245,13 +259,9 @@ def property_validator_factory(property) -> Callable:
     if property.any_of is not None:
         validators.append(partial(any_of_validator, any_of=property.any_of))
 
-    # ref validators
-    if property.ref_exists is not None:
-        validators.append(partial(ref_exists_validator, exists=property.ref_exists))
-    if property.ref_multi is not None:
-        validators.append(partial(ref_multi_validator, multi=property.ref_multi))
-    if property.ref_filters is not None:
-        validators.append(partial(ref_filters_validator, filters=property.ref_filters))
+    # ref validators (always validate references)
+    if property.type.startswith("ref(") and (property.no_ref_check is None or property.no_ref_check is False):
+        validators.append(partial(ref_exists_validator, target=property.type[4:-1]))
 
     # enum validators
     from yasl import yasl_enumerations

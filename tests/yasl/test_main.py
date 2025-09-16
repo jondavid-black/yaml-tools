@@ -18,13 +18,13 @@ enums:
 types:
   - name: customer
     namespace: acme
-    root: true
     description: Information about a customer.
     properties:
       - name: name
         type: str
         description: The customer's name.
         required: true
+        unique: true
       - name: age
         type: int
         description: The customer's age.
@@ -40,7 +40,6 @@ types:
         required: true
   - name: customer_list
     namespace: acme
-    root: true
     description: A list of customers.
     properties:
       - name: customers
@@ -48,13 +47,44 @@ types:
         description: Information about a customer.
         list_min: 2
         list_max: 3
+  - name: account
+    namespace: acme
+    description: Information about an account.
+    properties:
+      - name: id
+        type: str
+        description: The unique identifier for the account.
+        required: true
+      - name: account_rep
+        type: str
+        description: The name of the account representative.
+        required: true
+      - name: customer_name
+        type: ref(customer.name)
+        description: The name of the customer associated with the account.
+        required: true
+  - name: business
+    namespace: acme
+    description: A list of accounts.
+    properties:
+      - name: business_name
+        type: str
+        description: The name of the business.
+        required: true
+      - name: customers
+        type: customer[]
+        description: Information about a list of customers.
+        required: true
+      - name: accounts
+        type: account[]
+        description: Information about an account.
+        required: true
 """
 
 PERSON_YASL = """
 types:
   - name: person
     namespace: acme
-    root: true
     description: Information about a person.
     properties:
       - name: name
@@ -120,7 +150,6 @@ SHAPE_YASL = """
 types:
   - name: shape
     namespace: acme
-    root: true
     description: Information about a shape.
     properties:
       - name: name
@@ -263,6 +292,67 @@ customers:
 """
     yasl_schema = CUSTOMER_LIST_YASL
     run_eval_command(yaml_data, yasl_schema, "customer_list", False)
+
+def test_eval_non_unique():
+    yaml_data = """
+customers:
+  - name: Bob Smith
+    age: 30
+    email: bob@example.com
+    status: unknown
+  - name: Bob Smith
+    age: 40
+    email: joe@example.com
+    status: inactive
+"""
+    yasl_schema = CUSTOMER_LIST_YASL
+    run_eval_command(yaml_data, yasl_schema, "customer_list", False)
+
+def test_eval_business_good():
+    yaml_data = """
+business_name: Acme Corporation
+customers:
+  - name: Bob Smith
+    age: 30
+    email: bob@example.com
+    status: inactive
+  - name: Alice Johnson
+    age: 25
+    email: alice@example.com
+    status: active
+accounts:
+  - id: ACC123
+    account_rep: John Doe
+    customer_name: Bob Smith
+  - id: ACC456
+    account_rep: Jane Doe
+    customer_name: Alice Johnson
+"""
+    yasl_schema = CUSTOMER_LIST_YASL
+    run_eval_command(yaml_data, yasl_schema, "business", True)
+
+def test_eval_business_bad_ref():
+    yaml_data = """
+business_name: Acme Corporation
+customers:
+  - name: Bob Smith
+    age: 30
+    email: bob@example.com
+    status: inactive
+  - name: Alice Johnson
+    age: 25
+    email: alice@example.com
+    status: active
+accounts:
+  - id: ACC123
+    account_rep: John Doe
+    customer_name: Dan Smith
+  - id: ACC456
+    account_rep: Jane Doe
+    customer_name: Alice Johnson
+"""
+    yasl_schema = CUSTOMER_LIST_YASL
+    run_eval_command(yaml_data, yasl_schema, "business", False)
 
 def test_eval_min_list():
     yaml_data = """
@@ -519,7 +609,6 @@ def test_eval_website_reachable():
 types:
   - name: person
     namespace: acme
-    root: true
     description: Information about a person.
     properties:
       - name: name
@@ -624,7 +713,6 @@ def test_pydantic_types():
 types:
   - name: thing
     namespace: acme
-    root: true
     description: Information about a thing.
     properties:
       - name: id

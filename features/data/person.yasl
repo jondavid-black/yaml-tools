@@ -3,7 +3,6 @@ imports:
 types:
   - name: person
     namespace: acme
-    root: true
     description: Information about a person.
     properties:
       - name: name

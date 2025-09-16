@@ -1,7 +1,7 @@
 [project]
 name = "yasl"
 version = "0.1.0"
-description = "The YAML Awesome Schema Language (YASL) allow you to define and validate YAML data using complex schemas."
+description = "The YAML Advanced Schema Language (YASL) allow you to define and validate YAML data using complex data structures."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

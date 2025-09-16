@@ -1,7 +1,6 @@
 types:
   - name: shape
     namespace: acme
-    root: true
     description: Information about a shape.
     properties:
       - name: name

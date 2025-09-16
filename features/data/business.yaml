@@ -1,0 +1,17 @@
+business_name: Acme Corporation
+customers:
+  - name: Bob Smith
+    age: 30
+    email: bob@example.com
+    status: inactive
+  - name: Alice Johnson
+    age: 25
+    email: alice@example.com
+    status: active
+accounts:
+  - id: ACC123
+    account_rep: John Doe
+    customer_name: Bob Smith
+  - id: ACC456
+    account_rep: Jane Doe
+    customer_name: Alice Johnson

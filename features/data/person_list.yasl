@@ -3,7 +3,6 @@ imports:
 types:
   - name: person_list
     namespace: acme
-    root: true
     description: A list of persons.
     properties:
       - name: people

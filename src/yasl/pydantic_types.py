@@ -58,7 +58,6 @@ class Property(BaseModel):
     after: Optional[Union[datetime.date, datetime.datetime, datetime.time]] = None
 
     # path constraints
-    
     path_exists: Optional[bool] = None
     is_dir: Optional[bool] = None
     is_file: Optional[bool] = None
@@ -73,9 +72,7 @@ class Property(BaseModel):
     any_of: Optional[List[str]] = None
 
     # ref constraints
-    ref_exists: Optional[bool] = None
-    ref_multi: Optional[bool] = None
-    ref_filters: Optional[List[RefFilter]] = None
+    no_ref_check: Optional[bool] = None
 
     model_config = {"extra": "forbid"}
 
@@ -101,7 +98,6 @@ class TypeDef(BaseModel):
     name: str
     namespace: Optional[str] = None
     description: Optional[str] = None
-    root: Optional[bool] = False
     properties: List[Property]
     validators: Optional[Validator] = None
 

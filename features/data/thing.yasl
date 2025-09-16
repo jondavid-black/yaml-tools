@@ -1,7 +1,6 @@
 types:
   - name: thing
     namespace: acme
-    root: true
     description: Information about a thing.
     properties:
       - name: id

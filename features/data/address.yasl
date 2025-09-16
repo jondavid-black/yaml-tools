@@ -1,7 +1,6 @@
 types:
   - name: address
     namespace: acme
-    root: true
     description: Information about an address.
     properties:
       - name: street

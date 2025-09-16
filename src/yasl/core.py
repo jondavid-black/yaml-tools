@@ -156,13 +156,18 @@ def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_
                 break
             else:
                 log.debug(f"Model '{type_def.name}' with root keys {type_def_root_keys} is not a match for root keys {root_keys}")
-    from yasl import yasl_type_defs
+    from yasl import yasl_type_defs, yasl_enumerations
     if model_name not in yasl_type_defs:
         log.error(f"❌ Error: Model '{model_name}' not found in YASL schema definitions.")
         return None
     model = yasl_type_defs[model_name]
     log.debug(f"Using model '{model_name}' for data validation.")
     data = load_and_validate_data_with_lines(model, yaml_data)
+    # clean up global stores after validation
+    from yasl.validators import unique_values_store
+    unique_values_store.clear()
+    yasl_type_defs.clear()
+    yasl_enumerations.clear()
     return data
 
 def gen_enum_from_enumeration(enum_def: Enumeration) -> Type[Enum]:
@@ -179,116 +184,134 @@ def gen_enum_from_enumeration(enum_def: Enumeration) -> Type[Enum]:
     return enum_cls
 
 
-def gen_pydantic_type_model(type_def: TypeDef) -> Type[BaseModel]:
+def gen_pydantic_type_models(type_defs: List[TypeDef]):
     """
-    Dynamically generate a Pydantic model class from a TypeDef instance.
+    Dynamically generate Pydantic model classes from a list of TypeDef instances.
     Each property in the TypeDef becomes a field in the generated model.
     """
-    fields: Dict[str, tuple] = {}
-    validators: Dict[str, Callable] = {}
-    for prop in type_def.properties:
-        # Determine type annotation for the property
-        # For now, map basic types; extend as needed for complex types
-        type_map = {
-            "str": str,
-            "string": str,
-            "date": datetime.date,
-            "datetime": datetime.datetime,
-            "time": datetime.time,
-            "int": int,
-            "float": float,
-            "bool": bool,
-            "path": str,
-            "url": str,
-            "any": Any,
-            "StrictBool": StrictBool,
-            "PositiveInt": PositiveInt,
-            "NegativeInt": NegativeInt,
-            "NonPositiveInt": NonPositiveInt,
-            "NonNegativeInt": NonNegativeInt,
-            "StrictInt": StrictInt,
-            "PositiveFloat": PositiveFloat,
-            "NegativeFloat": NegativeFloat,
-            "NonPositiveFloat": NonPositiveFloat,
-            "NonNegativeFloat": NonNegativeFloat,
-            "StrictFloat": StrictFloat,
-            "FiniteFloat": FiniteFloat,
-            "StrictStr": StrictStr,
-            "UUID1": UUID1,
-            "UUID3": UUID3,
-            "UUID4": UUID4,
-            "UUID5": UUID5,
-            "UUID6": UUID6,
-            "UUID7": UUID7,
-            "UUID8": UUID8,
-            "FilePath": FilePath,
-            "DirectoryPath": DirectoryPath,
-            "Base64Bytes": Base64Bytes,
-            "Base64Str": Base64Str,
-            "Base64UrlBytes": Base64UrlBytes,
-            "Base64UrlStr": Base64UrlStr,
-            "AnyUrl": AnyUrl,
-            "AnyHttpUrl": AnyHttpUrl,
-            "HttpUrl": HttpUrl,
-            "AnyWebsocketUrl": AnyWebsocketUrl,
-            "WebsocketUrl": WebsocketUrl,
-            "FileUrl": FileUrl,
-            "FtpUrl": FtpUrl,
-            "PostgresDsn": PostgresDsn,
-            "CockroachDsn": CockroachDsn,
-            "AmqpDsn": AmqpDsn,
-            "RedisDsn": RedisDsn,
-            "MongoDsn": MongoDsn,
-            "KafkaDsn": KafkaDsn,
-            "NatsDsn": NatsDsn,
-            "MySQLDsn": MySQLDsn,
-            "MariaDBDsn": MariaDBDsn,
-            "ClickHouseDsn": ClickHouseDsn,
-            "SnowflakeDsn": SnowflakeDsn,
-            "EmailStr": EmailStr,
-            "NameEmail": NameEmail,
-            "IPvAnyAddress": IPvAnyAddress,
-        }
-        type_lookup = prop.type
-        is_list = False
-        if type_lookup.endswith("[]"):
-            type_lookup = prop.type[:-2]
-            is_list = True
+    for type_def in type_defs:
+        fields: Dict[str, tuple] = {}
+        validators: Dict[str, Callable] = {}
+        for prop in type_def.properties:
+            # Determine type annotation for the property
+            # For now, map basic types; extend as needed for complex types
+            type_map = {
+                "str": str,
+                "string": str,
+                "date": datetime.date,
+                "datetime": datetime.datetime,
+                "time": datetime.time,
+                "int": int,
+                "float": float,
+                "bool": bool,
+                "path": str,
+                "url": str,
+                "any": Any,
+                "StrictBool": StrictBool,
+                "PositiveInt": PositiveInt,
+                "NegativeInt": NegativeInt,
+                "NonPositiveInt": NonPositiveInt,
+                "NonNegativeInt": NonNegativeInt,
+                "StrictInt": StrictInt,
+                "PositiveFloat": PositiveFloat,
+                "NegativeFloat": NegativeFloat,
+                "NonPositiveFloat": NonPositiveFloat,
+                "NonNegativeFloat": NonNegativeFloat,
+                "StrictFloat": StrictFloat,
+                "FiniteFloat": FiniteFloat,
+                "StrictStr": StrictStr,
+                "UUID1": UUID1,
+                "UUID3": UUID3,
+                "UUID4": UUID4,
+                "UUID5": UUID5,
+                "UUID6": UUID6,
+                "UUID7": UUID7,
+                "UUID8": UUID8,
+                "FilePath": FilePath,
+                "DirectoryPath": DirectoryPath,
+                "Base64Bytes": Base64Bytes,
+                "Base64Str": Base64Str,
+                "Base64UrlBytes": Base64UrlBytes,
+                "Base64UrlStr": Base64UrlStr,
+                "AnyUrl": AnyUrl,
+                "AnyHttpUrl": AnyHttpUrl,
+                "HttpUrl": HttpUrl,
+                "AnyWebsocketUrl": AnyWebsocketUrl,
+                "WebsocketUrl": WebsocketUrl,
+                "FileUrl": FileUrl,
+                "FtpUrl": FtpUrl,
+                "PostgresDsn": PostgresDsn,
+                "CockroachDsn": CockroachDsn,
+                "AmqpDsn": AmqpDsn,
+                "RedisDsn": RedisDsn,
+                "MongoDsn": MongoDsn,
+                "KafkaDsn": KafkaDsn,
+                "NatsDsn": NatsDsn,
+                "MySQLDsn": MySQLDsn,
+                "MariaDBDsn": MariaDBDsn,
+                "ClickHouseDsn": ClickHouseDsn,
+                "SnowflakeDsn": SnowflakeDsn,
+                "EmailStr": EmailStr,
+                "NameEmail": NameEmail,
+                "IPvAnyAddress": IPvAnyAddress,
+            }
+            type_lookup = prop.type
+            is_list = False
+            if type_lookup.endswith("[]"):
+                type_lookup = prop.type[:-2]
+                is_list = True
 
-        from yasl import (yasl_type_defs, yasl_enumerations)
-        if type_lookup in yasl_enumerations:
-            py_type = yasl_enumerations[type_lookup]
-        elif type_lookup in yasl_type_defs:
-            py_type = yasl_type_defs[type_lookup]
-        elif type_lookup in type_map:
-            py_type = type_map[type_lookup]
-        else:
-            raise ValueError(f"Unknown type '{prop.type}' for property '{prop.name}'")
+            from yasl import (yasl_type_defs, yasl_enumerations)
+            if type_lookup in yasl_enumerations:
+                py_type = yasl_enumerations[type_lookup]
+            elif type_lookup in yasl_type_defs:
+                py_type = yasl_type_defs[type_lookup]
+            elif type_lookup in type_map:
+                py_type = type_map[type_lookup]
+            elif type_lookup.startswith("ref(") and type_lookup.endswith(")"):
+                ref_target = type_lookup[4:-1]
+                type_name, property_name = ref_target.split('.', 1)
+                
+                target_type = next((t for t in type_defs if t.name == type_name), None)
+                if not target_type:
+                    raise ValueError(f"Referenced type '{type_name}' for property '{prop.name}' not found in type definitions")
+                else:
+                    target_prop = next((p for p in target_type.properties if p.name == property_name), None)
+                    if not target_prop:
+                        raise ValueError(f"Referenced property '{property_name}' in type '{type_name}' not found for property '{prop.name}'")
+                    else:
+                        if not target_prop.unique:
+                            raise ValueError(f"Referenced property '{type_name}.{property_name}' must be unique to be used as a reference for property '{type_def.name}.{prop.name}'")
+                        else:
+                            py_type = str
+            else:
+                raise ValueError(f"Unknown type '{prop.type}' for property '{prop.name}'")
 
-        if is_list:
-            py_type = List[py_type]
+            if is_list:
+                py_type = List[py_type]
 
-        if not prop.required:
-            py_type = Optional[py_type]
+            if not prop.required:
+                py_type = Optional[py_type]
 
-        default = (
-            prop.default
-            if prop.default is not None
-            else (None if not prop.required else ...)
+            default = (
+                prop.default
+                if prop.default is not None
+                else (None if not prop.required else ...)
+            )
+            fields[prop.name] = (py_type, default)
+            validators[f"{prop.name}__validator"] = property_validator_factory(type_def, prop)
+        validators["__validate__"] = type_validator_factory(type_def)
+        model = create_model(
+            type_def.name,
+            __base__=YASLBaseModel,
+            __module__=type_def.namespace or None,
+            __validators__=validators,
+            __config__={"extra": "forbid"},
+            **fields,
         )
-        fields[prop.name] = (py_type, default)
-        validators[f"{prop.name}__validator"] = property_validator_factory(prop)
-    validators["__validate__"] = type_validator_factory(type_def)
-    model = create_model(
-        type_def.name,
-        __base__=YASLBaseModel,
-        __module__=type_def.namespace or None,
-        __validators__=validators,
-        __config__={"extra": "forbid"},
-        **fields,
-    )
-    yasl_type_defs[type_def.name] = model
-    return model
+        # Store the generated model in the global registry
+        from yasl import yasl_type_defs
+        yasl_type_defs[type_def.name] = model
 
 
 # --- Helper function to find the line number ---
@@ -339,9 +362,8 @@ def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
             # must setup enums before types to support enum validation
             log.debug(f"Evaluating enum: {enum.name}")
             gen_enum_from_enumeration(enum)
-        for type_def in yasl.types or []:
-            log.debug(f"Evaluating type definition: {type_def.name}")
-            gen_pydantic_type_model(type_def)
+        if yasl.types is not None:
+            gen_pydantic_type_models(yasl.types)
             # setup_yasl_validators(type_def)
         log.debug("✅ YASL schema validation successful!")
         return yasl

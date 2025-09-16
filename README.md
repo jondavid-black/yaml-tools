@@ -13,26 +13,29 @@ To use YASL you must first define your data schema in a YASL file as described i
 Once you have a schema and a corresponding data file, you run the YASL command line tool.
 
 ```bash
-yasl data_file.yaml schema_file.yasl
+yasl <schema> <data> <model_name>
 ```
 
 YASL provides various options.
 Here's the full usage info provided by the command line tool.
 
 ```bash
-user@system:~/tools/yasl$ ./yasl -h
-YASL - YAML Advanced Schema Language CLI
-Usage:
-  yasl <file.yaml> <file.yasl>
-  yasl -yaml <file.yaml> -yasl <file.yasl>
-Options:
-  -yaml <file.yaml>     Path to the YAML file
-  -yasl <file.yasl>     Path to the YASL file
-  -V, --version         Print version and exit
-  -h, --help            Show help and exit
-  -q, --quiet           Run in quiet mode (errors only)
-  -v, --verbose         Run in verbose mode (debug/trace)
-  --output-type         Log output type: text, json, yaml
+user@system:~/tools/yasl$ yasl --help
+
+YASL - YAML Advanced Schema Language CLI Tool
+
+positional arguments:
+  schema                YASL schema file
+  yaml                  YAML data file
+  model_name            YASL schema name for the yaml data file (optional)
+
+options:
+  -h, --help            show this help message and exit
+  --version             Show version information and exit
+  --quiet               Suppress output except for errors
+  --verbose             Enable verbose output
+  --logfmt {text,json,yaml}
+                        Set log output format (text, json, yaml). Default is text.
 ```
 
 Note that all options must be provided before the file arguments.
