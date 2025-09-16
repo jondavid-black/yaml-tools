@@ -1,5 +1,7 @@
 # .github/workflows/behave-tests.yml
 name: Behave Acceptance Tests
+permissions:
+  contents: read
 
 on:
   push:
