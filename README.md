@@ -4,8 +4,8 @@ YAML tools is a suite of advanced tools that streamline data management of struc
 
 These tools include:
  - [YASL](./src/yasl/README.md) - YAML Advanced Scheme Language
-
-
+ - [YAQL](./src/yaql/README.md) - YAML Advanced Query Language
+ - [YARL](./src/yarl/README.md) - YAML Advanced Reporting Language
 
 ## Developer Setup
 
