@@ -6,11 +6,6 @@ For information on the schema design, review the README.md file.
 YASL is a Command Line Interface (CLI) tool optimized for CLI performance and user experience.
 YASL is a file processor, not a YAML text processor, due to the inherent support for file imports to avoid monolithic data files.
 
-YASL is organized into a `main` package and a `core` package.
-The `main` package contains the CLI implementation.
-The `core` package contains the YASL business logic implementation.
-This allows the YASL API to be self-contained within `core` to simplify cross-language API wrapper implementation.
-
 ## Context
 
 YASL allows the user to specify processing controls through command line parameters.

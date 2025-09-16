@@ -17,6 +17,10 @@ def step_impl(context, document_file):
         raise FileNotFoundError(f"Document file not found: {document_file}")
     print(f"Document file: {document_file}")
 
+@given(u'the model name "person" is specified')
+def step_impl(context):
+    context.model_name = "person"
+
 @when('I validate the document against the schema')
 def step_impl(context):
     # This is where your Go application's validation logic would be called

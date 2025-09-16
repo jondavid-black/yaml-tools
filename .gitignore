@@ -1,22 +1,6 @@
-# Binaries
-yasl
-*.exe
-
-# Shared Library Files
-*.h
-*.dll
-*.so
-*.dylib
-
 # Build and test output
 *.out
 *.test
-
-# Go modules
-/go.sum
-
-# Dependency directories (vendor/)
-vendor/
 
 # GitHub Actions Runner (act)
 /bin
@@ -39,6 +23,7 @@ __pycache__/
 env/
 .venv/
 venv/
+*.egg-info/
 
 # Node.js
 node_modules/
@@ -46,6 +31,10 @@ node_modules/
 # Test and coverage
 coverage*
 *.coverprofile
+.coverage
+htmlcov/
+.pytest_cache/
+.ruff_cache/
 
 # Logs
 *.log
@@ -57,8 +46,3 @@ coverage*
 # Behave output
 reports/
 
-# API build artifacts
-api/python/build/
-api/python/dist/
-api/python/*.egg-info/
-api/javascript/dist/

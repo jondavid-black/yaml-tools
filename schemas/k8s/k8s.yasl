@@ -1,0 +1,5 @@
+yasl:
+  types:
+    - name: version
+      type: str
+      description: The kubernetes version.

@@ -1,0 +1,70 @@
+enums:
+  - name: customer_status
+    namespace: acme
+    description: The status of the customer.
+    values:
+      - active
+      - inactive
+types:
+  - name: customer
+    namespace: acme
+    description: Information about a customer.
+    properties:
+      - name: name
+        type: str
+        description: The customer's name.
+        required: true
+        unique: true
+      - name: age
+        type: int
+        description: The customer's age.
+        required: false
+      - name: email
+        type: str
+        description:  The customer's email address.
+        required: true
+      - name: status
+        type: customer_status
+        namespace: acme
+        description: The customer's status.
+        required: true
+  - name: customer_list
+    namespace: acme
+    description: A list of customers.
+    properties:
+      - name: customers
+        type: customer[]
+        description: Information about a customer.
+  - name: account
+    namespace: acme
+    description: Information about an account.
+    properties:
+      - name: id
+        type: str
+        description: The unique identifier for the account.
+        required: true
+      - name: account_rep
+        type: str
+        description: The name of the account representative.
+        required: true
+      - name: customer_name
+        type: ref(customer.name)
+        description: The name of the customer associated with the account.
+        required: true
+        no_ref_check: false
+  - name: business
+    namespace: acme
+    description: A list of accounts.
+    properties:
+      - name: business_name
+        type: str
+        description: The name of the business.
+        required: true
+      - name: customers
+        type: customer[]
+        description: Information about a list of customers.
+        required: true
+      - name: accounts
+        type: account[]
+        description: Information about an account.
+        required: true

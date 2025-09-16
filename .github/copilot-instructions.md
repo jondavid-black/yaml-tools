@@ -1,29 +1,25 @@
 # YASL - YAML Schema Language Project Instructions for GitHub Copilot
 
 ## Project Overview
-This project, YASL (YAML Advanced Schema Language), aims to provide robust YAML schema definition and validation capabilities. The core logic is written in Go, with API wrappers in Python and JavaScript to facilitate broader integration. We emphasize clean code, strong typing, comprehensive testing, and clear documentation.
+This project, YASL (YAML Advanced Schema Language), aims to provide robust YAML schema definition and validation capabilities. YASL is written in Python. 
+We emphasize clean code, strong typing, comprehensive testing, and clear documentation.
 
 ## Project Structure
 The project follows a modular structure:
-- `core/`: Contains the core utility logic for YASL.
-    - `core.go`: Core functionality for schema validation.
-    - `core_test.go`: Unit tests for core functionality.
-- `main.go`: Main entry point for the YASL CLI.
-- `main_test.go`: Unit tests for YASL CLI functionality.
-- `go.mod` and `go.sum`: Go module files for dependency management.
+- `src/`: Contains the python source code for YASL.
 - `README.md`: Project documentation and usage instructions.
-- `docs/`: Contains additional documentation, including design decisions and API usage.
-- `api/`: Holds API wrappers for different languages.
-    - `api/python/`: Python API wrapper.
+- `docs/`: Contains YASL documentation in Markdown for publication in GitHub Pages.
+- `tests/`: Contains the python unit test code for YASL.
 - `features/`: Contains Behave (BDD) feature files and step definitions for acceptance testing.
 - `.github/workflows/`: GitHub Actions CI/CD pipeline definitions.
 
 ## Core Technologies
-- **Go:** Primary language for core logic.
-- **Python:** Used for Behave acceptance tests and a dedicated API wrapper.
-- **JavaScript/Node.js:** Used for an API wrapper.
-- **GitHub Copilot & Gemini CLI:** AI-powered development tools.
+- **Python:** Language used to implement YASL.
+- **UV:** Python environment for development and testing.
+- **Pydantic:** Data validation and settings management using Python type annotations.
+- **ruamel.yaml:** YAML 1.2 parser and emitter for Python.
 - **Behave:** Python-based BDD framework for acceptance testing.
+- **GitHub Copilot & Gemini CLI:** AI-powered development tools.
 - **GitHub Actions:** For CI/CD automation.
 
 ## Coding Style & Best Practices
@@ -31,16 +27,10 @@ The project follows a modular structure:
 ### General
 - **Readability:** Prioritize clear, concise, and self-documenting code.
 - **Modularity:** Break down complex problems into smaller, testable functions/components.
-- **Error Handling:** Implement robust error handling. Return errors explicitly in Go, use exceptions in Python/JS.
+- **Error Handling:** Implement robust error handling.
 - **Comments:** Use comments to explain *why* something is done, not *what* is done (unless the "what" is complex).
 - **Test-Driven Development (TDD) / Behavior-Driven Development (BDD):** Encourage writing tests *before* or concurrently with writing new features.
-- **Naming Conventions:** Follow standard conventions for each language (e.g., `CamelCase` for Go types/functions, `snake_case` for Python functions/variables).
-
-### Go Specific
-- **Gofmt & Golint:** Adhere to standard Go formatting and linting rules.
-- **Explicit Imports:** Avoid unused imports.
-- **Concurrency:** Use Go's concurrency primitives (`goroutines`, `channels`) judiciously and safely.
-- **Context:** Use `context.Context` for cancellation and request-scoped values.
+- **Naming Conventions:** Follow standard conventions for each language (e.g., `snake_case` for Python functions/variables).
 
 ### Python Specific
 - **PEP 8:** Adhere strictly to PEP 8 style guidelines.

@@ -1,0 +1,11 @@
+imports:
+  - ./person.yasl
+types:
+  - name: person_list
+    namespace: acme
+    description: A list of persons.
+    properties:
+      - name: people
+        type: person[]
+        description: A list of persons.
+        required: true
