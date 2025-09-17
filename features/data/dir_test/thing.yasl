@@ -1,0 +1,198 @@
+types:
+  - name: thing
+    namespace: acme
+    description: Information about a thing.
+    properties:
+      - name: id
+        type: str
+        description: The unique identifier for the thing.
+        required: true
+      - name: strict_bool
+        type: StrictBool
+        description: A strict boolean value.
+        required: false
+      - name: positive_int
+        type: PositiveInt
+        description: A positive integer value.
+        required: false
+      - name: negative_int
+        type: NegativeInt
+        description: A negative integer value.
+        required: false
+      - name: non_positive_int
+        type: NonPositiveInt
+        description: A non-positive integer value.
+        required: false
+      - name: non_negative_int
+        type: NonNegativeInt
+        description: A non-negative integer value.
+        required: false
+      - name: strict_int
+        type: StrictInt
+        description: A strict integer value.
+        required: false
+      - name: positive_float
+        type: PositiveFloat
+        description: A positive float value.
+        required: false
+      - name: negative_float
+        type: NegativeFloat
+        description: A negative float value.
+        required: false
+      - name: non_positive_float
+        type: NonPositiveFloat
+        description: A non-positive float value.
+        required: false
+      - name: non_negative_float
+        type: NonNegativeFloat
+        description: A non-negative float value.
+        required: false
+      - name: strict_float
+        type: StrictFloat
+        description: A strict float value.
+        required: false
+      - name: finite_float
+        type: FiniteFloat
+        description: A finite float value (not NaN or infinite).
+        required: false
+      - name: strict_str
+        type: StrictStr
+        description: A strict string value.
+        required: false
+      - name: uuid1
+        type: UUID1
+        description: A UUID version 1.
+        required: false
+      - name: uuid3
+        type: UUID3
+        description: A UUID version 3.
+        required: false
+      - name: uuid4
+        type: UUID4
+        description: A UUID version 4.
+        required: false
+      - name: uuid5
+        type: UUID5
+        description: A UUID version 5.
+        required: false
+      - name: uuid6
+        type: UUID6
+        description: A UUID version 6.
+        required: false
+      - name: uuid7   
+        type: UUID7
+        description: A UUID version 7.
+        required: false
+      - name: uuid8
+        type: UUID8
+        description: A UUID version 8.
+        required: false
+      - name: file_path
+        type: FilePath
+        description: A valid file path.
+        required: false
+      - name: directory_path
+        type: DirectoryPath
+        description: A valid directory path.
+        required: false
+      - name: base64_bytes
+        type: Base64Bytes
+        description: A base64 encoded byte string.
+        required: false
+      - name: base64_str
+        type: Base64Str
+        description: A base64 encoded string.
+        required: false
+      - name: base64_url_bytes
+        type: Base64UrlBytes
+        description: A base64 URL-safe encoded byte string.
+        required: false
+      - name: base64_url_str
+        type: Base64UrlStr
+        description: A base64 URL-safe encoded string.
+        required: false
+      - name: any_url
+        type: AnyUrl
+        description: Any valid URL.
+        required: false
+      - name: any_http_url
+        type: AnyHttpUrl
+        description: Any valid HTTP or HTTPS URL.
+        required: false
+      - name: http_url
+        type: HttpUrl
+        description: A valid HTTP or HTTPS URL.
+        required: false
+      - name: any_websocket_url
+        type: AnyWebsocketUrl
+        description: Any valid WebSocket or secure WebSocket URL.
+        required: false
+      - name: websocket_url
+        type: WebsocketUrl
+        description: A valid WebSocket or secure WebSocket URL.
+        required: false
+      - name: file_url
+        type: FileUrl
+        description: A valid file URL.
+        required: false
+      - name: ftp_url
+        type: FtpUrl
+        description: A valid FTP or FTPS URL.
+        required: false
+      - name: postgres_dsn
+        type: PostgresDsn
+        description: A valid PostgreSQL DSN.
+        required: false
+      - name: cockroach_dsn
+        type: CockroachDsn
+        description: A valid CockroachDB DSN.
+        required: false
+      - name: amqp_dsn
+        type: AmqpDsn
+        description: A valid AMQP DSN.
+        required: false
+      - name: redis_dsn
+        type: RedisDsn
+        description: A valid Redis DSN.
+        required: false
+      - name: mongo_dsn
+        type: MongoDsn
+        description: A valid MongoDB DSN.
+        required: false
+      - name: kafka_dsn
+        type: KafkaDsn
+        description: A valid Kafka DSN.
+        required: false
+      - name: nats_dsn
+        type: NatsDsn
+        description: A valid NATS DSN.
+        required: false
+      - name: mysql_dsn
+        type: MySQLDsn
+        description: A valid MySQL DSN.
+        required: false
+      - name: mariadb_dsn
+        type: MariaDBDsn
+        description: A valid MariaDB DSN.
+        required: false
+      - name: clickhouse_dsn
+        type: ClickHouseDsn
+        description: A valid ClickHouse DSN.
+        required: false
+      - name: snowflake_dsn
+        type: SnowflakeDsn
+        description: A valid Snowflake DSN.
+        required: false
+      - name: email_str
+        type: EmailStr
+        description: A valid email address.
+        required: false
+      - name: name_email
+        type: NameEmail
+        description: A valid name and email address.
+        required: false
+      - name: ipvany_address
+        type: IPvAnyAddress
+        description: A valid IPv4 or IPv6 address.
+        required: false
+      

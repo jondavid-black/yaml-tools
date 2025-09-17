@@ -1,0 +1,76 @@
+types:
+  - name: shape
+    namespace: acme
+    description: Information about a shape.
+    properties:
+      - name: name
+        type: str
+        description: The name of the shape.
+        required: true
+      - name: type
+        type: ShapeType
+        description: The type of shape.
+        required: true
+      - name: radius
+        type: float
+        description: The radius of the circle.
+        required: false
+        gt: 0
+      - name: side_length
+        type: float
+        description: The length of the side of the square or triangle.
+        required: false
+        gt: 0
+      - name: color
+        type: str
+        description: The color of the shape.
+        required: false
+      - name: colour
+        type: str
+        description: The color of the shape (British spelling).
+        required: false
+      - name: location
+        type: str
+        description: The location of the shape.
+        required: false
+      - name: orientation
+        type: str
+        description: The orientation of the shape.
+        required: false
+    validators:
+      only_one:
+        - color
+        - colour
+      at_least_one:
+        - location
+        - orientation
+      if_then:
+        - eval: type
+          value: 
+           - circle
+          present:
+            - radius
+          absent:
+            - side_length
+        - eval: type
+          value: 
+            - square
+          present:
+            - side_length
+          absent:
+            - radius
+        - eval: type
+          value: 
+            - triangle
+          present:
+            - side_length
+          absent:
+            - radius
+enums:
+  - name: ShapeType
+    namespace: acme
+    description: The type of shape.
+    values:
+      - circle
+      - square
+      - triangle

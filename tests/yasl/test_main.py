@@ -3,6 +3,7 @@ import sys
 import tempfile
 import os
 from io import StringIO
+from pathlib import Path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../src/")))
 
 from yasl import yasl_eval
@@ -220,8 +221,9 @@ enums:
 """
 
 def run_cli(args):
+    filtered_args = [item for item in args if item is not None]
     result = subprocess.run(
-        ["yasl"] + args,
+        ["yasl"] + filtered_args,
         capture_output=True,
         text=True
     )
@@ -242,26 +244,29 @@ def run_eval_command(yaml_data, yasl_schema, model_name, expect_valid):
         with open(yasl_path, "w") as f:
             f.write(yasl_schema)
 
-        # Test via the API
-        test_log = StringIO()
-        yasl_model = yasl_eval(yasl_path, yaml_path, model_name, verbose_log=True, log_fmt="text", log_stream=test_log)
-        print(f"DEBUG: log output:\n{test_log.getvalue()}")
-        print(f"DEBUG: yasl_model: {yasl_model}")
-        if not expect_valid:
-            assert yasl_model is None
-            assert "❌" in test_log.getvalue()
-        else:
-            assert yasl_model is not None
-            assert "YAML data validation successful" in test_log.getvalue()
+        run_eval_command_with_paths(yaml_path, yasl_path, model_name, expect_valid)
 
-        # Test via the CLI
-        result = run_cli([yasl_path, yaml_path, model_name])
-        if not expect_valid:
-            assert result.returncode != 0
-            assert "Validation failed" in result.stdout
-        else:
-            assert result.returncode == 0
-            assert "YAML data validation successful" in result.stdout
+
+def run_eval_command_with_paths(yaml_path, yasl_path, model_name, expect_valid):
+    
+    # Test via the API
+    test_log = StringIO()
+    yasl_model = yasl_eval(yasl_path, yaml_path, model_name, verbose_log=True, log_fmt="text", log_stream=test_log)
+    if not expect_valid:
+        assert yasl_model is None
+        assert "❌" in test_log.getvalue()
+    else:
+        assert yasl_model is not None
+        assert "data validation successful" in test_log.getvalue()
+
+    # Test via the CLI
+    result = run_cli([yasl_path, yaml_path, model_name])
+    if not expect_valid:
+        assert result.returncode != 0
+        assert "Validation failed" in result.stdout
+    else:
+        assert result.returncode == 0
+        assert "data validation successful" in result.stdout
 
 def test_eval_nested_types_and_enum():
     yaml_data = """
@@ -704,7 +709,6 @@ color: red
 
 def test_version_command():
     result = run_cli(["--version"])
-    print(f"DEBUG: stdout: {result.stdout}")
     assert result.returncode == 0
     assert "YASL version" in result.stdout
 
@@ -959,3 +963,13 @@ name_email: "User <user@example.com>"
 ipvany_address: "192.0.2.1"
 """
     run_eval_command(yaml_data, yasl, "thing", True)
+
+def test_dir_inputs_good():
+    yasl_path = "./features/data/dir_test"
+    yaml_path = "./features/data/dir_test"
+    run_eval_command_with_paths(str(Path(yasl_path).absolute()), str(Path(yaml_path).absolute()), None, True)
+
+def test_dir_inputs_bad():
+    yasl_path = "./features/data/bad_dir_test"
+    yaml_path = "./features/data/bad_dir_test"
+    run_eval_command_with_paths(str(Path(yasl_path).absolute()), str(Path(yaml_path).absolute()), None, False)

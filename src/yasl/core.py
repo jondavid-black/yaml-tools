@@ -131,44 +131,102 @@ def yasl_version() -> str:
     except Exception:
         # fallback to old version if pyproject.toml is missing or malformed
         return "Unknown due to internal error reading pyproject.toml"
+    
+def clear_caches():
+    # clean up global stores after validation
+    from yasl.validators import unique_values_store
+    from yasl import yasl_type_defs, yasl_enumerations
+    unique_values_store.clear()
+    yasl_type_defs.clear()
+    yasl_enumerations.clear()
 
-def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_log: bool = False, quiet_log: bool = False, verbose_log: bool = False, log_fmt: str = "text", log_stream: StringIO = sys.stdout) -> Optional[BaseModel]:
+def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_log: bool = False, quiet_log: bool = False, verbose_log: bool = False, log_fmt: str = "text", log_stream: StringIO = sys.stdout) -> Optional[List[BaseModel]]:
 
     setup_logging(disable=disable_log, verbose=verbose_log, quiet=quiet_log, logfmt=log_fmt, stream=log_stream)
     log = logging.getLogger("yasl")
     log.debug(f"YASL Version:  {yasl_version()}")
     log.debug(f"YASL Schema:   {yasl_schema}")
     log.debug(f"YAML Data:    {yaml_data}")
-    yasl = load_and_validate_yasl_with_lines(yasl_schema)
-    if yasl is None:
-        log.error("❌ YASL schema validation failed. Exiting.")
-        return None
-    if model_name is None:
-        yaml_loader = YAML(typ="rt")
-        with open(yaml_data, "r") as f:
-            data = yaml_loader.load(f)
-        root_keys: List[str] = list(data.keys())
-        for type_def in yasl.types or []:
-            type_def_root_keys: List[str] = [k for k in type_def.properties]
-            if type_def.root and all(k.name in root_keys for k in type_def_root_keys):
-                model_name = type_def.name
-                log.debug(f"Auto-detected root model: '{model_name}'")
+
+    yasl_files = []
+    if Path(yasl_schema).is_dir():
+        for p in Path(yasl_schema).rglob("*.yasl"):
+            yasl_files.append(p)
+        if not yasl_files:
+            log.error(f"❌ No .yasl files found in directory '{yasl_schema}'")
+            clear_caches()
+            return None
+        log.debug(f"Found {len(yasl_files)} .yasl files in directory '{yasl_schema}'")
+    else:
+        if not Path(yasl_schema).exists():
+            log.error(f"❌ YASL schema file '{yasl_schema}' not found")
+            clear_caches()
+            return None
+        yasl_files.append(Path(yasl_schema))
+
+    yaml_files = []
+    if Path(yaml_data).is_dir():
+        for p in Path(yaml_data).rglob("*.yaml"):
+            yaml_files.append(p)
+        if not yaml_files:
+            log.error(f"❌ No .yaml files found in directory '{yaml_data}'")
+            clear_caches()
+            return None
+        log.debug(f"Found {len(yaml_files)} .yaml files in directory '{yaml_data}'")
+    else:
+        if not Path(yaml_data).exists():
+            log.error(f"❌ YAML data file '{yaml_data}' not found")
+            clear_caches()
+            return None
+        yaml_files.append(Path(yaml_data))
+
+    yasl_results = []
+    for yasl_file in yasl_files:
+        yasl = load_and_validate_yasl_with_lines(yasl_file)
+        if yasl is None:
+            log.error("❌ YASL schema validation failed. Exiting.")
+            clear_caches()
+            return None
+        yasl_results.append(yasl)
+
+    results = []
+    from yasl import yasl_type_defs
+    for yaml_file in yaml_files:
+        candidate_model_names = []
+        if model_name is None:
+            yaml_loader = YAML(typ="rt")
+            with open(yaml_file, "r") as f:
+                data = yaml_loader.load(f)
+            root_keys: List[str] = list(data.keys())
+            log.debug(f"Auto-detecting schema for YAML root keys in: {yaml_file}")
+            for type_def_root in yasl_results or []:
+                for type_def in type_def_root.types or []:
+                    type_def_root_keys: List[str] = [k.name for k in type_def.properties]
+                    if all(k in type_def_root_keys for k in root_keys):
+                        log.debug(f"Auto-detected root model: '{type_def.name}' for YAML file '{yaml_file}'")
+                        candidate_model_names.append(type_def.name)
+        else:
+            candidate_model_names.append(model_name)
+
+        log.debug(f"Identified candidate model names for '{yaml_file}': {candidate_model_names}")
+
+        for schema_name in candidate_model_names:
+            if schema_name not in yasl_type_defs:
+                continue
+            model = yasl_type_defs[schema_name]
+            log.debug(f"Using schema '{schema_name}' for data validation of {yaml_file}.")
+            data = load_and_validate_data_with_lines(model, yaml_file)
+            if data is not None:
+                results.append(data)
                 break
-            else:
-                log.debug(f"Model '{type_def.name}' with root keys {type_def_root_keys} is not a match for root keys {root_keys}")
-    from yasl import yasl_type_defs, yasl_enumerations
-    if model_name not in yasl_type_defs:
-        log.error(f"❌ Error: Model '{model_name}' not found in YASL schema definitions.")
-        return None
-    model = yasl_type_defs[model_name]
-    log.debug(f"Using model '{model_name}' for data validation.")
-    data = load_and_validate_data_with_lines(model, yaml_data)
-    # clean up global stores after validation
-    from yasl.validators import unique_values_store
-    unique_values_store.clear()
-    yasl_type_defs.clear()
-    yasl_enumerations.clear()
-    return data
+                
+        if len(results) == 0:
+            log.error(f"❌ Validation failed. Unable to validate data in YAML file {yaml_file}.")
+            clear_caches()
+            return None
+
+    clear_caches()
+    return results
 
 def gen_enum_from_enumeration(enum_def: Enumeration) -> Type[Enum]:
     """
@@ -414,7 +472,7 @@ def load_and_validate_data_with_lines(
         result = model(**data)
         if result is None:
             raise ValueError(f"Failed to parse data from {data}")
-        log.info("✅ YAML data validation successful!")
+        log.info(f"✅ YAML '{path}' data validation successful!")
         return result
     except ValidationError as e:
         log.error(f"❌ Validation failed with {len(e.errors())} error(s):")
@@ -428,5 +486,4 @@ def load_and_validate_data_with_lines(
         return None
     except Exception as e:
         log.error(f"❌ An unexpected error occurred: {type(e)} - {e}")
-        traceback.print_exc()
         return None
