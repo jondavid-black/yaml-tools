@@ -9,7 +9,7 @@ These tools include:
 
 ## Developer Setup
 
-YASl is a python application built with the `UV` tool.
+YAML tools is written in python and managed with the `UV` tool.
 
 Setup:
 - `curl -LsSf https://astral.sh/uv/install.sh | sh` to install `UV`.

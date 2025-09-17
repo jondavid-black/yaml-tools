@@ -72,21 +72,6 @@ String validators include:
 - `str_max`: int - The maximum length of the string. Default: none.
 - `str_regex`: str[] - List of regular expression validation rules. Default: none.
 
-A string field definition within a defined type may look like...
-```yaml
-type_def:
-  name: person
-  description: A person data item.
-  fields:
-    - name: name
-      type: str
-      description: A person's full name.  Must include a first name, optional middle name(s), and a last name.
-      str_min: 2
-      str_max: 50
-      str_regex: ^[A-Z][a-zA-Z]*\s(?:[A-Z][a-zA-Z]*\s)*[A-Z][a-zA-Z]*$
-  
-```
-
 #### Integer
 
 An integer is a whole number value.
