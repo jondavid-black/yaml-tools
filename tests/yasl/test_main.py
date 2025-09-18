@@ -251,7 +251,7 @@ def run_eval_command_with_paths(yaml_path, yasl_path, model_name, expect_valid):
     
     # Test via the API
     test_log = StringIO()
-    yasl_model = yasl_eval(yasl_path, yaml_path, model_name, verbose_log=True, log_fmt="text", log_stream=test_log)
+    yasl_model = yasl_eval(yasl_path, yaml_path, model_name, verbose_log=True, output="text", log_stream=test_log)
     if not expect_valid:
         assert yasl_model is None
         assert "❌" in test_log.getvalue()
