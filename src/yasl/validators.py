@@ -6,14 +6,13 @@ from yasl.pydantic_types import (
     TypeDef,
     Property
 )
+from yasl.cache import yasl_enumerations, unique_values_store
 import datetime
 import re
 from urllib.parse import urlparse
 import requests
 from pathlib import Path
 
-# unique value store
-unique_values_store: Dict[str, Dict[str, set]] = {}
 
 def unique_value_validator(cls, value: Any, type_name: str, property_name: str):
     if type_name not in unique_values_store:
@@ -264,7 +263,6 @@ def property_validator_factory(type_def: TypeDef, property: Property) -> Callabl
         validators.append(partial(ref_exists_validator, target=property.type[4:-1]))
 
     # enum validators
-    from yasl import yasl_enumerations
     if property.type in yasl_enumerations.keys():
         enum_type = yasl_enumerations[property.type]
         validators.append(partial(enum_validator, values=[e.value for e in enum_type]))
