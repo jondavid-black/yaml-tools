@@ -7,6 +7,7 @@ from yasl.pydantic_types import (
     YASLBaseModel
 )
 from yasl.validators import property_validator_factory, type_validator_factory
+from yasl.cache import yasl_type_defs, yasl_enumerations, clear_caches
 from ruamel.yaml import YAML, YAMLError
 from pydantic import (
     BaseModel, 
@@ -131,14 +132,6 @@ def yasl_version() -> str:
     except Exception:
         # fallback to old version if pyproject.toml is missing or malformed
         return "Unknown due to internal error reading pyproject.toml"
-    
-def clear_caches():
-    # clean up global stores after validation
-    from yasl.validators import unique_values_store
-    from yasl import yasl_type_defs, yasl_enumerations
-    unique_values_store.clear()
-    yasl_type_defs.clear()
-    yasl_enumerations.clear()
 
 def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_log: bool = False, quiet_log: bool = False, verbose_log: bool = False, log_fmt: str = "text", log_stream: StringIO = sys.stdout) -> Optional[List[BaseModel]]:
 
@@ -190,7 +183,6 @@ def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_
         yasl_results.append(yasl)
 
     results = []
-    from yasl import yasl_type_defs
     for yaml_file in yaml_files:
         candidate_model_names = []
         if model_name is None:
@@ -233,7 +225,6 @@ def gen_enum_from_enumeration(enum_def: Enumeration) -> Type[Enum]:
     Dynamically generate a Python Enum class from an Enumeration instance.
     Each value in the Enumeration becomes a member of the Enum.
     """
-    from yasl import yasl_enumerations
     enum_members = {value: value for value in enum_def.values}
     enum_cls = Enum(enum_def.name, enum_members)
     if enum_def.namespace:
@@ -319,7 +310,6 @@ def gen_pydantic_type_models(type_defs: List[TypeDef]):
                 type_lookup = prop.type[:-2]
                 is_list = True
 
-            from yasl import (yasl_type_defs, yasl_enumerations)
             if type_lookup in yasl_enumerations:
                 py_type = yasl_enumerations[type_lookup]
             elif type_lookup in yasl_type_defs:
@@ -368,7 +358,6 @@ def gen_pydantic_type_models(type_defs: List[TypeDef]):
             **fields,
         )
         # Store the generated model in the global registry
-        from yasl import yasl_type_defs
         yasl_type_defs[type_def.name] = model
 
 
