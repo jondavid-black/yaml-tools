@@ -99,7 +99,7 @@ class JsonFormatter(logging.Formatter):
         }
         return json.dumps(log_dict)
     
-def setup_logging(disable: bool, verbose: bool, quiet: bool, logfmt: str, stream: StringIO = sys.stdout):
+def setup_logging(disable: bool, verbose: bool, quiet: bool, output: str, stream: StringIO = sys.stdout):
     logger = logging.getLogger()
     logger.handlers.clear()
     if disable:
@@ -113,9 +113,9 @@ def setup_logging(disable: bool, verbose: bool, quiet: bool, logfmt: str, stream
         level = logging.INFO
     logger.setLevel(level)
     handler = logging.StreamHandler(stream)
-    if logfmt == "json":
+    if output == "json":
         handler.setFormatter(JsonFormatter())
-    elif logfmt == "yaml":
+    elif output == "yaml":
         handler.setFormatter(YamlFormatter())
     else:
         handler.setFormatter(logging.Formatter("%(message)s"))
@@ -133,9 +133,9 @@ def yasl_version() -> str:
         # fallback to old version if pyproject.toml is missing or malformed
         return "Unknown due to internal error reading pyproject.toml"
 
-def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_log: bool = False, quiet_log: bool = False, verbose_log: bool = False, log_fmt: str = "text", log_stream: StringIO = sys.stdout) -> Optional[List[BaseModel]]:
+def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_log: bool = False, quiet_log: bool = False, verbose_log: bool = False, output: str = "text", log_stream: StringIO = sys.stdout) -> Optional[List[BaseModel]]:
 
-    setup_logging(disable=disable_log, verbose=verbose_log, quiet=quiet_log, logfmt=log_fmt, stream=log_stream)
+    setup_logging(disable=disable_log, verbose=verbose_log, quiet=quiet_log, output=output, stream=log_stream)
     log = logging.getLogger("yasl")
     log.debug(f"YASL Version:  {yasl_version()}")
     log.debug(f"YASL Schema:   {yasl_schema}")

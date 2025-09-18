@@ -20,7 +20,8 @@ YASL provides various options.
 Here's the full usage info provided by the command line tool.
 
 ```bash
-user@system:~/tools/yasl$ yasl --help
+user@system:~/repos/myproject$ yasl -h
+usage: yasl [-h] [--version] [--quiet] [--verbose] [--output {text,json,yaml}] [schema] [yaml] [model_name]
 
 YASL - YAML Advanced Schema Language CLI Tool
 
@@ -34,8 +35,8 @@ options:
   --version             Show version information and exit
   --quiet               Suppress output except for errors
   --verbose             Enable verbose output
-  --logfmt {text,json,yaml}
-                        Set log output format (text, json, yaml). Default is text.
+  --output {text,json,yaml}
+                        Set output format (text, json, yaml). Default is text.
 ```
 
 Note that all options must be provided before the file arguments.

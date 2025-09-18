@@ -34,10 +34,10 @@ def main():
     )
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     parser.add_argument(
-        "--logfmt",
+        "--output",
         choices=["text", "json", "yaml"],
         default="text",
-        help="Set log output format (text, json, yaml). Default is text.",
+        help="Set output format (text, json, yaml). Default is text.",
     )
 
     args = parser.parse_args()
@@ -57,7 +57,7 @@ def main():
         parser.print_help()
         sys.exit(1)
     
-    yasl = yasl_eval(args.schema, args.yaml, args.model_name, disable_log=False, quiet_log=args.quiet, verbose_log=args.verbose, log_fmt=args.logfmt)
+    yasl = yasl_eval(args.schema, args.yaml, args.model_name, disable_log=False, quiet_log=args.quiet, verbose_log=args.verbose, output=args.output)
     if not yasl:
         sys.exit(1)
 
