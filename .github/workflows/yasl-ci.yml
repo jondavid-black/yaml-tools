@@ -108,7 +108,7 @@ jobs:
       - name: Get current version from pyproject.toml
         id: get_version
         run: |
-          python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])" > version.txt
+          uv run python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])" > version.txt
           echo "version=$(cat version.txt)" >> $GITHUB_OUTPUT
 
       - name: Get previous version from main branch
@@ -116,7 +116,7 @@ jobs:
         run: |
           git fetch origin main
           git show origin/main:pyproject.toml > prev_pyproject.toml
-          python -c "import toml; print(toml.load('prev_pyproject.toml')['project']['version'])" > prev_version.txt
+          uv run python -c "import toml; print(toml.load('prev_pyproject.toml')['project']['version'])" > prev_version.txt
           echo "prev_version=$(cat prev_version.txt)" >> $GITHUB_OUTPUT
 
       - name: Check version increment
