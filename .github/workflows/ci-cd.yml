@@ -82,7 +82,7 @@ jobs:
           source .venv/bin/activate
           uv pip install -e .[dev]
 
-  verify-build:
+  build-tag-release:
     needs: [yasl-ci, yaql-ci, yarl-ci]
     runs-on: ubuntu-latest
     steps:
