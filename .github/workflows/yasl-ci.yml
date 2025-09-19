@@ -12,7 +12,7 @@ on:
       - main
 
 jobs:
-  build-test-format:
+  yasl-build-test-format:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -31,11 +31,17 @@ jobs:
 
       - name: Run unit tests
         run: |
-          uv run pytest --cov=src --cov-report=xml --cov-fail-under=75 tests/
+          uv run pytest --cov=src/yasl --cov-report=xml --cov-fail-under=75 tests/yasl
 
       - name: Check formatting with ruff
         run: |
-          uv run ruff check src/ tests/
+          uv run ruff check src/yasl tests/yasl
+
+      - name: Run BDD tests with Behave
+        run: |
+          cd features
+          uv run behave
+          cd ..
 
       - name: Check CLI tool
         run: |

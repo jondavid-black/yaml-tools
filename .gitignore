@@ -24,6 +24,7 @@ env/
 .venv/
 venv/
 *.egg-info/
+dist/
 
 # Node.js
 node_modules/
