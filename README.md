@@ -22,3 +22,14 @@ Run Unit Tests:  `uv run pytest`
 Run Unit Tests w/ Coverage:  `uv run pytest --cov=src --cov-fail-under=75` 
 
 Run Formatter:  `uv run ruff check src/ tests/`
+
+Use the standard github-flow working process to best leverage feedback from the CI process.
+
+To Perform a release:
+- Complete and merge the pull release to main.
+- Get on the main branch:
+    - `git checkout main`
+    - `git pull origin main`
+- Tag and push the repo the repo:
+    - `git tag "v$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")`
+    - `git push --tags`
