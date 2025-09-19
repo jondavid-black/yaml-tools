@@ -146,6 +146,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Tag the repo with version
+        if: github.ref == 'refs/heads/main'
+        run: |
+          VERSION=$(cat version.txt)
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v$VERSION"
+          git push origin "v$VERSION"
+
       - name: Create GitHub Release and Upload Assets
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
