@@ -31,5 +31,5 @@ To Perform a release:
     - `git checkout main`
     - `git pull origin main`
 - Tag and push the repo the repo:
-    - `git tag "v$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")`
+    - `git tag "v$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")"`
     - `git push --tags`
