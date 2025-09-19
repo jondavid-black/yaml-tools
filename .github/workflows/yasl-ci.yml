@@ -1,7 +1,7 @@
 # .github/workflows/ci.yml
 name: YASL CI
 permissions:
-  contents: write
+  contents: read
 
 on:
   push:
@@ -82,7 +82,7 @@ jobs:
           source .venv/bin/activate
           uv pip install -e .[dev]
 
-  package-and-publish:
+  verify-build:
     needs: [yasl-ci, yaql-ci, yarl-ci]
     runs-on: ubuntu-latest
     steps:
@@ -133,19 +133,6 @@ jobs:
         run: |
           uv run python -m build
 
-      - name: Upload package artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: yaml-tools-dist
-          path: dist/*
-
-      - name: Draft Release Notes
-        uses: release-drafter/release-drafter@v6
-        with:
-          config-name: release-drafter.yml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Tag the repo with version
         if: github.ref == 'refs/heads/main'
         run: |
@@ -155,11 +142,3 @@ jobs:
           git tag "v$VERSION"
           git push origin "v$VERSION"
 
-      - name: Create GitHub Release and Upload Assets
-        if: github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*
-          draft: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
