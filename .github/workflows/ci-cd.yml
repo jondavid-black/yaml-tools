@@ -142,3 +142,20 @@ jobs:
           git tag "v$VERSION"
           git push origin "v$VERSION"
 
+      - name: Draft Release Notes
+        if: github.ref == 'refs/heads/main'
+        uses: release-drafter/release-drafter@v6
+        with:
+          config-name: release-drafter.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release and Upload Assets
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
