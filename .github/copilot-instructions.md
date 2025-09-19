@@ -1,15 +1,21 @@
-# YASL - YAML Schema Language Project Instructions for GitHub Copilot
+# YAML-TOOLS Project Instructions for GitHub Copilot
 
 ## Project Overview
-This project, YASL (YAML Advanced Schema Language), aims to provide robust YAML schema definition and validation capabilities. YASL is written in Python. 
+This project, YAML-TOOLS, aims to provide robust collection of YAML validation, procssing, and manipulation capabilities. YAML-TOOLS is written in Python. 
 We emphasize clean code, strong typing, comprehensive testing, and clear documentation.
 
 ## Project Structure
 The project follows a modular structure:
-- `src/`: Contains the python source code for YASL.
+- `src/`: Contains the python source code for YAML-TOOLS.
+- `src/yasl/`: Contains the core YASL (YAML Advanced Scripting Language) implementation.
+- `src/yaql/`: Contains the core YAQL (YAML Advanced Query Language) implementation.
+- 'src/yarl/': Contains the core YARL (YAML Advanced Reporting Language) implementation.
 - `README.md`: Project documentation and usage instructions.
-- `docs/`: Contains YASL documentation in Markdown for publication in GitHub Pages.
-- `tests/`: Contains the python unit test code for YASL.
+- `docs/`: Contains YAML-TOOLS documentation in Markdown for publication in GitHub Pages.
+- `tests/`: Contains the python unit test code for YAML-TOOLS.
+- `tests/yasl/`: Contains unit tests for the YASL implementation.
+- `tests/yaql/`: Contains unit tests for the YAQL implementation.
+- `tests/yarl/`: Contains unit tests for the YARL implementation.
 - `features/`: Contains Behave (BDD) feature files and step definitions for acceptance testing.
 - `.github/workflows/`: GitHub Actions CI/CD pipeline definitions.
 
