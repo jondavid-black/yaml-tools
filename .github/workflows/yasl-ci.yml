@@ -140,6 +140,7 @@ jobs:
           path: dist/*
 
       - name: Draft Release Notes
+        if: false # This disables the step
         uses: release-drafter/release-drafter@v6
         with:
           config-name: release-drafter.yml
