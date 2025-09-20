@@ -507,7 +507,7 @@ wheels = [
 
 [[package]]
 name = "yasl"
-version = "0.1.2"
+version = "0.1.10"
 source = { virtual = "." }
 dependencies = [
     { name = "annotated-types" },
