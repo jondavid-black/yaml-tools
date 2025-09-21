@@ -1,10 +1,9 @@
 # from .cli import main
-from yasl.core import yasl_eval, yasl_version
+from yasl.core import yasl_eval
 
 
 
 __all__ = [
     # "main",
     "yasl_eval",
-    "yasl_version"
 ]

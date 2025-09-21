@@ -1,32 +1,17 @@
 """
-YASL CLI main entry point.
+YAQL CLI main entry point.
 """
 
 import argparse
 import sys
-from yasl import yasl_eval
 from common import yaml_tools_version
 
 def main():
     parser = argparse.ArgumentParser(
-        description="YASL - YAML Advanced Schema Language CLI Tool"
+        description="YAQL - YAML Advanced Query Language CLI Tool"
     )
     # Removed --project-name argument; 'param' will be used for project name in 'init'
-    parser.add_argument(
-        "schema",
-        nargs="?",
-        help="YASL schema file",
-    )
-    parser.add_argument(
-        "yaml",
-        nargs="?",
-        help="YAML data file",
-    )
-    parser.add_argument(
-        "model_name",
-        nargs="?",
-        help="YASL schema name for the yaml data file (optional)",
-    )
+    
     parser.add_argument(
         "--version", action="store_true", help="Show version information and exit"
     )
@@ -48,19 +33,11 @@ def main():
         sys.exit(1)
 
     if args.version:
-        print(f"YASL version {yaml_tools_version()}")
+        print(f"YAQL version {yaml_tools_version()}")
         sys.exit(0)
     
-    if not args.schema or not args.yaml:
-        print(
-            "❌ requires a YASL file, a YAML schema file, and optionally a model name as parameters."
-        )
-        parser.print_help()
-        sys.exit(1)
-    
-    yasl = yasl_eval(args.schema, args.yaml, args.model_name, disable_log=False, quiet_log=args.quiet, verbose_log=args.verbose, output=args.output)
-    if not yasl:
-        sys.exit(1)
+    print("❌ This is a placeholder for the YAQL CLI tool. Functionality to be implemented.")
+    sys.exit(1)
 
 
 
