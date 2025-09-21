@@ -1,7 +1,7 @@
 [project]
-name = "yasl"
-version = "0.1.11"
-description = "The YAML Advanced Schema Language (YASL) allow you to define and validate YAML data using complex data structures."
+name = "yaml-tools"
+version = "0.1.12"
+description = "A suite of tools to advance your usage of yaml.  YASL provides schema definition and verification.  YAQL let's you query your yalm as if it were a database.  YARL provides analysis and reporting.  And YATL allows you to transform yaml from one structure (schema) to another."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -45,3 +45,6 @@ dev = [
 
 [project.scripts]
 yasl = "yasl.cli:main"
+yaql = "yaql.cli:main"
+yarl = "yarl.cli:main"
+yatl = "yatl.cli:main"
