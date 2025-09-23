@@ -70,7 +70,6 @@ from io import StringIO
 import sys
 import os
 import tomllib
-import traceback
 
 # --- Logging Setup ---
 class YamlFormatter(logging.Formatter):
@@ -306,6 +305,7 @@ def gen_pydantic_type_models(type_defs: List[TypeDef]):
             }
             type_lookup = prop.type
             is_list = False
+            is_map = False
             if type_lookup.endswith("[]"):
                 type_lookup = prop.type[:-2]
                 is_list = True
@@ -316,6 +316,22 @@ def gen_pydantic_type_models(type_defs: List[TypeDef]):
                 py_type = yasl_type_defs[type_lookup]
             elif type_lookup in type_map:
                 py_type = type_map[type_lookup]
+            elif type_lookup.startswith("map(") and type_lookup.endswith(")"):
+                is_map = True
+                key, value = type_lookup[4:-1].split(',', 1)
+                key = key.strip()
+                value = value.strip()
+                if key not in ["str", "string", "int"]:
+                    raise ValueError(f"Unsupported map key type '{key}' for property '{prop.name}' in schema '{type_def.name}'.  Only 'str', 'string' or 'int' is supported as map key type.")
+
+                if value in type_map:
+                    py_type = type_map[value]
+                elif value in yasl_enumerations:
+                    py_type = yasl_enumerations[value]
+                elif value in yasl_type_defs:
+                    py_type = yasl_type_defs[value]
+                else:
+                    raise ValueError(f"Unknown map value type '{value}' for property '{prop.name}'")
             elif type_lookup.startswith("ref(") and type_lookup.endswith(")"):
                 ref_target = type_lookup[4:-1]
                 type_name, property_name = ref_target.split('.', 1)
@@ -337,6 +353,9 @@ def gen_pydantic_type_models(type_defs: List[TypeDef]):
 
             if is_list:
                 py_type = List[py_type]
+
+            if is_map:
+                py_type = Dict[key, py_type]
 
             if not prop.required:
                 py_type = Optional[py_type]
@@ -415,7 +434,7 @@ def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
         log.debug("✅ YASL schema validation successful!")
         return yasl
     except FileNotFoundError:
-        log.error(f"❌ Error: File not found at '{path}'")
+        log.error(f"❌ Error: YASL schema file not found at '{path}'")
         return None
     except ValidationError as e:
         log.error(f"❌ YASL schema validation of {path} failed with {len(e.errors())} error(s):")
@@ -428,8 +447,8 @@ def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
                 log.error(f"  - Location '{path_str}' -> {error['msg']}")
         return None
     except Exception as e:
-        log.error(f"❌ An unexpected error occurred: {type(e)} - {e}")
-        traceback.print_exc()
+        log.error(f"❌ An schema error occurred processing {path}: {type(e)} - {e}")
+        # traceback.print_exc()
         return None
 
 
@@ -455,7 +474,7 @@ def load_and_validate_data_with_lines(
         return None
     except Exception as e:
         log.error(f"❌ An unexpected error occurred: {type(e)} - {e}")
-        traceback.print_exc()
+        # traceback.print_exc()
         return None
     try:
         result = model(**data)

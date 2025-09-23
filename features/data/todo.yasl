@@ -1,0 +1,26 @@
+types:
+  - name: task
+    description: A thing to do.
+    namespace: dynamic
+    properties:
+      - name: description
+        type: str
+        description: A description of the task.
+        required: true
+      - name: owner
+        type: str
+        description: The person responsible for the task.
+        required: false
+      - name: complete
+        type: bool
+        description: Is the task finished? True if yes, false if no.
+        required: true
+        default: false
+  - name: list_of_tasks
+    description: A list of tasks to complete.
+    namespace: dynamic
+    properties:
+      - name: task_list
+        type: map(str, task)
+        description: A list of tasks to do.
+        required: true

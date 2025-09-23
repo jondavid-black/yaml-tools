@@ -172,10 +172,15 @@ URL validators include:
 
 #### Reference
 
-A reference is used to refere to a data element within the YAML being evaluated by YASL.
+A reference is used to refer to a data element within the YAML being evaluated by YASL.
 The ref primitive is represented by the type name `ref(target)` where target specified the custom type and field being referenced.
 These target fields must be unique as designated by the `unique` attribute in the target field to avoid value collisions.
 YASL expects the value to exist in the YAML being evaluated, but this can be overridden by setting `no_ref_check = true` in the property definition for the reference.
+
+#### Map
+
+A map allows for dynamic keys within the YAML structure.
+A map primitive is represented by the type name `map(key_type, value_type)` where key_type is a string or int and value_type is any valid YASL type.
 
 #### Any
 
