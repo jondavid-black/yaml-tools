@@ -220,6 +220,35 @@ enums:
       - triangle
 """
 
+TODO_YASL = """
+types:
+  - name: task
+    description: A thing to do.
+    namespace: dynamic
+    properties:
+      - name: description
+        type: str
+        description: A description of the task.
+        required: true
+      - name: owner
+        type: str
+        description: The person responsible for the task.
+        required: false
+      - name: complete
+        type: bool
+        description: Is the task finished? True if yes, false if no.
+        required: true
+        default: false
+  - name: list_of_tasks
+    description: A list of tasks to complete.
+    namespace: dynamic
+    properties:
+      - name: task_list
+        type: map(str, task)
+        description: A list of tasks to do.
+        required: true
+"""
+
 def run_cli(args):
     filtered_args = [item for item in args if item is not None]
     result = subprocess.run(
@@ -263,7 +292,7 @@ def run_eval_command_with_paths(yaml_path, yasl_path, model_name, expect_valid):
     result = run_cli([yasl_path, yaml_path, model_name])
     if not expect_valid:
         assert result.returncode != 0
-        assert "Validation failed" in result.stdout
+        assert "❌" in result.stdout
     else:
         assert result.returncode == 0
         assert "data validation successful" in result.stdout
@@ -979,3 +1008,152 @@ def test_dir_inputs_bad():
     os.chdir(str((Path(__file__).parent.parent.parent / "features").resolve()))
     run_eval_command_with_paths(str(Path(yasl_path).absolute()), str(Path(yaml_path).absolute()), None, False)
     os.chdir(cwd)
+
+def test_map_type__str_good():
+    yasl = TODO_YASL
+    yaml_data = """
+task_list:
+  task_01:
+    description:  Buy coffee.
+    owner: Jim
+    complete: false
+  task_02:
+    description: Lead morning standup.
+    owner: Jim
+    complete: false
+  task_03:
+    description: Refine Backlog.
+    owner: Jim
+    complete: false
+"""
+    run_eval_command(yaml_data, yasl, "list_of_tasks", True)
+
+def test_map_type_int_good():
+    yasl = """
+types:
+  - name: task
+    description: A thing to do.
+    namespace: dynamic
+    properties:
+      - name: description
+        type: str
+        description: A description of the task.
+        required: true
+      - name: owner
+        type: str
+        description: The person responsible for the task.
+        required: false
+      - name: complete
+        type: bool
+        description: Is the task finished? True if yes, false if no.
+        required: true
+        default: false
+  - name: list_of_tasks
+    description: A list of tasks to complete.
+    namespace: dynamic
+    properties:
+      - name: task_list
+        type: map(int, task)
+        description: A list of tasks to do.
+        required: true
+"""
+    yaml_data = """
+task_list:
+  1:
+    description:  Buy coffee.
+    owner: Jim
+    complete: false
+  2:
+    description: Lead morning standup.
+    owner: Jim
+    complete: false
+  3:
+    description: Refine Backlog.
+    owner: Jim
+    complete: false
+"""
+    run_eval_command(yaml_data, yasl, "list_of_tasks", True)
+
+def test_map_type_bool_bad():
+    yasl = """
+types:
+  - name: task
+    description: A thing to do.
+    namespace: dynamic
+    properties:
+      - name: description
+        type: str
+        description: A description of the task.
+        required: true
+      - name: owner
+        type: str
+        description: The person responsible for the task.
+        required: false
+      - name: complete
+        type: bool
+        description: Is the task finished? True if yes, false if no.
+        required: true
+        default: false
+  - name: list_of_tasks
+    description: A list of tasks to complete.
+    namespace: dynamic
+    properties:
+      - name: task_list
+        type: map(bool, task)
+        description: A list of tasks to do.
+        required: true
+"""
+    yaml_data = """
+task_list:
+  true:
+    description:  Buy coffee.
+    owner: Jim
+    complete: false
+  false:
+    description: Lead morning standup.
+    owner: Jim
+    complete: false
+"""
+    run_eval_command(yaml_data, yasl, "list_of_tasks", False)
+
+def test_map_type_bad():
+    yasl = """
+types:
+  - name: task
+    description: A thing to do.
+    namespace: dynamic
+    properties:
+      - name: description
+        type: str
+        description: A description of the task.
+        required: true
+      - name: owner
+        type: str
+        description: The person responsible for the task.
+        required: false
+      - name: complete
+        type: bool
+        description: Is the task finished? True if yes, false if no.
+        required: true
+        default: false
+  - name: list_of_tasks
+    description: A list of tasks to complete.
+    namespace: dynamic
+    properties:
+      - name: task_list
+        type: map(str, junk_task)
+        description: A list of tasks to do.
+        required: true
+"""
+    yaml_data = """
+task_list:
+  task_01:
+    description:  Buy coffee.
+    owner: Jim
+    complete: false
+  task_02:
+    description: Lead morning standup.
+    owner: Jim
+    complete: false
+"""
+    run_eval_command(yaml_data, yasl, "list_of_tasks", False)
