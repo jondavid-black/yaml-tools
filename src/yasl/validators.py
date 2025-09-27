@@ -196,6 +196,17 @@ def enum_validator(cls, value: Any, values: List[str]):
         raise ValueError(f"Value '{value}' must be one of {values}")
     return value
 
+# map validator
+def map_validator(cls, value: Dict[Any, Any], key_type: str, value_type: str, any_of: List[str] = None):
+    # validate key type is str, int, or an enumation
+    if key_type not in ['str', 'int'] and key_type not in yasl_enumerations.keys():
+        raise ValueError(f"Map key type '{key_type}' is not supported")
+    # validate value type of any is allowed by constraints
+    if value_type == 'any' and any_of is not None:
+        if not any(isinstance(v, eval(t)) for t in any_of for v in value.values()):
+            raise ValueError(f"Map values must be one of {any_of}")
+    return value
+
 def property_validator_factory(type_def: TypeDef, property: Property) -> Callable:
     validators = []
     # list validators
@@ -255,7 +266,7 @@ def property_validator_factory(type_def: TypeDef, property: Property) -> Callabl
         validators.append(partial(url_reachable_valiator, reachable=property.url_reachable))
 
     # any validator
-    if property.any_of is not None:
+    if property.any_of is not None and not property.type.startswith("map("):
         validators.append(partial(any_of_validator, any_of=property.any_of))
 
     # ref validators (always validate references)
@@ -266,6 +277,16 @@ def property_validator_factory(type_def: TypeDef, property: Property) -> Callabl
     if property.type in yasl_enumerations.keys():
         enum_type = yasl_enumerations[property.type]
         validators.append(partial(enum_validator, values=[e.value for e in enum_type]))
+
+    # map validators
+    if property.type.startswith("map("):
+        # extract key and value types
+        map_types = property.type[4:-1]
+        if ',' not in map_types:
+            raise ValueError(f"Map type '{property.type}' is not valid")
+        key_type, value_type = map(str.strip, map_types.split(',', 1))
+        validators.append(partial(map_validator, key_type=key_type, value_type=value_type, any_of=property.any_of))
+        
 
     def multi_validator(cls, value):
         for validator in validators:

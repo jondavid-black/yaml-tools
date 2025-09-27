@@ -320,18 +320,37 @@ def gen_pydantic_type_models(type_defs: List[TypeDef]):
                 is_map = True
                 key, value = type_lookup[4:-1].split(',', 1)
                 key = key.strip()
-                value = value.strip()
-                if key not in ["str", "string", "int"]:
-                    raise ValueError(f"Unsupported map key type '{key}' for property '{prop.name}' in schema '{type_def.name}'.  Only 'str', 'string' or 'int' is supported as map key type.")
+                type_lookup = value.strip()
+                # make sure map key is a known type
+                if key in list(yasl_enumerations.keys()):
+                    key = yasl_enumerations[key]
+                elif key in ["str", "string"]:
+                    key = str
+                elif key == "int":
+                    key = int
+                else:
+                    acceptable_keys = ["str", "string", "int"] + list(yasl_enumerations.keys())
+                    raise ValueError(f"Map key type '{key}' for property '{prop.name}' must be one of {acceptable_keys}.")
+                
+                # if map value is a list, handle that
+                map_value_is_list = False
+                if type_lookup.endswith("[]"):
+                    type_lookup = prop.type[:-2]
+                    map_value_is_list = True
 
-                if value in type_map:
-                    py_type = type_map[value]
-                elif value in yasl_enumerations:
-                    py_type = yasl_enumerations[value]
-                elif value in yasl_type_defs:
-                    py_type = yasl_type_defs[value]
+                # make sure map value is a known type
+                if type_lookup in type_map:
+                    py_type = type_map[type_lookup]
+                elif type_lookup in yasl_enumerations:
+                    py_type = yasl_enumerations[type_lookup]
+                elif type_lookup in yasl_type_defs:
+                    py_type = yasl_type_defs[type_lookup]
                 else:
                     raise ValueError(f"Unknown map value type '{value}' for property '{prop.name}'")
+                
+                # wrap in list if needed
+                if map_value_is_list:
+                    py_type = List[py_type]
             elif type_lookup.startswith("ref(") and type_lookup.endswith(")"):
                 ref_target = type_lookup[4:-1]
                 type_name, property_name = ref_target.split('.', 1)
@@ -350,6 +369,9 @@ def gen_pydantic_type_models(type_defs: List[TypeDef]):
                             py_type = str
             else:
                 raise ValueError(f"Unknown type '{prop.type}' for property '{prop.name}'")
+            
+            if is_list and is_map:
+                raise ValueError(f"Property '{prop.name}' cannot be both a list and a map")
 
             if is_list:
                 py_type = List[py_type]

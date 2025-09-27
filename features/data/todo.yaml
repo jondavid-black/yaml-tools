@@ -7,7 +7,7 @@ task_list:
     description: Lead morning standup.
     owner: Jim
     complete: false
-  task_03:
+  task_05:
     description: Refine Backlog.
     owner: Jim
     complete: false

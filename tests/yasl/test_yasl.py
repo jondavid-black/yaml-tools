@@ -1157,3 +1157,102 @@ task_list:
     complete: false
 """
     run_eval_command(yaml_data, yasl, "list_of_tasks", False)
+
+def test_map_type_enum_key_good():
+    yasl = """
+types:
+  - name: task
+    description: A thing to do.
+    namespace: dynamic
+    properties:
+      - name: description
+        type: str
+        description: A description of the task.
+        required: true
+      - name: owner
+        type: str
+        description: The person responsible for the task.
+        required: false
+      - name: complete
+        type: bool
+        description: Is the task finished? True if yes, false if no.
+        required: true
+        default: false
+  - name: list_of_tasks
+    description: A list of tasks to complete.
+    namespace: dynamic
+    properties:
+      - name: task_list
+        type: map(taskkey, task)
+        description: A list of tasks to do.
+        required: true
+enums:
+  - name: taskkey
+    namespace: acme
+    description: The type of shape.
+    values:
+      - task_01
+      - task_02
+"""
+    yaml_data = """
+task_list:
+  task_01:
+    description:  Buy coffee.
+    owner: Jim
+    complete: false
+  task_02:
+    description: Lead morning standup.
+    owner: Jim
+    complete: false
+"""
+    run_eval_command(yaml_data, yasl, "list_of_tasks", True)
+
+def test_map_type_enum_value_bad():
+    yasl = """
+types:
+  - name: task
+    description: A thing to do.
+    namespace: dynamic
+    properties:
+      - name: description
+        type: str
+        description: A description of the task.
+        required: true
+      - name: owner
+        type: str
+        description: The person responsible for the task.
+        required: false
+      - name: complete
+        type: bool
+        description: Is the task finished? True if yes, false if no.
+        required: true
+        default: false
+  - name: list_of_tasks
+    description: A list of tasks to complete.
+    namespace: dynamic
+    properties:
+      - name: task_list
+        type: map(taskkey, task)
+        description: A list of tasks to do.
+        required: true
+enums:
+  - name: taskkey
+    namespace: acme
+    description: The type of shape.
+    values:
+      - task_01
+      - task_02
+"""
+    yaml_data = """
+task_list:
+  task_01:
+    description:  Buy coffee.
+    owner: Jim
+    complete: false
+  task_03:
+    description: Lead morning standup.
+    owner: Jim
+    complete: false
+"""
+    run_eval_command(yaml_data, yasl, "list_of_tasks", False)
+    

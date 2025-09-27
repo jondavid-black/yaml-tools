@@ -180,7 +180,7 @@ YASL expects the value to exist in the YAML being evaluated, but this can be ove
 #### Map
 
 A map allows for dynamic keys within the YAML structure.
-A map primitive is represented by the type name `map(key_type, value_type)` where key_type is a string or int and value_type is any valid YASL type.
+A map primitive is represented by the type name `map(key_type, value_type)` where key_type is a string, int, or enum type and value_type is any valid YASL type.
 
 #### Any
 
