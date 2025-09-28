@@ -21,6 +21,15 @@ types:
     namespace: dynamic
     properties:
       - name: task_list
-        type: map(str, task)
+        type: map(taskkey, task)
         description: A list of tasks to do.
         required: true
+
+enums:
+  - name: taskkey
+    namespace: acme
+    description: The type of shape.
+    values:
+      - task_01
+      - task_02
+      - task_03

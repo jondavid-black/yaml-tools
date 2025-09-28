@@ -11,7 +11,7 @@ class YASLBaseModel(BaseModel):
         return f"{self.__class__.__name__}({fields})"
 
 # --- YASL Pydantic Models ---
-class Enumeration(BaseModel):
+class Enumeration(YASLBaseModel):
     name: str
     description: Optional[str] = None
     namespace: Optional[str] = None
@@ -19,14 +19,8 @@ class Enumeration(BaseModel):
 
     model_config = {"extra": "forbid"}
 
-class RefFilter(BaseModel):
-    target: str
-    value: str
 
-    model_config = {"extra": "forbid"}
-
-
-class Property(BaseModel):
+class Property(YASLBaseModel):
     name: str
     type: str
     namespace: Optional[str] = None
@@ -77,7 +71,7 @@ class Property(BaseModel):
     model_config = {"extra": "forbid"}
 
 
-class IfThen(BaseModel):
+class IfThen(YASLBaseModel):
     eval: str
     value: List[str]
     present: List[str]
@@ -86,7 +80,7 @@ class IfThen(BaseModel):
     model_config = {"extra": "forbid"}
 
 
-class Validator(BaseModel):
+class Validator(YASLBaseModel):
     only_one: Optional[List[str]] = None
     at_least_one: Optional[List[str]] = None
     if_then: Optional[List[IfThen]] = None
@@ -94,7 +88,7 @@ class Validator(BaseModel):
     model_config = {"extra": "forbid"}
 
 
-class TypeDef(BaseModel):
+class TypeDef(YASLBaseModel):
     name: str
     namespace: Optional[str] = None
     description: Optional[str] = None
@@ -103,7 +97,7 @@ class TypeDef(BaseModel):
 
     model_config = {"extra": "forbid"}
 
-class YaslRoot(BaseModel):
+class YaslRoot(YASLBaseModel):
     imports: Optional[List[str]] = None
     enums: Optional[List[Enumeration]] = None
     types: Optional[List[TypeDef]] = None

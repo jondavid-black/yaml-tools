@@ -1,5 +1,6 @@
 # validate_config_with_lines.py
 import logging
+# import traceback
 from yasl.pydantic_types import (
     Enumeration,
     TypeDef,
@@ -136,9 +137,9 @@ def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_
 
     setup_logging(disable=disable_log, verbose=verbose_log, quiet=quiet_log, output=output, stream=log_stream)
     log = logging.getLogger("yasl")
-    log.debug(f"YASL Version:  {yasl_version()}")
-    log.debug(f"YASL Schema:   {yasl_schema}")
-    log.debug(f"YAML Data:    {yaml_data}")
+    log.debug(f"YASL Version - {yasl_version()}")
+    log.debug(f"YASL Schema - {yasl_schema}")
+    log.debug(f"YAML Data - {yaml_data}")
 
     yasl_files = []
     if Path(yasl_schema).is_dir():
@@ -189,17 +190,17 @@ def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_
             with open(yaml_file, "r") as f:
                 data = yaml_loader.load(f)
             root_keys: List[str] = list(data.keys())
-            log.debug(f"Auto-detecting schema for YAML root keys in: {yaml_file}")
+            log.debug(f"Auto-detecting schema for YAML root keys in '{yaml_file}'")
             for type_def_root in yasl_results or []:
                 for type_def in type_def_root.types or []:
                     type_def_root_keys: List[str] = [k.name for k in type_def.properties]
                     if all(k in type_def_root_keys for k in root_keys):
-                        log.debug(f"Auto-detected root model: '{type_def.name}' for YAML file '{yaml_file}'")
+                        log.debug(f"Auto-detected root model '{type_def.name}' for YAML file '{yaml_file}'")
                         candidate_model_names.append(type_def.name)
         else:
             candidate_model_names.append(model_name)
 
-        log.debug(f"Identified candidate model names for '{yaml_file}': {candidate_model_names}")
+        log.debug(f"Identified candidate model names for '{yaml_file}' - {candidate_model_names}")
 
         for schema_name in candidate_model_names:
             if schema_name not in yasl_type_defs:
@@ -255,6 +256,7 @@ def gen_pydantic_type_models(type_defs: List[TypeDef]):
                 "path": str,
                 "url": str,
                 "any": Any,
+                "markdown": str,
                 "StrictBool": StrictBool,
                 "PositiveInt": PositiveInt,
                 "NegativeInt": NegativeInt,
@@ -320,18 +322,37 @@ def gen_pydantic_type_models(type_defs: List[TypeDef]):
                 is_map = True
                 key, value = type_lookup[4:-1].split(',', 1)
                 key = key.strip()
-                value = value.strip()
-                if key not in ["str", "string", "int"]:
-                    raise ValueError(f"Unsupported map key type '{key}' for property '{prop.name}' in schema '{type_def.name}'.  Only 'str', 'string' or 'int' is supported as map key type.")
+                type_lookup = value.strip()
+                # make sure map key is a known type
+                if key in list(yasl_enumerations.keys()):
+                    key = yasl_enumerations[key]
+                elif key in ["str", "string"]:
+                    key = str
+                elif key == "int":
+                    key = int
+                else:
+                    acceptable_keys = ["str", "string", "int"] + list(yasl_enumerations.keys())
+                    raise ValueError(f"Map key type '{key}' for property '{prop.name}' must be one of {acceptable_keys}.")
+                
+                # if map value is a list, handle that
+                map_value_is_list = False
+                if type_lookup.endswith("[]"):
+                    type_lookup = prop.type[:-2]
+                    map_value_is_list = True
 
-                if value in type_map:
-                    py_type = type_map[value]
-                elif value in yasl_enumerations:
-                    py_type = yasl_enumerations[value]
-                elif value in yasl_type_defs:
-                    py_type = yasl_type_defs[value]
+                # make sure map value is a known type
+                if type_lookup in type_map:
+                    py_type = type_map[type_lookup]
+                elif type_lookup in yasl_enumerations:
+                    py_type = yasl_enumerations[type_lookup]
+                elif type_lookup in yasl_type_defs:
+                    py_type = yasl_type_defs[type_lookup]
                 else:
                     raise ValueError(f"Unknown map value type '{value}' for property '{prop.name}'")
+                
+                # wrap in list if needed
+                if map_value_is_list:
+                    py_type = List[py_type]
             elif type_lookup.startswith("ref(") and type_lookup.endswith(")"):
                 ref_target = type_lookup[4:-1]
                 type_name, property_name = ref_target.split('.', 1)
@@ -350,6 +371,9 @@ def gen_pydantic_type_models(type_defs: List[TypeDef]):
                             py_type = str
             else:
                 raise ValueError(f"Unknown type '{prop.type}' for property '{prop.name}'")
+            
+            if is_list and is_map:
+                raise ValueError(f"Property '{prop.name}' cannot be both a list and a map")
 
             if is_list:
                 py_type = List[py_type]
@@ -420,13 +444,13 @@ def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
                     imp_path = Path(path).parent / imp
                     if not imp_path.exists():
                         raise FileNotFoundError(f"Import file '{imp}' not found")
-                log.debug(f"Importing additional schema: {imp}  - resolved to {imp_path}")
+                log.debug(f"Importing additional schema '{imp}' - resolved to '{imp_path}'")
                 imported_yasl = load_and_validate_yasl_with_lines(imp_path)
                 if not imported_yasl:
                     raise ValueError(f"Failed to import YASL schema from '{imp}'")
         for enum in yasl.enums or []:
             # must setup enums before types to support enum validation
-            log.debug(f"Evaluating enum: {enum.name}")
+            log.debug(f"Evaluating enum - {enum.name}")
             gen_enum_from_enumeration(enum)
         if yasl.types is not None:
             gen_pydantic_type_models(yasl.types)
@@ -434,7 +458,13 @@ def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
         log.debug("✅ YASL schema validation successful!")
         return yasl
     except FileNotFoundError:
-        log.error(f"❌ Error: YASL schema file not found at '{path}'")
+        log.error(f"❌ Error - YASL schema file not found at '{path}'")
+        return None
+    except SyntaxError as e:
+        log.error(f"❌ Error - Syntax error in YASL schema file '{path}'\n  - {e}")
+        return None
+    except YAMLError as e:
+        log.error(f"❌ Error - YAML error while parsing YASL schema '{path}'\n  - {e}")
         return None
     except ValidationError as e:
         log.error(f"❌ YASL schema validation of {path} failed with {len(e.errors())} error(s):")
@@ -447,7 +477,7 @@ def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
                 log.error(f"  - Location '{path_str}' -> {error['msg']}")
         return None
     except Exception as e:
-        log.error(f"❌ An schema error occurred processing {path}: {type(e)} - {e}")
+        log.error(f"❌ An schema error occurred processing '{path}' - {type(e)} - {e}")
         # traceback.print_exc()
         return None
 
@@ -464,22 +494,27 @@ def load_and_validate_data_with_lines(
             data = yaml_loader.load(f)
 
     except FileNotFoundError:
-        log.error(f"❌ Error: File not found at '{path}'")
+        log.error(f"❌ Error - File not found at '{path}'")
+        return None
+    except SyntaxError as e:
+        print(f"DEBUG - Caught SyntaxError: {e}")
+        log.error(f"❌ Error - Syntax error in data file '{path}'\n  - {e}")
         return None
     except YAMLError as e:
-        log.error(f"❌ Error: YAML error while parsing data '{path}'\n  - {e}")
+        log.error(f"❌ Error - YAML error while parsing data '{path}'\n  - {e}")
         return None
     except ValueError as e:
-        log.error(f"❌ Error: value error while parsing data '{path}'\n  - {e}")
+        log.error(f"❌ Error - value error while parsing data '{path}'\n  - {e}")
         return None
     except Exception as e:
-        log.error(f"❌ An unexpected error occurred: {type(e)} - {e}")
+        log.error(f"❌ An unexpected error occurred - {type(e)} - {e}")
         # traceback.print_exc()
         return None
     try:
         result = model(**data)
         if result is None:
-            raise ValueError(f"Failed to parse data from {data}")
+            log.error(f"❌ Validation failed. Unable to parse data from {json.dumps(data, indent=2)}")
+            raise ValueError(f"Failed to parse data from '{path}'")
         log.info(f"✅ YAML '{path}' data validation successful!")
         return result
     except ValidationError as e:
@@ -488,10 +523,22 @@ def load_and_validate_data_with_lines(
             line = get_line_for_error(data, error["loc"])
             path_str = " -> ".join(map(str, error["loc"]))
             if line:
-                log.error(f"  - Line {line}: '{path_str}' -> {error['msg']}")
+                log.error(f"  - Line {line} - '{path_str}' -> {error['msg']}")
             else:
                 log.error(f"  - Location '{path_str}' -> {error['msg']}")
+        # traceback.print_exc()
+        return None
+    except SyntaxError as e:
+        # log.error(f"❌ Error: Syntax error in data file '{path}'\n  - {e}")
+        log.error(
+            f"❌ SyntaxError in file '{path}' "
+            f"at line {getattr(e, 'lineno', '?')}, offset {getattr(e, 'offset', '?')} - {getattr(e, 'msg', str(e))}"
+        )
+        if hasattr(e, "text") and e.text:
+            log.error(f"  > {e.text.strip()}")
+        # traceback.print_exc()
         return None
     except Exception as e:
-        log.error(f"❌ An unexpected error occurred: {type(e)} - {e}")
+        log.error(f"❌ An unexpected error occurred - {type(e)} - {e}")
+        # traceback.print_exc()
         return None

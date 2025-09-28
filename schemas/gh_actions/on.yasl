@@ -1,0 +1,307 @@
+imports:
+  - ./general.yasl
+types:
+  - name: on_pull_request_event
+    namespace: github_actions
+    description: A pull request event that triggers the workflow.
+    properties:
+      - name: types
+        type: on_event_type[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+      - name: branches
+        type: str[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+      - name: branches-ignore
+        type: str[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+      - name: paths
+        type: str[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+      - name: paths-ignore
+        type: str[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+  - name: on_event_types
+    namespace: github_actions
+    description: A GitHub event type that triggers the workflow.
+    properties:
+      - name: types
+        type: on_event_type[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+  - name: on_pull_request_target_event
+    namespace: github_actions
+    description: A pull request event that triggers the workflow.
+    properties:
+      - name: types
+        type: on_event_type[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+      - name: branches
+        type: str[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+      - name: branches-ignore
+        type: str[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+      - name: paths
+        type: str[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+      - name: paths-ignore
+        type: str[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+  - name: on_push_event
+    namespace: github_actions
+    description: A push event that triggers the workflow.
+    properties:
+      - name: types
+        type: on_event_type[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+      - name: branches
+        type: str[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+      - name: branches-ignore
+        type: str[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+      - name: tags
+        type: str[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+      - name: tags-ignore
+        type: str[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+      - name: paths
+        type: str[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+      - name: paths-ignore
+        type: str[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+  - name: on_workflow_call_event
+    namespace: github_actions
+    description: A workflow call event that triggers the workflow.
+    properties:
+      - name: types
+        type: on_event_type[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+      - name: inputs
+        type: map(str, input)
+        description: A map of input names to input properties. For more information, see "Calling a workflow."
+        required: false
+      - name: outputs
+        type: map(str, output)
+        description: A map of output names to output properties. For more information, see "Calling a workflow."
+        required: false
+      - name: secrets
+        type: map(str, secrets)
+        description: A map of secret names to secret properties. For more information, see "Calling a workflow."
+        required: false
+  - name: on_workflow_run_event
+    namespace: github_actions
+    description: A workflow run request event that triggers the workflow.
+    properties:
+      - name: types
+        type: on_event_type[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+      - name: branches
+        type: str[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+      - name: branches-ignore
+        type: str[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+  - name: on_workflow_dispatch_event
+    namespace: github_actions
+    description: A workflow call event that triggers the workflow.
+    properties:
+      - name: types
+        type: on_event_type[]
+        description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+        required: false
+      - name: inputs
+        type: map(str, input)
+        description: A map of input names to input properties. For more information, see "Calling a workflow."
+        required: false
+  - name: cron
+    namespace: github_actions
+    description: A single defined cron schedule entry. For more information, see "Creating a scheduled workflow."
+    properties:
+      - name: cron
+        type: str
+        description: A cron syntax string. For more information, see "Creating a scheduled workflow."
+        required: true
+        str_regex: ^([\d\*,\/\-]+)\s+([\d\*,\/\-]+)\s+([\d\*,\/\-]+)\s+([\d\*,\/\-]+)\s+([\d\*,\/\-]+)$
+  - name: on_workflow
+    namespace: github_actions
+    description:  The name of the event that triggers the workflow. You can configure a workflow to run when a specific activity occurs in your repository, or you can schedule workflows to run at specific times. You can also configure a workflow to run manually.
+
+      You can specify multiple events for a single workflow. For more information about the available events, see "Events that trigger workflows."
+    properties:
+      - name: label
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: branch_protection_rule
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: check_run
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: check_suite
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: create
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: delete
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: deployment
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: deployment_status
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: discussion
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: discussion_comment
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: fork
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: gollum
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: issue_comment
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: issues
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: label
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: merge_group
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: milestone
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: page_build
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: project
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: project_card
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: project_column
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: public
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: pull_request
+        type: on_pull_request_event
+        description: A pull request event that triggers the workflow.
+        required: false
+      - name: pull_request_review
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: pull_request_review_comment
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: pull_request_target
+        type: on_pull_request_target_event
+        description: A pull request event that triggers the workflow.
+        required: false
+      - name: push
+        type: on_push_event
+        description: A push event that triggers the workflow.
+        required: false
+      - name: registry_package
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: release
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: repository_dispatch
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: schedule
+        type: cron[]
+        description: A scheduled event that triggers the workflow.
+        required: false
+      - name: status
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: watch
+        type: on_event_type
+        description: A GitHub event type that triggers the workflow.
+        required: false
+      - name: workflow_call
+        type: on_workflow_call_event
+        description: A workflow call event that triggers the workflow.
+        required: false
+      - name: workflow_dispatch
+        type: on_workflow_dispatch_event
+        description: A workflow call event that triggers the workflow.
+        required: false
+      - name: workflow_run
+        type: on_workflow_run_event
+        description: A workflow run request event that triggers the workflow.
+        required: false
+  
+enums:
+  - name: on_event_type
+    namespace: github_actions
+    description:  GitHub event types for issues and pull requests.
+    values:
+      - created
+      - edited
+  

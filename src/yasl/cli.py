@@ -61,6 +61,8 @@ def main():
     yasl = yasl_eval(args.schema, args.yaml, args.model_name, disable_log=False, quiet_log=args.quiet, verbose_log=args.verbose, output=args.output)
     if not yasl:
         sys.exit(1)
+    else:
+        sys.exit(0) 
 
 
 

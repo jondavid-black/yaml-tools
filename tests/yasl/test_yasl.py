@@ -4,9 +4,11 @@ import tempfile
 import os
 from io import StringIO
 from pathlib import Path
+import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../src/")))
 
 from yasl import yasl_eval
+from yasl.cli import main as yasl_cli_main
 
 CUSTOMER_LIST_YASL = """
 enums:
@@ -257,6 +259,36 @@ def run_cli(args):
         text=True
     )
     return result
+
+def test_cli_version(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["yasl", "--version"])
+    with pytest.raises(SystemExit) as e:
+        yasl_cli_main()
+    assert e.value.code == 0
+    captured = capsys.readouterr()
+    assert "YASL version" in captured.out
+
+def test_cli_quiet_and_verbose(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["yasl", "--quiet", "--verbose"])
+    with pytest.raises(SystemExit) as e:
+        yasl_cli_main()
+    assert e.value.code == 1
+    captured = capsys.readouterr()
+    assert "❌ Cannot use both --quiet and --verbose." in captured.out
+
+def test_cli_missing_args(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["yasl", "./file.yasl"])
+    with pytest.raises(SystemExit) as e:
+        yasl_cli_main()
+    assert e.value.code == 1
+    captured = capsys.readouterr()
+    assert "❌ requires a YASL file, a YAML schema file, and optionally a model name as parameters." in captured.out
+
+def test_cli_good(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["yasl", "./features/data/todo.yasl", "./features/data/todo.yaml", "list_of_tasks"])
+    with pytest.raises(SystemExit) as e:
+        yasl_cli_main()
+    assert e.value.code == 0
 
 def test_quiet_and_verbose():
     result = run_cli(["file.yasl", "file.yaml", "--quiet", "--verbose"])
@@ -756,6 +788,10 @@ types:
         type: StrictBool
         description: A strict boolean value.
         required: false
+      - name: markdown
+        type: markdown
+        description: A markdown value
+        required: false
       - name: positive_int
         type: PositiveInt
         description: A positive integer value.
@@ -944,6 +980,12 @@ types:
     yaml_data = """
 id: test
 strict_bool: true
+markdown: |
+  # Hello World
+  
+  This is some random markdown.
+  [Link to Google](https://www.google.com)
+      
 positive_int: 42
 negative_int: -42
 non_positive_int: -1
@@ -994,20 +1036,20 @@ ipvany_address: "192.0.2.1"
     run_eval_command(yaml_data, yasl, "thing", True)
 
 def test_dir_inputs_good():
-    yasl_path = "./data/dir_test"
-    yaml_path = "./data/dir_test"
-    cwd = os.getcwd()
-    os.chdir(str((Path(__file__).parent.parent.parent / "features").resolve()))
+    yasl_path = "./features/data/dir_test"
+    yaml_path = "./features/data/dir_test"
+    # cwd = os.getcwd()
+    # os.chdir(str((Path(__file__).parent.parent.parent / "features").resolve()))
     run_eval_command_with_paths(str(Path(yasl_path).absolute()), str(Path(yaml_path).absolute()), None, True)
-    os.chdir(cwd)
+    # os.chdir(cwd)
 
 def test_dir_inputs_bad():
-    yasl_path = "./data/bad_dir_test"
-    yaml_path = "./data/bad_dir_test"
-    cwd = os.getcwd()
-    os.chdir(str((Path(__file__).parent.parent.parent / "features").resolve()))
+    yasl_path = "./features/data/bad_dir_test"
+    yaml_path = "./features/data/bad_dir_test"
+    # cwd = os.getcwd()
+    # os.chdir(str((Path(__file__).parent.parent.parent / "features").resolve()))
     run_eval_command_with_paths(str(Path(yasl_path).absolute()), str(Path(yaml_path).absolute()), None, False)
-    os.chdir(cwd)
+    # os.chdir(cwd)
 
 def test_map_type__str_good():
     yasl = TODO_YASL
@@ -1157,3 +1199,184 @@ task_list:
     complete: false
 """
     run_eval_command(yaml_data, yasl, "list_of_tasks", False)
+
+def test_map_type_enum_key_good():
+    yasl = """
+types:
+  - name: task
+    description: A thing to do.
+    namespace: dynamic
+    properties:
+      - name: description
+        type: str
+        description: A description of the task.
+        required: true
+      - name: owner
+        type: str
+        description: The person responsible for the task.
+        required: false
+      - name: complete
+        type: bool
+        description: Is the task finished? True if yes, false if no.
+        required: true
+        default: false
+  - name: list_of_tasks
+    description: A list of tasks to complete.
+    namespace: dynamic
+    properties:
+      - name: task_list
+        type: map(taskkey, task)
+        description: A list of tasks to do.
+        required: true
+enums:
+  - name: taskkey
+    namespace: acme
+    description: The type of shape.
+    values:
+      - task_01
+      - task_02
+"""
+    yaml_data = """
+task_list:
+  task_01:
+    description:  Buy coffee.
+    owner: Jim
+    complete: false
+  task_02:
+    description: Lead morning standup.
+    owner: Jim
+    complete: false
+"""
+    run_eval_command(yaml_data, yasl, "list_of_tasks", True)
+
+def test_map_type_enum_value_bad():
+    yasl = """
+types:
+  - name: task
+    description: A thing to do.
+    namespace: dynamic
+    properties:
+      - name: description
+        type: str
+        description: A description of the task.
+        required: true
+      - name: owner
+        type: str
+        description: The person responsible for the task.
+        required: false
+      - name: complete
+        type: bool
+        description: Is the task finished? True if yes, false if no.
+        required: true
+        default: false
+  - name: list_of_tasks
+    description: A list of tasks to complete.
+    namespace: dynamic
+    properties:
+      - name: task_list
+        type: map(taskkey, task)
+        description: A list of tasks to do.
+        required: true
+enums:
+  - name: taskkey
+    namespace: acme
+    description: The type of shape.
+    values:
+      - task_01
+      - task_02
+"""
+    yaml_data = """
+task_list:
+  task_01:
+    description:  Buy coffee.
+    owner: Jim
+    complete: false
+  task_03:
+    description: Lead morning standup.
+    owner: Jim
+    complete: false
+"""
+    run_eval_command(yaml_data, yasl, "list_of_tasks", False)
+
+def test_map_nested_value_good():
+    yasl = """
+types:
+  - name: task
+    description: A thing to do.
+    namespace: dynamic
+    properties:
+      - name: description
+        type: str
+        description: A description of the task.
+        required: true
+      - name: owner
+        type: str
+        description: The person responsible for the task.
+        required: false
+      - name: complete
+        type: bool
+        description: Is the task finished? True if yes, false if no.
+        required: true
+        default: false
+  - name: feature
+    description: A list of tasks to complete.
+    namespace: dynamic
+    properties:
+      - name: feature
+        type: str
+        description: The feature name.
+        required: true
+      - name: task_list
+        type: map(str, task)
+        description: A list of tasks to do.
+        required: true
+  - name: project
+    description: A project with tasks.
+    namespace: dynamic
+    properties:
+      - name: project_name
+        type: str
+        description: The name of the project.
+        required: true
+      - name: features
+        type: feature[]
+        description: The tasks for the project.
+        required: true
+"""
+    yaml_data = """
+project_name: Important Project
+features:
+  - feature: Initial Setup
+    task_list:
+      task_01:
+        description:  Buy coffee.
+        owner: Jim
+        complete: false
+      task_02:
+        description: Lead morning standup.
+        owner: Jim
+        complete: false
+"""
+    run_eval_command(yaml_data, yasl, "project", True)
+
+def test_empty_markdown():
+    yasl = """
+types:
+  - name: thing
+    namespace: acme
+    description: Information about a thing.
+    properties:
+      - name: id
+        type: str
+        description: The unique identifier for the thing.
+        required: true
+      - name: markdown
+        type: markdown
+        description: A markdown value
+        required: true
+"""
+    yaml_data = """
+id: test
+markdown: ""
+"""
+    run_eval_command(yaml_data, yasl, "thing", False)

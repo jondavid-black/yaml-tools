@@ -1,6 +1,6 @@
 [project]
 name = "yaml-tools"
-version = "0.1.14"
+version = "0.1.15"
 description = "A suite of tools to advance your usage of yaml.  YASL provides schema definition and verification.  YAQL let's you query your yalm as if it were a database.  YARL provides analysis and reporting.  And YATL allows you to transform yaml from one structure (schema) to another."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -16,6 +16,7 @@ dependencies = [
     "email-validator==2.3.0",
     "idna==3.10",
     "iniconfig==2.1.0",
+    "markdown-it-py==4.0.0",
     "packaging==25.0",
     "parse==1.20.2",
     "parse-type==0.6.6",
