@@ -1036,21 +1036,20 @@ ipvany_address: "192.0.2.1"
     run_eval_command(yaml_data, yasl, "thing", True)
 
 def test_dir_inputs_good():
-    yasl_path = "./data/dir_test"
-    yaml_path = "./data/dir_test"
-    cwd = os.getcwd()
-    os.chdir(str((Path(__file__).parent.parent.parent / "features").resolve()))
+    yasl_path = "./features/data/dir_test"
+    yaml_path = "./features/data/dir_test"
+    # cwd = os.getcwd()
+    # os.chdir(str((Path(__file__).parent.parent.parent / "features").resolve()))
     run_eval_command_with_paths(str(Path(yasl_path).absolute()), str(Path(yaml_path).absolute()), None, True)
-    os.chdir(cwd)
+    # os.chdir(cwd)
 
 def test_dir_inputs_bad():
-    yasl_path = "./data/bad_dir_test"
-    yaml_path = "./data/bad_dir_test"
-    cwd = os.getcwd()
-
-    os.chdir(str((Path(__file__).parent.parent.parent / "features").resolve()))
+    yasl_path = "./features/data/bad_dir_test"
+    yaml_path = "./features/data/bad_dir_test"
+    # cwd = os.getcwd()
+    # os.chdir(str((Path(__file__).parent.parent.parent / "features").resolve()))
     run_eval_command_with_paths(str(Path(yasl_path).absolute()), str(Path(yaml_path).absolute()), None, False)
-    os.chdir(cwd)
+    # os.chdir(cwd)
 
 def test_map_type__str_good():
     yasl = TODO_YASL
