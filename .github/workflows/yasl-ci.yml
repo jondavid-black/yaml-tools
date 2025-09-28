@@ -38,9 +38,7 @@ jobs:
 
       - name: Run BDD tests with Behave
         run: |
-          cd features
-          uv run behave
-          cd ..
+          uv run behave ./features
 
       - name: Check CLI tool
         run: |
