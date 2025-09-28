@@ -1047,6 +1047,7 @@ def test_dir_inputs_bad():
     yasl_path = "./data/bad_dir_test"
     yaml_path = "./data/bad_dir_test"
     cwd = os.getcwd()
+
     os.chdir(str((Path(__file__).parent.parent.parent / "features").resolve()))
     run_eval_command_with_paths(str(Path(yasl_path).absolute()), str(Path(yaml_path).absolute()), None, False)
     os.chdir(cwd)

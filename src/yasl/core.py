@@ -1,6 +1,6 @@
 # validate_config_with_lines.py
 import logging
-import traceback
+# import traceback
 from yasl.pydantic_types import (
     Enumeration,
     TypeDef,
@@ -137,9 +137,9 @@ def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_
 
     setup_logging(disable=disable_log, verbose=verbose_log, quiet=quiet_log, output=output, stream=log_stream)
     log = logging.getLogger("yasl")
-    log.debug(f"YASL Version:  {yasl_version()}")
-    log.debug(f"YASL Schema:   {yasl_schema}")
-    log.debug(f"YAML Data:    {yaml_data}")
+    log.debug(f"YASL Version - {yasl_version()}")
+    log.debug(f"YASL Schema - {yasl_schema}")
+    log.debug(f"YAML Data - {yaml_data}")
 
     yasl_files = []
     if Path(yasl_schema).is_dir():
@@ -190,17 +190,17 @@ def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_
             with open(yaml_file, "r") as f:
                 data = yaml_loader.load(f)
             root_keys: List[str] = list(data.keys())
-            log.debug(f"Auto-detecting schema for YAML root keys in: {yaml_file}")
+            log.debug(f"Auto-detecting schema for YAML root keys in '{yaml_file}'")
             for type_def_root in yasl_results or []:
                 for type_def in type_def_root.types or []:
                     type_def_root_keys: List[str] = [k.name for k in type_def.properties]
                     if all(k in type_def_root_keys for k in root_keys):
-                        log.debug(f"Auto-detected root model: '{type_def.name}' for YAML file '{yaml_file}'")
+                        log.debug(f"Auto-detected root model '{type_def.name}' for YAML file '{yaml_file}'")
                         candidate_model_names.append(type_def.name)
         else:
             candidate_model_names.append(model_name)
 
-        log.debug(f"Identified candidate model names for '{yaml_file}': {candidate_model_names}")
+        log.debug(f"Identified candidate model names for '{yaml_file}' - {candidate_model_names}")
 
         for schema_name in candidate_model_names:
             if schema_name not in yasl_type_defs:
@@ -444,13 +444,13 @@ def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
                     imp_path = Path(path).parent / imp
                     if not imp_path.exists():
                         raise FileNotFoundError(f"Import file '{imp}' not found")
-                log.debug(f"Importing additional schema: {imp}  - resolved to {imp_path}")
+                log.debug(f"Importing additional schema '{imp}' - resolved to '{imp_path}'")
                 imported_yasl = load_and_validate_yasl_with_lines(imp_path)
                 if not imported_yasl:
                     raise ValueError(f"Failed to import YASL schema from '{imp}'")
         for enum in yasl.enums or []:
             # must setup enums before types to support enum validation
-            log.debug(f"Evaluating enum: {enum.name}")
+            log.debug(f"Evaluating enum - {enum.name}")
             gen_enum_from_enumeration(enum)
         if yasl.types is not None:
             gen_pydantic_type_models(yasl.types)
@@ -458,13 +458,13 @@ def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
         log.debug("✅ YASL schema validation successful!")
         return yasl
     except FileNotFoundError:
-        log.error(f"❌ Error: YASL schema file not found at '{path}'")
+        log.error(f"❌ Error - YASL schema file not found at '{path}'")
         return None
     except SyntaxError as e:
-        log.error(f"❌ Error: Syntax error in YASL schema file '{path}'\n  - {e}")
+        log.error(f"❌ Error - Syntax error in YASL schema file '{path}'\n  - {e}")
         return None
     except YAMLError as e:
-        log.error(f"❌ Error: YAML error while parsing YASL schema '{path}'\n  - {e}")
+        log.error(f"❌ Error - YAML error while parsing YASL schema '{path}'\n  - {e}")
         return None
     except ValidationError as e:
         log.error(f"❌ YASL schema validation of {path} failed with {len(e.errors())} error(s):")
@@ -477,7 +477,7 @@ def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
                 log.error(f"  - Location '{path_str}' -> {error['msg']}")
         return None
     except Exception as e:
-        log.error(f"❌ An schema error occurred processing {path}: {type(e)} - {e}")
+        log.error(f"❌ An schema error occurred processing '{path}' - {type(e)} - {e}")
         # traceback.print_exc()
         return None
 
@@ -494,27 +494,27 @@ def load_and_validate_data_with_lines(
             data = yaml_loader.load(f)
 
     except FileNotFoundError:
-        log.error(f"❌ Error: File not found at '{path}'")
+        log.error(f"❌ Error - File not found at '{path}'")
         return None
     except SyntaxError as e:
-        print(f"DEBUG: Caught SyntaxError: {e}")
-        log.error(f"❌ Error: Syntax error in data file '{path}'\n  - {e}")
+        print(f"DEBUG - Caught SyntaxError: {e}")
+        log.error(f"❌ Error - Syntax error in data file '{path}'\n  - {e}")
         return None
     except YAMLError as e:
-        log.error(f"❌ Error: YAML error while parsing data '{path}'\n  - {e}")
+        log.error(f"❌ Error - YAML error while parsing data '{path}'\n  - {e}")
         return None
     except ValueError as e:
-        log.error(f"❌ Error: value error while parsing data '{path}'\n  - {e}")
+        log.error(f"❌ Error - value error while parsing data '{path}'\n  - {e}")
         return None
     except Exception as e:
-        log.error(f"❌ An unexpected error occurred: {type(e)} - {e}")
-        traceback.print_exc()
+        log.error(f"❌ An unexpected error occurred - {type(e)} - {e}")
+        # traceback.print_exc()
         return None
     try:
-        # print(f"DEBUG: Data loaded from {path}:\n{json.dumps(data, indent=2)}")
         result = model(**data)
         if result is None:
-            raise ValueError(f"Failed to parse data from {json.dumps(data, indent=2)}")
+            log.error(f"❌ Validation failed. Unable to parse data from {json.dumps(data, indent=2)}")
+            raise ValueError(f"Failed to parse data from '{path}'")
         log.info(f"✅ YAML '{path}' data validation successful!")
         return result
     except ValidationError as e:
@@ -523,22 +523,22 @@ def load_and_validate_data_with_lines(
             line = get_line_for_error(data, error["loc"])
             path_str = " -> ".join(map(str, error["loc"]))
             if line:
-                log.error(f"  - Line {line}: '{path_str}' -> {error['msg']}")
+                log.error(f"  - Line {line} - '{path_str}' -> {error['msg']}")
             else:
                 log.error(f"  - Location '{path_str}' -> {error['msg']}")
-        traceback.print_exc()
+        # traceback.print_exc()
         return None
     except SyntaxError as e:
         # log.error(f"❌ Error: Syntax error in data file '{path}'\n  - {e}")
         log.error(
             f"❌ SyntaxError in file '{path}' "
-            f"at line {getattr(e, 'lineno', '?')}, offset {getattr(e, 'offset', '?')}: {getattr(e, 'msg', str(e))}"
+            f"at line {getattr(e, 'lineno', '?')}, offset {getattr(e, 'offset', '?')} - {getattr(e, 'msg', str(e))}"
         )
         if hasattr(e, "text") and e.text:
             log.error(f"  > {e.text.strip()}")
-        traceback.print_exc()
+        # traceback.print_exc()
         return None
     except Exception as e:
-        log.error(f"❌ An unexpected error occurred: {type(e)} - {e}")
-        traceback.print_exc()
+        log.error(f"❌ An unexpected error occurred - {type(e)} - {e}")
+        # traceback.print_exc()
         return None
