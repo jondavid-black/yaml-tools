@@ -1,4 +1,3 @@
-# .github/workflows/ci.yml
 name: YASL CI
 permissions:
   contents: read

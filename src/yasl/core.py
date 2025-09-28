@@ -1,5 +1,6 @@
 # validate_config_with_lines.py
 import logging
+import traceback
 from yasl.pydantic_types import (
     Enumeration,
     TypeDef,
@@ -255,6 +256,7 @@ def gen_pydantic_type_models(type_defs: List[TypeDef]):
                 "path": str,
                 "url": str,
                 "any": Any,
+                "markdown": str,
                 "StrictBool": StrictBool,
                 "PositiveInt": PositiveInt,
                 "NegativeInt": NegativeInt,
@@ -458,6 +460,12 @@ def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
     except FileNotFoundError:
         log.error(f"❌ Error: YASL schema file not found at '{path}'")
         return None
+    except SyntaxError as e:
+        log.error(f"❌ Error: Syntax error in YASL schema file '{path}'\n  - {e}")
+        return None
+    except YAMLError as e:
+        log.error(f"❌ Error: YAML error while parsing YASL schema '{path}'\n  - {e}")
+        return None
     except ValidationError as e:
         log.error(f"❌ YASL schema validation of {path} failed with {len(e.errors())} error(s):")
         for error in e.errors():
@@ -488,6 +496,10 @@ def load_and_validate_data_with_lines(
     except FileNotFoundError:
         log.error(f"❌ Error: File not found at '{path}'")
         return None
+    except SyntaxError as e:
+        print(f"DEBUG: Caught SyntaxError: {e}")
+        log.error(f"❌ Error: Syntax error in data file '{path}'\n  - {e}")
+        return None
     except YAMLError as e:
         log.error(f"❌ Error: YAML error while parsing data '{path}'\n  - {e}")
         return None
@@ -496,12 +508,13 @@ def load_and_validate_data_with_lines(
         return None
     except Exception as e:
         log.error(f"❌ An unexpected error occurred: {type(e)} - {e}")
-        # traceback.print_exc()
+        traceback.print_exc()
         return None
     try:
+        # print(f"DEBUG: Data loaded from {path}:\n{json.dumps(data, indent=2)}")
         result = model(**data)
         if result is None:
-            raise ValueError(f"Failed to parse data from {data}")
+            raise ValueError(f"Failed to parse data from {json.dumps(data, indent=2)}")
         log.info(f"✅ YAML '{path}' data validation successful!")
         return result
     except ValidationError as e:
@@ -513,7 +526,19 @@ def load_and_validate_data_with_lines(
                 log.error(f"  - Line {line}: '{path_str}' -> {error['msg']}")
             else:
                 log.error(f"  - Location '{path_str}' -> {error['msg']}")
+        traceback.print_exc()
+        return None
+    except SyntaxError as e:
+        # log.error(f"❌ Error: Syntax error in data file '{path}'\n  - {e}")
+        log.error(
+            f"❌ SyntaxError in file '{path}' "
+            f"at line {getattr(e, 'lineno', '?')}, offset {getattr(e, 'offset', '?')}: {getattr(e, 'msg', str(e))}"
+        )
+        if hasattr(e, "text") and e.text:
+            log.error(f"  > {e.text.strip()}")
+        traceback.print_exc()
         return None
     except Exception as e:
         log.error(f"❌ An unexpected error occurred: {type(e)} - {e}")
+        traceback.print_exc()
         return None
