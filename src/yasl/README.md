@@ -201,47 +201,47 @@ YASL enumerations are a simple way to establish prefined values as a usable type
 
 An enumeration definition may look like...
 ```yaml
-enum:
-  name: color
-  values:
-    - RED
-    - BLUE
-    - GREEN
-
-enum:
-  name: size
-  values:
-    - SMALL
-    - MEDIUM
-    - LARGE
+enums:
+  color:
+    values:
+      - RED
+      - BLUE
+      - GREEN
+  size:
+    values:
+      - SMALL
+      - MEDIUM
+      - LARGE
 ```
 
 Once defined, enumerations can be used as types within type definitions.
 Here's an example of using the above enumerations as fields within a type definition.
 
 ```yaml
-type_def:
-  name: baloon
-  description: A baloon product.
-  fields:
-    - name: brand
-      type: str
-      description: The brand name of the baloon.
-    - name: size
-      type: size
-      description: The size of the baloon.
-    - name: color
-      type: color
-      description: The color of the baloon.
+types:
+  baloon:
+    description: A baloon product.
+    fields:
+      brand:
+        type: str
+        description: The brand name of the baloon.
+      size:
+        type: size
+        description: The size of the baloon.
+      color:
+        type: color
+        description: The color of the baloon.
 ```
 
 ### YASL Type Definitions
 
 YASL intends to provide a simple but powerful means of defining complex data types for YAML data set validation.
 
+Types are defined under the `types` key in the schema file.
+Invididual types are captured as a map (or dict in python terms) with the type name being the key and the type attributes defined under that.
+
 These type definitions have the following attributes:
 
-- `name`: str - The unique name of the type definition within the package context.
 - `namespace` (optional): str - Establishes a named context for the type within which it must be unique.
 - `description` (optional): str - A description of the type definition.
 - `properties`: property[] - List of data fields for the type.
@@ -252,9 +252,11 @@ These type definitions have the following attributes:
 Type definition properties allow you to establish the composition structure of YAML data within your YASL schema.
 Not only do these serve to support data validation, they also provide a method of data documentation.
 
+Properties are defined under the `properties` key in the type definition.
+Individual properties are captured as a map (or dict in python terms) with the property name being the key and the property attributes defined under that.
+
 Properties have the following attributes:
 
-- `name`: str - The name of the field which must be unique within the type definition.
 - `namespace` (optional): str - The namespace containing the type definition if not using primitive types.  Default: same package as the type_def.
 - `type`: type - The name of the primitive, enumeration, or type definition of the field.
 - `description` (optional): str - A brief summary of the field.
@@ -263,6 +265,46 @@ Properties have the following attributes:
 - `default` (optional): any - The default value of the field if not provided.  The value type must match the type field.
 
 In addition to these fields, the primitive validators from above may be included as desired based on the type.
+
+Here's an example type definition:
+
+```yaml
+types:
+  task:
+    description: A thing to do.
+    namespace: dynamic
+    properties:
+      description:
+        type: str
+        description: A description of the task.
+        required: true
+      owner:
+        type: str
+        description: The person responsible for the task.
+        required: false
+      complete:
+        type: bool
+        description: Is the task finished? True if yes, false if no.
+        required: true
+        default: false
+  list_of_tasks:
+    description: A list of tasks to complete.
+    namespace: dynamic
+    properties:
+      task_list:
+        type: map(taskkey, task)
+        description: A list of tasks to do.
+        required: true
+
+enums:
+  taskkey:
+    namespace: acme
+    description: The type of shape.
+    values:
+      - task_01
+      - task_02
+      - task_03
+```
 
 ### Type Validators
 
