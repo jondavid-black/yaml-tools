@@ -1,21 +1,21 @@
 types:
-  - name: address
+  address:
     namespace: acme
     description: Information about an address.
     properties:
-      - name: street
+      street:
         type: str
         description: The street address.
         required: true
-      - name: city
+      city:
         type: str
         description: The city.
         required: false
-      - name: zip_code
+      zip_code:
         type: PositiveInt
         description: The postal code.
         required: true
-      - name: other
+      other:
         type: str[]
         description: The name by which the address is known.
         required: true

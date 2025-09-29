@@ -1,15 +1,15 @@
 imports:
   - ./address.yasl
 types:
-  - name: person
+  person:
     namespace: acme
     description: Information about a person.
     properties:
-      - name: name
+      name:
         type: str
         description: The person's name.
         required: true
-      - name: age
+      age:
         type: int
         description: The person's age.
         required: true
@@ -18,26 +18,26 @@ types:
         whole_number: true
         exclude:
           - 65
-      - name: birthday
+      birthday:
         type: date
         description: The person's birthday.
         required: false
         after: "1900-01-01"
         before: "2050-12-31"
-      - name: favorite_time
+      favorite_time:
         type: time
         description: The person's favorite time of day.
         required: false
         after: "11:00:00"
         before: "15:00:00"
-      - name: office
+      office:
         type: any
         description: The person's office location.
         required: false
         any_of:
           - int
           - bool
-      - name: bio
+      bio:
         type: path
         description: Path to a file containing the person's biography.
         required: false
@@ -46,20 +46,20 @@ types:
         file_ext:
           - txt
           - .md
-      - name: home_directory
+      home_directory:
         type: path
         description: Path to the person's home directory.
         required: false
         path_exists: true
         is_dir: true
-      - name: website
+      website:
         type: url
         description: The person's website.
         required: false
         url_protocols:
           - http
           - https
-      - name: address
+      address:
         type: address
         description: The person's address.
         required: false

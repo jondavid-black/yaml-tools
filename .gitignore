@@ -1,6 +1,7 @@
 # Build and test output
 *.out
 *.test
+*.coverage
 
 # GitHub Actions Runner (act)
 /bin

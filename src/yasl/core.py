@@ -1,6 +1,6 @@
 # validate_config_with_lines.py
 import logging
-# import traceback
+import traceback
 from yasl.pydantic_types import (
     Enumeration,
     TypeDef,
@@ -63,7 +63,7 @@ from pydantic import (
     IPvAnyAddress,
 )
 from enum import Enum
-from typing import Dict, Type, List, Optional, Tuple, Any, Callable
+from typing import Dict, List, Optional, Tuple, Any, Callable
 import datetime
 from pathlib import Path
 import json
@@ -183,6 +183,7 @@ def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_
         yasl_results.append(yasl)
 
     results = []
+    
     for yaml_file in yaml_files:
         candidate_model_names = []
         if model_name is None:
@@ -191,12 +192,12 @@ def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_
                 data = yaml_loader.load(f)
             root_keys: List[str] = list(data.keys())
             log.debug(f"Auto-detecting schema for YAML root keys in '{yaml_file}'")
-            for type_def_root in yasl_results or []:
-                for type_def in type_def_root.types or []:
-                    type_def_root_keys: List[str] = [k.name for k in type_def.properties]
+            for yasl_result in yasl_results or []:
+                for type_name, type_def in yasl_result.types.items() or []:
+                    type_def_root_keys: List[str] = [k for k in type_def.properties.keys()]
                     if all(k in type_def_root_keys for k in root_keys):
-                        log.debug(f"Auto-detected root model '{type_def.name}' for YAML file '{yaml_file}'")
-                        candidate_model_names.append(type_def.name)
+                        log.debug(f"Auto-detected root model '{type_name}' for YAML file '{yaml_file}'")
+                        candidate_model_names.append(type_name)
         else:
             candidate_model_names.append(model_name)
 
@@ -220,28 +221,32 @@ def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_
     clear_caches()
     return results
 
-def gen_enum_from_enumeration(enum_def: Enumeration) -> Type[Enum]:
+def gen_enum_from_enumerations(enum_defs: Dict[str, Enumeration]):
     """
     Dynamically generate a Python Enum class from an Enumeration instance.
     Each value in the Enumeration becomes a member of the Enum.
     """
-    enum_members = {value: value for value in enum_def.values}
-    enum_cls = Enum(enum_def.name, enum_members)
-    if enum_def.namespace:
-        enum_cls.__module__ = enum_def.namespace
-    yasl_enumerations[enum_def.name] = enum_cls
-    return enum_cls
+    for enum_name, enum_def in enum_defs.items():
+        if enum_name in yasl_enumerations:
+            raise ValueError(f"Enumeration '{enum_name}' already exists.")
+        enum_members = {value: value for value in enum_def.values}
+        enum_cls = Enum(enum_name, enum_members)
+        if enum_def.namespace:
+            enum_cls.__module__ = enum_def.namespace
+        yasl_enumerations[enum_name] = enum_cls
 
 
-def gen_pydantic_type_models(type_defs: List[TypeDef]):
+def gen_pydantic_type_models(type_defs: Dict[str, TypeDef]):
     """
     Dynamically generate Pydantic model classes from a list of TypeDef instances.
     Each property in the TypeDef becomes a field in the generated model.
     """
-    for type_def in type_defs:
+    for typedef_name, type_def in type_defs.items():
+        if typedef_name in yasl_type_defs:
+            raise ValueError(f"Type definition '{typedef_name}' already exists.")
         fields: Dict[str, tuple] = {}
         validators: Dict[str, Callable] = {}
-        for prop in type_def.properties:
+        for prop_name, prop in type_def.properties.items():
             # Determine type annotation for the property
             # For now, map basic types; extend as needed for complex types
             type_map = {
@@ -332,7 +337,7 @@ def gen_pydantic_type_models(type_defs: List[TypeDef]):
                     key = int
                 else:
                     acceptable_keys = ["str", "string", "int"] + list(yasl_enumerations.keys())
-                    raise ValueError(f"Map key type '{key}' for property '{prop.name}' must be one of {acceptable_keys}.")
+                    raise ValueError(f"Map key type '{key}' for property '{prop_name}' must be one of {acceptable_keys}.")
                 
                 # if map value is a list, handle that
                 map_value_is_list = False
@@ -348,7 +353,7 @@ def gen_pydantic_type_models(type_defs: List[TypeDef]):
                 elif type_lookup in yasl_type_defs:
                     py_type = yasl_type_defs[type_lookup]
                 else:
-                    raise ValueError(f"Unknown map value type '{value}' for property '{prop.name}'")
+                    raise ValueError(f"Unknown map value type '{value}' for property '{prop_name}'")
                 
                 # wrap in list if needed
                 if map_value_is_list:
@@ -356,24 +361,24 @@ def gen_pydantic_type_models(type_defs: List[TypeDef]):
             elif type_lookup.startswith("ref(") and type_lookup.endswith(")"):
                 ref_target = type_lookup[4:-1]
                 type_name, property_name = ref_target.split('.', 1)
-                
-                target_type = next((t for t in type_defs if t.name == type_name), None)
+
+                target_type = next((t for t in type_defs.keys() if t == type_name), None)
                 if not target_type:
-                    raise ValueError(f"Referenced type '{type_name}' for property '{prop.name}' not found in type definitions")
+                    raise ValueError(f"Referenced type '{type_name}' for property '{prop_name}' not found in type definitions")
                 else:
-                    target_prop = next((p for p in target_type.properties if p.name == property_name), None)
+                    target_prop = next((p for p_name, p in type_defs[target_type].properties.items() if p_name == property_name), None)
                     if not target_prop:
-                        raise ValueError(f"Referenced property '{property_name}' in type '{type_name}' not found for property '{prop.name}'")
+                        raise ValueError(f"Referenced property '{property_name}' in type '{type_name}' not found for property '{prop_name}'")
                     else:
                         if not target_prop.unique:
-                            raise ValueError(f"Referenced property '{type_name}.{property_name}' must be unique to be used as a reference for property '{type_def.name}.{prop.name}'")
+                            raise ValueError(f"Referenced property '{type_name}.{property_name}' must be unique to be used as a reference for property '{typedef_name}.{prop_name}'")
                         else:
                             py_type = str
             else:
-                raise ValueError(f"Unknown type '{prop.type}' for property '{prop.name}'")
+                raise ValueError(f"Unknown type '{prop.type}' for property '{prop_name}'")
             
             if is_list and is_map:
-                raise ValueError(f"Property '{prop.name}' cannot be both a list and a map")
+                raise ValueError(f"Property '{prop_name}' cannot be both a list and a map")
 
             if is_list:
                 py_type = List[py_type]
@@ -389,11 +394,11 @@ def gen_pydantic_type_models(type_defs: List[TypeDef]):
                 if prop.default is not None
                 else (None if not prop.required else ...)
             )
-            fields[prop.name] = (py_type, default)
-            validators[f"{prop.name}__validator"] = property_validator_factory(type_def, prop)
+            fields[prop_name] = (py_type, default)
+            validators[f"{prop_name}__validator"] = property_validator_factory(typedef_name, type_def, prop_name, prop)
         validators["__validate__"] = type_validator_factory(type_def)
         model = create_model(
-            type_def.name,
+            typedef_name,
             __base__=YASLBaseModel,
             __module__=type_def.namespace or None,
             __validators__=validators,
@@ -401,7 +406,7 @@ def gen_pydantic_type_models(type_defs: List[TypeDef]):
             **fields,
         )
         # Store the generated model in the global registry
-        yasl_type_defs[type_def.name] = model
+        yasl_type_defs[typedef_name] = model
 
 
 # --- Helper function to find the line number ---
@@ -448,10 +453,10 @@ def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
                 imported_yasl = load_and_validate_yasl_with_lines(imp_path)
                 if not imported_yasl:
                     raise ValueError(f"Failed to import YASL schema from '{imp}'")
-        for enum in yasl.enums or []:
+        if yasl.enums is not None:
             # must setup enums before types to support enum validation
-            log.debug(f"Evaluating enum - {enum.name}")
-            gen_enum_from_enumeration(enum)
+            # log.debug(f"Evaluating enum - {enum.name}")
+            gen_enum_from_enumerations(yasl.enums)
         if yasl.types is not None:
             gen_pydantic_type_models(yasl.types)
             # setup_yasl_validators(type_def)
@@ -478,7 +483,7 @@ def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
         return None
     except Exception as e:
         log.error(f"❌ An schema error occurred processing '{path}' - {type(e)} - {e}")
-        # traceback.print_exc()
+        traceback.print_exc()
         return None
 
 
@@ -497,7 +502,6 @@ def load_and_validate_data_with_lines(
         log.error(f"❌ Error - File not found at '{path}'")
         return None
     except SyntaxError as e:
-        print(f"DEBUG - Caught SyntaxError: {e}")
         log.error(f"❌ Error - Syntax error in data file '{path}'\n  - {e}")
         return None
     except YAMLError as e:
