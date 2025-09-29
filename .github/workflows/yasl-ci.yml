@@ -46,7 +46,7 @@ jobs:
           uv run yasl --help
 
   check-build:
-    needs: [yasl-ci, yaql-ci, yarl-ci]
+    needs: [yasl-ci]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
