@@ -225,7 +225,7 @@ def markdown_validator(cls, value: str):
     except Exception:
         raise ValueError("Markdown content is not valid.") 
 
-def property_validator_factory(type_def: TypeDef, property: Property) -> Callable:
+def property_validator_factory(typedef_name: str, type_def: TypeDef, property_name: str, property: Property) -> Callable:
     validators = []
     # list validators
     if property.list_min is not None:
@@ -235,7 +235,7 @@ def property_validator_factory(type_def: TypeDef, property: Property) -> Callabl
 
     # unique validator
     if property.unique:
-        validators.append(partial(unique_value_validator, type_name=type_def.name, property_name=property.name))
+        validators.append(partial(unique_value_validator, type_name=typedef_name, property_name=property_name))
 
     # numeric validators
     if property.gt is not None:
@@ -315,7 +315,7 @@ def property_validator_factory(type_def: TypeDef, property: Property) -> Callabl
             value = validator(cls, value)
         return value
 
-    return field_validator(property.name)(multi_validator)
+    return field_validator(property_name)(multi_validator)
 
 # type validators
 def only_one_validator(cls, values: Dict[str, Any], fields: List[str]):

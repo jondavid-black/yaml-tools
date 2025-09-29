@@ -1,5 +1,5 @@
 yasl:
   types:
-    - name: version
+    version:
       type: str
       description: The ansible version.

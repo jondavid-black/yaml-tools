@@ -2,7 +2,7 @@ from pydantic import (
     BaseModel,
 )
 import datetime
-from typing import List, Optional, Any, Union
+from typing import Dict, List, Optional, Any, Union
 
 
 class YASLBaseModel(BaseModel):
@@ -12,7 +12,7 @@ class YASLBaseModel(BaseModel):
 
 # --- YASL Pydantic Models ---
 class Enumeration(YASLBaseModel):
-    name: str
+    # name: str
     description: Optional[str] = None
     namespace: Optional[str] = None
     values: List[str]
@@ -21,7 +21,7 @@ class Enumeration(YASLBaseModel):
 
 
 class Property(YASLBaseModel):
-    name: str
+    # name: str
     type: str
     namespace: Optional[str] = None
     description: Optional[str] = None
@@ -89,17 +89,17 @@ class Validator(YASLBaseModel):
 
 
 class TypeDef(YASLBaseModel):
-    name: str
+    # name: str
     namespace: Optional[str] = None
     description: Optional[str] = None
-    properties: List[Property]
+    properties: Dict[str, Property]
     validators: Optional[Validator] = None
 
     model_config = {"extra": "forbid"}
 
 class YaslRoot(YASLBaseModel):
     imports: Optional[List[str]] = None
-    enums: Optional[List[Enumeration]] = None
-    types: Optional[List[TypeDef]] = None
+    enums: Optional[Dict[str, Enumeration]] = None
+    types: Optional[Dict[str, TypeDef]] = None
 
     model_config = {"extra": "forbid"}

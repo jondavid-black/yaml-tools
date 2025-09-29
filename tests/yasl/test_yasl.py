@@ -12,73 +12,73 @@ from yasl.cli import main as yasl_cli_main
 
 CUSTOMER_LIST_YASL = """
 enums:
-  - name: customer_status
+  customer_status:
     namespace: acme
     description: The status of the customer.
     values:
       - active
       - inactive
 types:
-  - name: customer
+  customer:
     namespace: acme
     description: Information about a customer.
     properties:
-      - name: name
+      name:
         type: str
         description: The customer's name.
         required: true
         unique: true
-      - name: age
+      age:
         type: int
         description: The customer's age.
         required: false
-      - name: email
+      email:
         type: str
         description:  The customer's email address.
         required: true
-      - name: status
+      status:
         type: customer_status
         namespace: acme
         description: The customer's status.
         required: true
-  - name: customer_list
+  customer_list:
     namespace: acme
     description: A list of customers.
     properties:
-      - name: customers
+      customers:
         type: customer[]
         description: Information about a customer.
         list_min: 2
         list_max: 3
-  - name: account
+  account:
     namespace: acme
     description: Information about an account.
     properties:
-      - name: id
+      id:
         type: str
         description: The unique identifier for the account.
         required: true
-      - name: account_rep
+      account_rep:
         type: str
         description: The name of the account representative.
         required: true
-      - name: customer_name
+      customer_name:
         type: ref(customer.name)
         description: The name of the customer associated with the account.
         required: true
-  - name: business
+  business:
     namespace: acme
     description: A list of accounts.
     properties:
-      - name: business_name
+      business_name:
         type: str
         description: The name of the business.
         required: true
-      - name: customers
+      customers:
         type: customer[]
         description: Information about a list of customers.
         required: true
-      - name: accounts
+      accounts:
         type: account[]
         description: Information about an account.
         required: true
@@ -86,18 +86,18 @@ types:
 
 PERSON_YASL = """
 types:
-  - name: person
+  person:
     namespace: acme
     description: Information about a person.
     properties:
-      - name: name
+      name:
         type: str
         description: The person's name.
         required: true
         str_min: 5
         str_max: 15
         str_regex: '^[A-Za-z ]+$'
-      - name: age
+      age:
         type: int
         description: The person's age.
         required: true
@@ -107,24 +107,24 @@ types:
         multiple_of: 2
         exclude:
             - 64
-      - name: birthday
+      birthday:
         type: date
         description: The person's birthday.
         required: false
         after: "1900-01-01"
         before: "2050-12-31"
-      - name: favorite_time
+      favorite_time:
         type: time
         description: The person's favorite time of day.
         required: false
-      - name: office
+      office:
         type: any
         description: The person's office number, or true / false to indicate need.
         required: false
         any_of:
           - int
           - bool
-      - name: bio
+      bio:
         type: path
         description: Path to a bio file.
         required: false
@@ -133,13 +133,13 @@ types:
         file_ext:
           - txt
           - md
-      - name: home_directory
+      home_directory:
         type: path
         description: Path to the person's home directory.
         required: false
         is_dir: true
         path_exists: true
-      - name: website
+      website:
         type: url
         description: The person's website.
         required: false
@@ -151,41 +151,41 @@ types:
 
 SHAPE_YASL = """
 types:
-  - name: shape
+  shape:
     namespace: acme
     description: Information about a shape.
     properties:
-      - name: name
+      name:
         type: str
         description: The name of the shape.
         required: true
-      - name: type
+      type:
         type: ShapeType
         description: The type of shape.
         required: true
-      - name: radius
+      radius:
         type: float
         description: The radius of the circle.
         required: false
         gt: 0
-      - name: side_length
+      side_length:
         type: float
         description: The length of the side of the square or triangle.
         required: false
         gt: 0
-      - name: color
+      color:
         type: str
         description: The color of the shape.
         required: false
-      - name: colour
+      colour:
         type: str
         description: The color of the shape (British spelling).
         required: false
-      - name: location
+      location:
         type: str
         description: The location of the shape.
         required: false
-      - name: orientation
+      orientation:
         type: str
         description: The orientation of the shape.
         required: false
@@ -213,7 +213,7 @@ types:
           absent:
             - radius
 enums:
-  - name: ShapeType
+  ShapeType:
     namespace: acme
     description: The type of shape.
     values:
@@ -224,28 +224,28 @@ enums:
 
 TODO_YASL = """
 types:
-  - name: task
+  task:
     description: A thing to do.
     namespace: dynamic
     properties:
-      - name: description
+      description:
         type: str
         description: A description of the task.
         required: true
-      - name: owner
+      owner:
         type: str
         description: The person responsible for the task.
         required: false
-      - name: complete
+      complete:
         type: bool
         description: Is the task finished? True if yes, false if no.
         required: true
         default: false
-  - name: list_of_tasks
+  list_of_tasks:
     description: A list of tasks to complete.
     namespace: dynamic
     properties:
-      - name: task_list
+      task_list:
         type: map(str, task)
         description: A list of tasks to do.
         required: true
@@ -673,18 +673,18 @@ website: ftp://www.example.com/joe_smith
 def test_eval_website_reachable():
     yasl_schema = """
 types:
-  - name: person
+  person:
     namespace: acme
     description: Information about a person.
     properties:
-      - name: name
+      name:
         type: str
         description: The person's name.
         required: true
         str_min: 5
         str_max: 15
         str_regex: '^[A-Za-z ]+$'
-      - name: website
+      website:
         type: url
         description: The person's website.
         required: false
@@ -776,203 +776,203 @@ def test_version_command():
 def test_pydantic_types():
     yasl = """
 types:
-  - name: thing
+  thing:
     namespace: acme
     description: Information about a thing.
     properties:
-      - name: id
+      id:
         type: str
         description: The unique identifier for the thing.
         required: true
-      - name: strict_bool
+      strict_bool:
         type: StrictBool
         description: A strict boolean value.
         required: false
-      - name: markdown
+      markdown:
         type: markdown
         description: A markdown value
         required: false
-      - name: positive_int
+      positive_int:
         type: PositiveInt
         description: A positive integer value.
         required: false
-      - name: negative_int
+      negative_int:
         type: NegativeInt
         description: A negative integer value.
         required: false
-      - name: non_positive_int
+      non_positive_int:
         type: NonPositiveInt
         description: A non-positive integer value.
         required: false
-      - name: non_negative_int
+      non_negative_int:
         type: NonNegativeInt
         description: A non-negative integer value.
         required: false
-      - name: strict_int
+      strict_int:
         type: StrictInt
         description: A strict integer value.
         required: false
-      - name: positive_float
+      positive_float:
         type: PositiveFloat
         description: A positive float value.
         required: false
-      - name: negative_float
+      negative_float:
         type: NegativeFloat
         description: A negative float value.
         required: false
-      - name: non_positive_float
+      non_positive_float:
         type: NonPositiveFloat
         description: A non-positive float value.
         required: false
-      - name: non_negative_float
+      non_negative_float:
         type: NonNegativeFloat
         description: A non-negative float value.
         required: false
-      - name: strict_float
+      strict_float:
         type: StrictFloat
         description: A strict float value.
         required: false
-      - name: finite_float
+      finite_float:
         type: FiniteFloat
         description: A finite float value (not NaN or infinite).
         required: false
-      - name: strict_str
+      strict_str:
         type: StrictStr
         description: A strict string value.
         required: false
-      - name: uuid1
+      uuid1:
         type: UUID1
         description: A UUID version 1.
         required: false
-      - name: uuid3
+      uuid3:
         type: UUID3
         description: A UUID version 3.
         required: false
-      - name: uuid4
+      uuid4:
         type: UUID4
         description: A UUID version 4.
         required: false
-      - name: uuid5
+      uuid5:
         type: UUID5
         description: A UUID version 5.
         required: false
-      - name: uuid6
+      uuid6:
         type: UUID6
         description: A UUID version 6.
         required: false
-      - name: uuid7   
+      uuid7:
         type: UUID7
         description: A UUID version 7.
         required: false
-      - name: uuid8
+      uuid8:
         type: UUID8
         description: A UUID version 8.
         required: false
-      - name: file_path
+      file_path:
         type: FilePath
         description: A valid file path.
         required: false
-      - name: directory_path
+      directory_path:
         type: DirectoryPath
         description: A valid directory path.
         required: false
-      - name: base64_bytes
+      base64_bytes:
         type: Base64Bytes
         description: A base64 encoded byte string.
         required: false
-      - name: base64_str
+      base64_str:
         type: Base64Str
         description: A base64 encoded string.
         required: false
-      - name: base64_url_bytes
+      base64_url_bytes:
         type: Base64UrlBytes
         description: A base64 URL-safe encoded byte string.
         required: false
-      - name: base64_url_str
+      base64_url_str:
         type: Base64UrlStr
         description: A base64 URL-safe encoded string.
         required: false
-      - name: any_url
+      any_url:
         type: AnyUrl
         description: Any valid URL.
         required: false
-      - name: any_http_url
+      any_http_url:
         type: AnyHttpUrl
         description: Any valid HTTP or HTTPS URL.
         required: false
-      - name: http_url
+      http_url:
         type: HttpUrl
         description: A valid HTTP or HTTPS URL.
         required: false
-      - name: any_websocket_url
+      any_websocket_url:
         type: AnyWebsocketUrl
         description: Any valid WebSocket or secure WebSocket URL.
         required: false
-      - name: websocket_url
+      websocket_url:
         type: WebsocketUrl
         description: A valid WebSocket or secure WebSocket URL.
         required: false
-      - name: file_url
+      file_url:
         type: FileUrl
         description: A valid file URL.
         required: false
-      - name: ftp_url
+      ftp_url:
         type: FtpUrl
         description: A valid FTP or FTPS URL.
         required: false
-      - name: postgres_dsn
+      postgres_dsn:
         type: PostgresDsn
         description: A valid PostgreSQL DSN.
         required: false
-      - name: cockroach_dsn
+      cockroach_dsn:
         type: CockroachDsn
         description: A valid CockroachDB DSN.
         required: false
-      - name: amqp_dsn
+      amqp_dsn:
         type: AmqpDsn
         description: A valid AMQP DSN.
         required: false
-      - name: redis_dsn
+      redis_dsn:
         type: RedisDsn
         description: A valid Redis DSN.
         required: false
-      - name: mongo_dsn
+      mongo_dsn:
         type: MongoDsn
         description: A valid MongoDB DSN.
         required: false
-      - name: kafka_dsn
+      kafka_dsn:
         type: KafkaDsn
         description: A valid Kafka DSN.
         required: false
-      - name: nats_dsn
+      nats_dsn:
         type: NatsDsn
         description: A valid NATS DSN.
         required: false
-      - name: mysql_dsn
+      mysql_dsn:
         type: MySQLDsn
         description: A valid MySQL DSN.
         required: false
-      - name: mariadb_dsn
+      mariadb_dsn:
         type: MariaDBDsn
         description: A valid MariaDB DSN.
         required: false
-      - name: clickhouse_dsn
+      clickhouse_dsn:
         type: ClickHouseDsn
         description: A valid ClickHouse DSN.
         required: false
-      - name: snowflake_dsn
+      snowflake_dsn:
         type: SnowflakeDsn
         description: A valid Snowflake DSN.
         required: false
-      - name: email_str
+      email_str:
         type: EmailStr
         description: A valid email address.
         required: false
-      - name: name_email
+      name_email:
         type: NameEmail
         description: A valid name and email address.
         required: false
-      - name: ipvany_address
+      ipvany_address:
         type: IPvAnyAddress
         description: A valid IPv4 or IPv6 address.
         required: false
@@ -1073,28 +1073,28 @@ task_list:
 def test_map_type_int_good():
     yasl = """
 types:
-  - name: task
+  task:
     description: A thing to do.
     namespace: dynamic
     properties:
-      - name: description
+      description:
         type: str
         description: A description of the task.
         required: true
-      - name: owner
+      owner:
         type: str
         description: The person responsible for the task.
         required: false
-      - name: complete
+      complete:
         type: bool
         description: Is the task finished? True if yes, false if no.
         required: true
         default: false
-  - name: list_of_tasks
+  list_of_tasks:
     description: A list of tasks to complete.
     namespace: dynamic
     properties:
-      - name: task_list
+      task_list:
         type: map(int, task)
         description: A list of tasks to do.
         required: true
@@ -1119,28 +1119,28 @@ task_list:
 def test_map_type_bool_bad():
     yasl = """
 types:
-  - name: task
+  task:
     description: A thing to do.
     namespace: dynamic
     properties:
-      - name: description
+      description:
         type: str
         description: A description of the task.
         required: true
-      - name: owner
+      owner:
         type: str
         description: The person responsible for the task.
         required: false
-      - name: complete
+      complete:
         type: bool
         description: Is the task finished? True if yes, false if no.
         required: true
         default: false
-  - name: list_of_tasks
+  list_of_tasks:
     description: A list of tasks to complete.
     namespace: dynamic
     properties:
-      - name: task_list
+      task_list:
         type: map(bool, task)
         description: A list of tasks to do.
         required: true
@@ -1161,28 +1161,28 @@ task_list:
 def test_map_type_bad():
     yasl = """
 types:
-  - name: task
+  task:
     description: A thing to do.
     namespace: dynamic
     properties:
-      - name: description
+      description:
         type: str
         description: A description of the task.
         required: true
-      - name: owner
+      owner:
         type: str
         description: The person responsible for the task.
         required: false
-      - name: complete
+      complete:
         type: bool
         description: Is the task finished? True if yes, false if no.
         required: true
         default: false
-  - name: list_of_tasks
+  list_of_tasks:
     description: A list of tasks to complete.
     namespace: dynamic
     properties:
-      - name: task_list
+      task_list:
         type: map(str, junk_task)
         description: A list of tasks to do.
         required: true
@@ -1203,33 +1203,33 @@ task_list:
 def test_map_type_enum_key_good():
     yasl = """
 types:
-  - name: task
+  task:
     description: A thing to do.
     namespace: dynamic
     properties:
-      - name: description
+      description:
         type: str
         description: A description of the task.
         required: true
-      - name: owner
+      owner:
         type: str
         description: The person responsible for the task.
         required: false
-      - name: complete
+      complete:
         type: bool
         description: Is the task finished? True if yes, false if no.
         required: true
         default: false
-  - name: list_of_tasks
+  list_of_tasks:
     description: A list of tasks to complete.
     namespace: dynamic
     properties:
-      - name: task_list
+      task_list:
         type: map(taskkey, task)
         description: A list of tasks to do.
         required: true
 enums:
-  - name: taskkey
+  taskkey:
     namespace: acme
     description: The type of shape.
     values:
@@ -1252,33 +1252,33 @@ task_list:
 def test_map_type_enum_value_bad():
     yasl = """
 types:
-  - name: task
+  task:
     description: A thing to do.
     namespace: dynamic
     properties:
-      - name: description
+      description:
         type: str
         description: A description of the task.
         required: true
-      - name: owner
+      owner:
         type: str
         description: The person responsible for the task.
         required: false
-      - name: complete
+      complete:
         type: bool
         description: Is the task finished? True if yes, false if no.
         required: true
         default: false
-  - name: list_of_tasks
+  list_of_tasks:
     description: A list of tasks to complete.
     namespace: dynamic
     properties:
-      - name: task_list
+      task_list:
         type: map(taskkey, task)
         description: A list of tasks to do.
         required: true
 enums:
-  - name: taskkey
+  taskkey:
     namespace: acme
     description: The type of shape.
     values:
@@ -1301,44 +1301,44 @@ task_list:
 def test_map_nested_value_good():
     yasl = """
 types:
-  - name: task
+  task:
     description: A thing to do.
     namespace: dynamic
     properties:
-      - name: description
+      description:
         type: str
         description: A description of the task.
         required: true
-      - name: owner
+      owner:
         type: str
         description: The person responsible for the task.
         required: false
-      - name: complete
+      complete:
         type: bool
         description: Is the task finished? True if yes, false if no.
         required: true
         default: false
-  - name: feature
+  feature:
     description: A list of tasks to complete.
     namespace: dynamic
     properties:
-      - name: feature
+      feature:
         type: str
         description: The feature name.
         required: true
-      - name: task_list
+      task_list:
         type: map(str, task)
         description: A list of tasks to do.
         required: true
-  - name: project
+  project:
     description: A project with tasks.
     namespace: dynamic
     properties:
-      - name: project_name
+      project_name:
         type: str
         description: The name of the project.
         required: true
-      - name: features
+      features:
         type: feature[]
         description: The tasks for the project.
         required: true
@@ -1362,15 +1362,15 @@ features:
 def test_empty_markdown():
     yasl = """
 types:
-  - name: thing
+  thing:
     namespace: acme
     description: Information about a thing.
     properties:
-      - name: id
+      id:
         type: str
         description: The unique identifier for the thing.
         required: true
-      - name: markdown
+      markdown:
         type: markdown
         description: A markdown value
         required: true

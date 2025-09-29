@@ -1,218 +1,217 @@
 imports:
-  - ./general.yasl
   - ./on.yasl
 types:
-  - name: step
+  step:
     namespace: github_actions
     description: A step in a job. A step can run commands or use an action.
     properties:
-      - name: id
+      id:
         type: str
         description: A unique identifier for the step. This identifier can be used to reference the step in other parts of the workflow, such as in the needs context. Default is a generated UUID.
         required: false
-      - name: if
+      if:
         type: str
         description: A conditional expression that determines whether the step will run. For more information, see "Context and expression syntax for GitHub Actions."
         required: false
-      - name: name
+      name:
         type: str
         description: The name of the step.
         required: false
-      - name: uses
+      uses:
         type: str
         description: The action to run. This can be a Docker container, a JavaScript action, or a composite action. For more information, see "Finding and customizing actions."
         required: false
-      - name: run
+      run:
         type: str
         description: The command to run. This can be a shell command or a script. For more information, see "Workflow syntax for GitHub Actions."
         required: false
-      - name: working-directory
+      working-directory:
         type: str
         description: The working directory for the step. This is the directory where the command specified in the run property is executed. For more information, see "Workflow syntax for GitHub Actions."
         required: false
-      - name: shell
+      shell:
         type: str
         description: The shell to use for the step. This can be bash, sh, pwsh, python, or any other shell available on the runner. For more information, see "Workflow syntax for GitHub Actions."
         required: false
-      - name: with # TODO:  consider the special case of with.entrypoint / with.args, but this should work for now
+      with: # TODO:  consider the special case of with.entrypoint / with.args, but this should work for now
         type: map(str, any)
         description: A map of input names to input values. These inputs are passed to the action specified in the uses property. For more information, see "Input parameters for actions."
         required: false
-      - name: env
+      env:
         type: map(str, str)
         description: A map of environment variable names to environment variable values. These environment variables are available to the step and any actions that the step runs. For more information, see "Environment variables in GitHub Actions."
         required: false
-      - name: continue-on-error
+      continue-on-error:
         type: bool
         description: If true, the step will continue to run even if it fails. Default is false. For more information, see "Workflow syntax for GitHub Actions."
         required: false
-      - name: timeout-minutes
+      timeout-minutes:
         type: int
         description: The maximum time that the step is allowed to run, in minutes. If the step runs longer than this time, it is automatically cancelled. Default is 360 minutes (6 hours). For more information, see "Workflow syntax for GitHub Actions."
         required: false
-  - name: job_defaults_run
+  job_defaults_run:
     namespace: github_actions
     description: Default settings for the run step. For more information, see "Default settings for workflows."
     properties:
-      - name: shell
+      shell:
         type: str
         description: The shell to use for the run step. For more information, see "About shells for GitHub Actions."
         required: false
-      - name: working-directory
+      working-directory:
         type: str
         description: The working directory for the run step. For more information, see "Workflow syntax for GitHub Actions."
         required: false
-  - name: job_defaults
+  job_defaults:
     namespace: github_actions
     description: Default settings that are applied to all steps in the job. You can also define default settings for individual steps. For more information, see "Default settings for workflows."
     properties:
-      - name: run
+      run:
         type: job_defaults_run
         description: Default settings for the run step. For more information, see "Default settings for workflows."
         required: false
-  - name: job_environment
+  job_environment:
     namespace: github_actions
     description: A job environment is a set of environment variables that are available to all steps in the job. You can also define environment variables for individual steps. For more information, see "Environment variables."
     properties:
-      - name: name
+      name:
         type: str
         description: The name of the environment. The name is used to identify the environment in the workflow run summary and in the GitHub Actions API.
         required: true
-      - name: url
+      url:
         type: str
         description: The URL of the environment. The URL is shown to users when they view the workflow run summary.
         required: false
-  - name: strategy
+  strategy:
     namespace: github_actions
     description: A strategy for a job that defines a matrix of different configurations to run the job with. For more information, see "Using a matrix for your jobs."
     properties:
-      - name: matrix
+      matrix:
         type: map(str, any)
         description: A map of matrix configuration options. For more information, see "Using a matrix for your jobs."
         required: false
-      - name: fail-fast
+      fail-fast:
         type: map(str, any)  # TODO: consider making this more specific
         description: If true, the job will stop running all other configurations in the matrix if one configuration fails. Default is true. For more information, see "Using a matrix for your jobs."
         required: false
-      - name: max-parallel
+      max-parallel:
         type: int
         description: The maximum number of configurations in the matrix that can run at the same time. Default is no limit. For more information, see "Using a matrix for your jobs."
         required: false
-  - name: container_credentials
+  container_credentials:
     namespace: github_actions
     description: The credentials to use to access a private container image. For more information, see "Using a container for a job."
     properties:
-      - name: username
+      username:
         type: str
         description: The username to use to access the container image. For more information, see "Using a container for a job."
         required: true
-      - name: password
+      password:
         type: str
         description: The password to use to access the container image. For more information, see "Using a container for a job."
         required: true
-  - name: container
+  container:
     namespace: github_actions
     description: A container to run the job in. For more information, see "Using a container for a job."
     properties:
-      - name: image
+      image:
         type: str
         description: The image to use for the container. You can use a Docker Hub image or a GitHub Container Registry image. For more information, see "Using a container for a job."
         required: true
-      - name: credentials
+      credentials:
         type: container_credentials
         description: The credentials to use to access a private container image. For more information, see "Using a container for a job."
         required: false
-      - name: ports
+      ports:
         type: str[]
         description: A list of ports to expose from the container. For more information, see "Using a container for a job."
         required: false
-      - name: env
+      env:
         type: map(str, str)
         description: A map of environment variables to set in the container. For more information, see "Using a container for a job."
         required: false
-      - name: volumes
+      volumes:
         type: str[]
         description: A list of volumes to mount in the container. For more information, see "Using a container for a job."
         required: false
-      - name: options
+      options:
         type: str
         description: Additional options to pass to the docker run command when starting the container. For more information, see "Using a container for a job."
         required: false
-  - name: job
+  job:
     namespace: github_actions
     description: A job is a set of steps in a workflow that execute on the same runner. By default, jobs run in parallel. You can use the needs keyword to configure a job to run after another job. For more information, see "About jobs."
     properties:
-      - name: name
+      name:
         type: str
         description: The name of the job. The name is used to identify the job in the workflow run summary and in the GitHub Actions API. Default is the job_id.
         required: false
-      - name: permissions
+      permissions:
         type: permissions
         description: The permissions granted to the GITHUB_TOKEN for the job. You can specify permissions for the entire workflow or for individual jobs. For more information, see "Permissions for the GITHUB_TOKEN."
         required: false
-      - name: needs
+      needs:
         type: any
         description: The jobs that must complete successfully before this job will run. You can specify a single job or an array of jobs. For more information, see "About jobs."
         required: false
         any_of:
           - str
           - str[]
-      - name: if
+      if:
         type: str  # TODO: consider adding regular expression validation for GitHub Actions expressions
         description: A conditional expression that determines whether the job will run. For more information, see "Context and expression syntax for GitHub Actions."
         required: false
-      - name: runs-on
+      runs-on:
         type: any
         description: The type of runner that the job will run on. You can specify a single runner type or an array of runner types. For more information, see "About self-hosted runners."
         required: true
         any_of:
           - str
           - str[]
-      - name: environment
+      environment:
         type: job_environment
         description: A job environment is a set of environment variables that are available to all steps in the job. You can also define environment variables for individual steps. For more information, see "Environment variables."
         required: false
-      - name: concurrency
+      concurrency:
         type: concurrency
         description: A concurrency group ensures that only a single job or workflow using the same concurrency group will run at a time. For more information, see "Using concurrency to control access to resources."
         required: false
-      - name: outputs
+      outputs:
         type: map(str, str)  # TODO: consider making this more specific
         description: A map of output names to output properties. For more information, see "Defining job outputs."
         required: false
-      - name: env
+      env:
         type: map(str, str)
         description: A map of environment variables that are available to all steps in the job. You can also define environment variables for individual steps. For more information, see "Environment variables."
         required: false
-      - name: defaults
+      defaults:
         type: job_defaults
         description: Default settings that are applied to all steps in the job. You can also define default settings for individual steps. For more information, see "Default settings for workflows."
         required: false
-      - name: steps
+      steps:
         type: step[]
         description: A map of step IDs to step properties. A step is an individual task that a job performs. For more information, see "About steps."
         required: true
-      - name: timeout-minutes
+      timeout-minutes:
         type: int
         description: The maximum number of minutes a job can run before it is automatically cancelled. Default is 360 minutes (6 hours). For more information, see "Workflow syntax for GitHub Actions."
         required: false
-      - name: strategy
+      strategy:
         type: strategy
         description: A strategy for a job that defines a matrix of different configurations to run the job with. For more information, see "Using a matrix for your jobs."
         required: false
-      - name: continue-on-error
+      continue-on-error:
         type: bool
         description: If true, the job will continue to run even if a step fails. Default is false. For more information, see "Workflow syntax for GitHub Actions."
         required: false
-      - name: container
+      container:
         type: container
         description: The container to run the job in. For more information, see "Using a container for a job."
         required: false
-      - name: services
+      services:
         type: map(str, container)  # TODO: consider making this more specific
         description: A map of service names to service properties. A service is a Docker container that is linked to the job's container and can be used to provide additional functionality, such as a database or cache. For more information, see "About services."
         required: false
-      - name: uses
+      uses:
         type: str
         description: |
           The location and version of a reusable workflow file to run as a job. Use one of the following syntaxes:
@@ -220,27 +219,27 @@ types:
             {owner}/{repo}/.github/workflows/{filename}@{ref} for reusable workflows in public and private repositories.
             ./.github/workflows/{filename} for reusable workflows in the same repository.
         required: false
-      - name: with
+      with:
         type: map(str, any)  # TODO: consider making this more specific
         description: A map of input names to input values. For more information, see "Calling a workflow."
         required: false
-      - name: secrets
+      secrets:
         type: any
         description: A map of secret names to secret values. For more information, see "Calling a workflow."
         required: false
         any_of:
           - secrets_inherit
           - map(str, str)
-  - name: github_actions
+  github_actions:
     namespace: github_actions
     description:  The root time for a GitHub Actions workflow file.
     properties:
-      - name: name
+      name:
         type: str
         description: |
           The name of the workflow. GitHub displays the names of your workflows under your repository's "Actions" tab. If you omit name, GitHub displays the workflow file path relative to the root of the repository.
         required: false
-      - name: run-name
+      run-name:
         type: str
         description: |
           SThe name for workflow runs generated from the workflow. GitHub displays the workflow run name in the list of workflow runs on your repository's "Actions" tab. If run-name is omitted or is only whitespace, then the run name is set to event-specific information for the workflow run. For example, for a workflow triggered by a push or pull_request event, it is set as the commit message or the title of the pull request.
@@ -250,40 +249,40 @@ types:
           Example of run-name
           run-name: Deploy to ${{ inputs.deploy_target }} by @${{ github.actor }}
         required: false
-      - name: permissions
+      permissions:
         type: permissions
         description: |
           The permissions granted to the GITHUB_TOKEN for the workflow or job. You can specify permissions for the entire workflow or for individual jobs. For more information, see "Permissions for the GITHUB_TOKEN."
         required: false
-      - name: on
+      on:
         type: on_workflow
         description: |
           The name of the event that triggers the workflow. You can configure a workflow to run when a specific activity occurs in your repository, or you can schedule workflows to run at specific times. You can also configure a workflow to run manually.
 
           You can specify multiple events for a single workflow. For more information about the available events, see "Events that trigger workflows."
         required: false
-      - name: env
+      env:
         type: map(str, str)
         description: |
           A map of environment variables that are available to all jobs and steps in the workflow. You can also define environment variables for individual jobs and steps. For more information, see "Environment variables."
         required: false
-      - name: defaults
+      defaults:
         type: map(str, any)  # TODO: consider making this more specific
         description: |
           Default settings that are applied to all jobs and steps in the workflow. You can also define default settings for individual jobs and steps. For more information, see "Default settings for workflows."
         required: false
-      - name: concurrency
+      concurrency:
         type: concurrency
         description: |
           A concurrency group ensures that only a single job or workflow using the same concurrency group will run at a time. For more information, see "Using concurrency to control access to resources."
         required: false
-      - name: jobs
+      jobs:
         type: map(str, job)
         description: |
           A map of job IDs to job properties. A job is a set of steps in a workflow that execute on the same runner. By default, jobs run in parallel. You can use the needs keyword to configure a job to run after another job. For more information, see "About jobs."
         required: true
 enums:
-  - name: secrets_inherit
+  secrets_inherit:
     namespace: github_actions
     description:  Whether to inherit secrets from the parent workflow when using a reusable workflow. Can be true or false. Default is false.
     values:
