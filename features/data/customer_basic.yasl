@@ -35,6 +35,8 @@ types:
       customers:
         type: customer[]
         description: Information about a customer.
+        list_min: 2
+        list_max: 3
   account:
     namespace: acme
     description: Information about an account.
@@ -51,7 +53,6 @@ types:
         type: ref(customer.name)
         description: The name of the customer associated with the account.
         required: true
-        no_ref_check: false
   business:
     namespace: acme
     description: A list of accounts.

@@ -370,14 +370,14 @@ def gen_pydantic_type_models(type_defs: Dict[str, TypeDef]):
                 # make sure map value is a known type
                 if "." in value_type_lookup:
                     value_type_lookup_namespace, value_type_lookup = value_type_lookup.rsplit(".")
-                if type_lookup in type_map:
+                if value_type_lookup in type_map:
                     py_type = type_map[value_type_lookup]
                 elif registry.get_enum(value_type_lookup, value_type_lookup_namespace) is not None:
                     py_type = registry.get_enum(value_type_lookup, value_type_lookup_namespace)
                 elif registry.get_type(value_type_lookup, value_type_lookup_namespace) is not None:
                     py_type = registry.get_type(value_type_lookup, value_type_lookup_namespace)
                 else:
-                    raise ValueError(f"Unknown map value type '{value}' for property '{prop_name}'")
+                    raise ValueError(f"Unknown map value type '{value_type_lookup}' for property '{prop_name}'")
                 
                 # wrap in list if needed
                 if map_value_is_list:

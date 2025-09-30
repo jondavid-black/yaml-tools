@@ -77,6 +77,19 @@ class YaslRegistry:
 
 
     def unique_value_exists(self, type_name: str, property_name: str, value: Any, type_namespace: str = None) -> bool:
+        if type_namespace is None:
+            matches = [
+                (tn, ns) for (tn, ns) in self.unique_values_store.keys() if tn == type_name
+            ]
+            if not matches:
+                return False
+            if len(matches) == 1:
+                type_namespace = matches[0][1]
+            else:
+                raise ValueError(
+                    f"Ambiguous type name '{type_name}': found in multiple namespaces. Specify a namespace."
+                )
+        
         return (type_name, type_namespace) in self.unique_values_store and \
                property_name in self.unique_values_store[type_name, type_namespace] and \
                value in self.unique_values_store[type_name, type_namespace][property_name]

@@ -17,6 +17,7 @@ import markdown_it
 
 def unique_value_validator(cls, value: Any, type_name: str, property_name: str, type_namespace: str = None):
     registry = YaslRegistry()
+    print(f"DEBUG: Registering unique value for type '{type_name}' property '{property_name}' in namespace '{type_namespace}' with value '{value}'")
     registry.register_unique_value(type_name, property_name, value, type_namespace)
     return value
 
@@ -173,6 +174,8 @@ def ref_exists_validator(cls, value: Any, target: str):
         type_namespace, type_name = type_name.rsplit('.', 1)
 
     registry = YaslRegistry()
+    print(f"DEBUG: Checking reference for type '{type_name}' property '{property_name}' in namespace '{type_namespace}' with value '{value}'")
+    print(f"DEBUG: Current unique values store: {registry.unique_values_store}")
     if not registry.unique_value_exists(type_name, property_name, value, type_namespace):
         raise ValueError(f"Referenced value '{value}' does not exist for 'ref({target})")
 
@@ -201,7 +204,11 @@ def enum_validator(cls, value: Any, values: List[str]):
 def map_validator(cls, value: Dict[Any, Any], key_type: str, value_type: str, any_of: List[str] = None):
     # validate key type is str, int, or an enumation
     registry = YaslRegistry()
-    if key_type not in ['str', 'int'] and registry.get_enum(key_type) is None:
+    enum_namespace = None
+    enum_name = key_type
+    if "." in key_type:
+        enum_namespace, enum_name = key_type.rsplit('.', 1)
+    if key_type not in ['str', 'int'] and registry.get_enum(enum_name, enum_namespace) is None:
         raise ValueError(f"Map key type '{key_type}' is not supported")
     # validate value type of any is allowed by constraints
     if value_type == 'any' and any_of is not None:
@@ -230,7 +237,7 @@ def property_validator_factory(typedef_name: str, type_def: TypeDef, property_na
 
     # unique validator
     if property.unique:
-        validators.append(partial(unique_value_validator, type_name=typedef_name, property_name=property_name))
+        validators.append(partial(unique_value_validator, type_name=typedef_name, property_name=property_name, type_namespace=type_def.namespace))
 
     # numeric validators
     if property.gt is not None:

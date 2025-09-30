@@ -84,6 +84,80 @@ types:
         required: true
 """
 
+NAMESPACE_CUSTOMER_LIST_YASL = """
+enums:
+  customer_status:
+    namespace: acme
+    description: The status of the customer.
+    values:
+      - active
+      - inactive
+types:
+  customer:
+    namespace: acme
+    description: Information about a customer.
+    properties:
+      name:
+        type: str
+        description: The customer's name.
+        required: true
+        unique: true
+      age:
+        type: int
+        description: The customer's age.
+        required: false
+      email:
+        type: str
+        description:  The customer's email address.
+        required: true
+      status:
+        type: customer_status
+        namespace: acme
+        description: The customer's status.
+        required: true
+  customer_list:
+    namespace: acme
+    description: A list of customers.
+    properties:
+      customers:
+        type: acme.customer[]
+        description: Information about a customer.
+        list_min: 2
+        list_max: 3
+  account:
+    namespace: acme
+    description: Information about an account.
+    properties:
+      id:
+        type: str
+        description: The unique identifier for the account.
+        required: true
+      account_rep:
+        type: str
+        description: The name of the account representative.
+        required: true
+      customer_name:
+        type: ref(acme.customer.name)
+        description: The name of the customer associated with the account.
+        required: true
+  business:
+    namespace: acme
+    description: A list of accounts.
+    properties:
+      business_name:
+        type: str
+        description: The name of the business.
+        required: true
+      customers:
+        type: acme.customer[]
+        description: Information about a list of customers.
+        required: true
+      accounts:
+        type: acme.account[]
+        description: Information about an account.
+        required: true
+"""
+
 PERSON_YASL = """
 types:
   person:
@@ -395,6 +469,29 @@ accounts:
     customer_name: Alice Johnson
 """
     yasl_schema = CUSTOMER_LIST_YASL
+    run_eval_command(yaml_data, yasl_schema, "business", True)
+
+def test_eval_business_namespace_good():
+    yaml_data = """
+business_name: Acme Corporation
+customers:
+  - name: Bob Smith
+    age: 30
+    email: bob@example.com
+    status: inactive
+  - name: Alice Johnson
+    age: 25
+    email: alice@example.com
+    status: active
+accounts:
+  - id: ACC123
+    account_rep: John Doe
+    customer_name: Bob Smith
+  - id: ACC456
+    account_rep: Jane Doe
+    customer_name: Alice Johnson
+"""
+    yasl_schema = NAMESPACE_CUSTOMER_LIST_YASL
     run_eval_command(yaml_data, yasl_schema, "business", True)
 
 def test_eval_business_bad_ref():
@@ -1297,6 +1394,60 @@ task_list:
     complete: false
 """
     run_eval_command(yaml_data, yasl, "list_of_tasks", False)
+
+def test_map_nested_value_namespace_good():
+    yasl = """
+types:
+  task:
+    description: A thing to do.
+    namespace: something
+    properties:
+      description:
+        type: str
+        description: A description of the task.
+        required: true
+      owner:
+        type: str
+        description: The person responsible for the task.
+        required: false
+      complete:
+        type: bool
+        description: Is the task finished? True if yes, false if no.
+        required: true
+        default: false
+  list_of_tasks:
+    description: A list of tasks to complete.
+    namespace: dynamic
+    properties:
+      task_list:
+        type: map(other.taskkey, something.task)
+        description: A list of tasks to do.
+        required: true
+enums:
+  taskkey:
+    namespace: other
+    description: The type of task.
+    values:
+      - task_01
+      - task_02
+      - task_03
+"""
+    yaml_data = """
+task_list:
+  task_01:
+    description:  Buy coffee.
+    owner: Jim
+    complete: false
+  task_02:
+    description: Lead morning standup.
+    owner: Jim
+    complete: false
+  task_03:
+    description: Refine Backlog.
+    owner: Jim
+    complete: false
+"""
+    run_eval_command(yaml_data, yasl, "list_of_tasks", True)
 
 def test_map_nested_value_good():
     yasl = """
