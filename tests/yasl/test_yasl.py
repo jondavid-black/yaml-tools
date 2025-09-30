@@ -1531,3 +1531,50 @@ id: test
 markdown: ""
 """
     run_eval_command(yaml_data, yasl, "thing", False)
+
+def test_namespace_refs_bad():
+    yasl = """
+types:
+  task:
+    description: A thing to do.
+    namespace: main
+    properties:
+      description:
+        type: str
+        description: A description of the task.
+        required: true
+      owner:
+        type: str
+        description: The person responsible for the task.
+        required: false
+      complete:
+        type: bool
+        description: Is the task finished? True if yes, false if no.
+        required: true
+        default: false
+  list_of_tasks:
+    description: A list of tasks to complete.
+    namespace: other
+    properties:
+      task_list:
+        type: map(int, notmain.task)
+        description: A list of tasks to do.
+        required: true
+"""
+    yaml_data = """
+task_list:
+  1:
+    description:  Buy coffee.
+    owner: Jim
+    complete: false
+  2:
+    description: Lead morning standup.
+    owner: Jim
+    complete: false
+  3:
+    description: Refine Backlog.
+    owner: Jim
+    complete: false
+"""
+    run_eval_command(yaml_data, yasl, "list_of_tasks", False)
+    
