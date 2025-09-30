@@ -1,7 +1,7 @@
 types:
   task:
     description: A thing to do.
-    namespace: dynamic
+    namespace: something
     properties:
       description:
         type: str
@@ -21,14 +21,13 @@ types:
     namespace: dynamic
     properties:
       task_list:
-        type: map(acme.taskkey, dynamic.task)
+        type: map(other.taskkey, something.task)
         description: A list of tasks to do.
         required: true
-
 enums:
   taskkey:
-    namespace: acme
-    description: The type of shape.
+    namespace: other
+    description: The type of task.
     values:
       - task_01
       - task_02
