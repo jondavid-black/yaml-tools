@@ -1,12 +1,12 @@
 from functools import partial
-from typing import Dict, List, Any, Union, Callable
+from typing import Dict, List, Any, Optional, Tuple, Union, Callable
 from pydantic import field_validator, model_validator
 from yasl.pydantic_types import (
     IfThen,
     TypeDef,
     Property
 )
-from yasl.cache import yasl_enumerations, unique_values_store
+from yasl.cache import YaslRegistry
 import datetime
 import re
 from urllib.parse import urlparse
@@ -15,14 +15,9 @@ from pathlib import Path
 import markdown_it
 
 
-def unique_value_validator(cls, value: Any, type_name: str, property_name: str):
-    if type_name not in unique_values_store:
-        unique_values_store[type_name] = {}
-    if property_name not in unique_values_store[type_name]:
-        unique_values_store[type_name][property_name] = set()
-    if value in unique_values_store[type_name][property_name]:
-        raise ValueError(f"Value '{value}' for property '{type_name}.{property_name}' must be unique")
-    unique_values_store[type_name][property_name].add(value)
+def unique_value_validator(cls, value: Any, type_name: str, property_name: str, type_namespace: str = None):
+    registry = YaslRegistry()
+    registry.register_unique_value(type_name, property_name, value, type_namespace)
     return value
 
 # list validation
@@ -172,15 +167,14 @@ def path_exists_validator(cls, value: str, exists: bool):
 # ref validators
 def ref_exists_validator(cls, value: Any, target: str):
 
-    type_name, property_name = target.split('.', 1)
-    if not type_name or not property_name:
-        raise ValueError(f"Target 'ref({target})' is not valid")
-    if type_name not in unique_values_store:
-        raise ValueError(f"Referenced value '{value}' does not exist for 'ref({target})'")
-    if property_name not in unique_values_store[type_name]:
-        raise ValueError(f"Referenced value '{value}' does not exist for 'ref({target})'")
-    if value not in unique_values_store[type_name][property_name]:
-        raise ValueError(f"Referenced value '{value}' does not exist for 'ref({target})'")
+    type_name, property_name = target.rsplit('.', 1)
+    type_namespace = None
+    if type_name and '.' in type_name:
+        type_namespace, type_name = type_name.rsplit('.', 1)
+
+    registry = YaslRegistry()
+    if not registry.unique_value_exists(type_name, property_name, value, type_namespace):
+        raise ValueError(f"Referenced value '{value}' does not exist for 'ref({target})")
 
     return value
 
@@ -206,7 +200,8 @@ def enum_validator(cls, value: Any, values: List[str]):
 # map validator
 def map_validator(cls, value: Dict[Any, Any], key_type: str, value_type: str, any_of: List[str] = None):
     # validate key type is str, int, or an enumation
-    if key_type not in ['str', 'int'] and key_type not in yasl_enumerations.keys():
+    registry = YaslRegistry()
+    if key_type not in ['str', 'int'] and registry.get_enum(key_type) is None:
         raise ValueError(f"Map key type '{key_type}' is not supported")
     # validate value type of any is allowed by constraints
     if value_type == 'any' and any_of is not None:
@@ -292,8 +287,13 @@ def property_validator_factory(typedef_name: str, type_def: TypeDef, property_na
         validators.append(partial(ref_exists_validator, target=property.type[4:-1]))
 
     # enum validators
-    if property.type in yasl_enumerations.keys():
-        enum_type = yasl_enumerations[property.type]
+    registry = YaslRegistry()
+    enum_names: List[Tuple[str, Optional[str]]] = registry.get_enum_names()
+
+    if property.type in dict(enum_names).keys():
+        enum_type = registry.get_enum(property.type, type_def.namespace)
+        if enum_type is None:
+            raise ValueError(f"Enum type '{property.type}' not found for property '{property_name}' in type '{typedef_name}'")
         validators.append(partial(enum_validator, values=[e.value for e in enum_type]))
 
     # map validators
