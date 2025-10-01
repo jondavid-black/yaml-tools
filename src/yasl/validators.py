@@ -17,7 +17,6 @@ import markdown_it
 
 def unique_value_validator(cls, value: Any, type_name: str, property_name: str, type_namespace: str = None):
     registry = YaslRegistry()
-    print(f"DEBUG: Registering unique value for type '{type_name}' property '{property_name}' in namespace '{type_namespace}' with value '{value}'")
     registry.register_unique_value(type_name, property_name, value, type_namespace)
     return value
 
@@ -174,8 +173,6 @@ def ref_exists_validator(cls, value: Any, target: str):
         type_namespace, type_name = type_name.rsplit('.', 1)
 
     registry = YaslRegistry()
-    print(f"DEBUG: Checking reference for type '{type_name}' property '{property_name}' in namespace '{type_namespace}' with value '{value}'")
-    print(f"DEBUG: Current unique values store: {registry.unique_values_store}")
     if not registry.unique_value_exists(type_name, property_name, value, type_namespace):
         raise ValueError(f"Referenced value '{value}' does not exist for 'ref({target})")
 
