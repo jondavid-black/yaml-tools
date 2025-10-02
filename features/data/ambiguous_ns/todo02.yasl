@@ -1,0 +1,18 @@
+types:
+  task:
+    description: A thing to do.
+    namespace: other
+    properties:
+      description:
+        type: str
+        description: A description of the task.
+        required: true
+      owner:
+        type: str
+        description: The person responsible for the task.
+        required: false
+      complete:
+        type: bool
+        description: Is the task finished? True if yes, false if no.
+        required: true
+        default: false

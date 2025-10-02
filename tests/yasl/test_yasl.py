@@ -1577,4 +1577,8 @@ task_list:
     complete: false
 """
     run_eval_command(yaml_data, yasl, "list_of_tasks", False)
-    
+
+def test_default_namespace():
+    yasl_path = "./features/data/ambiguous_ns/todo01.yasl"
+    yaml_path = "./features/data/ambiguous_ns/todo.yaml"
+    run_eval_command_with_paths(str(Path(yaml_path).absolute()), str(Path(yasl_path).absolute()), "task_list", True)

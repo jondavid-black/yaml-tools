@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, List, Type, Tuple, Optional
 from enum import Enum
 from pydantic import BaseModel
@@ -23,11 +24,15 @@ class YaslRegistry:
 
     def register_type(self, name: str, type_def: Type[BaseModel], namespace: Optional[str] = None) -> None:
         key = (name, namespace)
+        log = logging.getLogger("yasl")
         if key in self.yasl_type_defs:
             raise ValueError(f"Type '{name}' already exists in namespace '{namespace}'")
         self.yasl_type_defs[key] = type_def
+        log.debug(f"Registered type '{name}' in namespace '{namespace}'")
 
-    def get_type(self, name: str, namespace: Optional[str] = None) -> Optional[Type[BaseModel]]:
+    def get_type(self, name: str, namespace: Optional[str] = None, default_namespace: Optional[str] = None) -> Optional[Type[BaseModel]]:
+        log = logging.getLogger("yasl")
+        log.debug(f"Looking up type '{name}' in namespace '{namespace}'")
         if namespace is not None:
             key = (name, namespace)
             if key in self.yasl_type_defs:
@@ -38,20 +43,29 @@ class YaslRegistry:
             return None
         if len(matches) == 1:
             return matches[0]
+        elif default_namespace is not None:
+            log.debug(f"Trying default namespace '{default_namespace}' for type '{name}'")
+            key = (name, default_namespace)
+            if key in self.yasl_type_defs:
+                return self.yasl_type_defs[key]
         raise ValueError(
-            f"Ambiguous type name '{name}': found in multiple namespaces. Specify a namespace."
+            f"Ambiguous type name '{name}': found in multiple namespaces {matches}. Specify a namespace."
         )
 
     def register_enum(self, name: str, enum_def: Type[Enum], namespace: Optional[str] = None) -> None:
+        log = logging.getLogger("yasl")
         key = (name, namespace)
         if key in self.yasl_enumerations:
             raise ValueError(f"Enum '{name}' already exists in namespace '{namespace}'")
         self.yasl_enumerations[key] = enum_def
+        log.debug(f"Registered enum '{name}' in namespace '{namespace}'")
 
     def get_enum_names(self) -> List[Tuple[str, Optional[str]]]:
         return [(n, ns) for (n, ns) in self.yasl_enumerations.keys()]
 
-    def get_enum(self, name: str, namespace: Optional[str] = None) -> Optional[Type[Enum]]:
+    def get_enum(self, name: str, namespace: Optional[str] = None, default_namespace: Optional[str] = None) -> Optional[Type[Enum]]:
+        log = logging.getLogger("yasl")
+        log.debug(f"Looking up enum '{name}' in namespace '{namespace}'")
         if namespace is not None:
             key = (name, namespace)
             if key in self.yasl_enumerations:
@@ -62,8 +76,12 @@ class YaslRegistry:
             return None
         if len(matches) == 1:
             return matches[0]
+        elif default_namespace is not None:
+            key = (name, default_namespace)
+            if key in self.yasl_enumerations:
+                return self.yasl_enumerations[key]
         raise ValueError(
-            f"Ambiguous enum name '{name}': found in multiple namespaces. Specify a namespace."
+            f"Ambiguous enum name '{name}': found in multiple namespaces {matches}. Specify a namespace."
         )
 
     def register_unique_value(self, type_name: str, property_name: str, value: Any, type_namespace: str = None) -> None:
