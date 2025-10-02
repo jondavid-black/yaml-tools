@@ -332,12 +332,12 @@ def gen_pydantic_type_models(type_defs: Dict[str, TypeDef]):
                 type_lookup = parts[-1]
                 type_lookup_namespace = ".".join(parts[:-1])
 
-            if registry.get_enum(type_lookup, type_lookup_namespace) is not None:
-                py_type = registry.get_enum(type_lookup, type_lookup_namespace)
-            elif registry.get_type(type_lookup, type_lookup_namespace) is not None:
-                py_type = registry.get_type(type_lookup, type_lookup_namespace)
-            elif type_lookup in type_map:
+            if type_lookup in type_map:
                 py_type = type_map[type_lookup]
+            elif registry.get_enum(type_lookup, type_lookup_namespace) is not None:
+                py_type = registry.get_enum(type_lookup, type_lookup_namespace)
+            elif registry.get_type(type_lookup, type_lookup_namespace, type_def.namespace) is not None:
+                py_type = registry.get_type(type_lookup, type_lookup_namespace, type_def.namespace)
             elif type_lookup.startswith("map(") and type_lookup.endswith(")"):
                 is_map = True
                 key, value = type_lookup[4:-1].split(',', 1)
@@ -347,12 +347,13 @@ def gen_pydantic_type_models(type_defs: Dict[str, TypeDef]):
                 if "." in key_type_lookup:
                     key_type_lookup_namespace, key_type_lookup = key_type_lookup.rsplit(".", 1)
                 # make sure map key is a known type
-                if registry.get_enum(key_type_lookup, key_type_lookup_namespace) is not None:
-                    key = registry.get_enum(key_type_lookup, key_type_lookup_namespace)
-                elif key in ["str", "string"]:
+                
+                if key in ["str", "string"]:
                     key = str
                 elif key == "int":
                     key = int
+                elif registry.get_enum(key_type_lookup, key_type_lookup_namespace) is not None:
+                    key = registry.get_enum(key_type_lookup, key_type_lookup_namespace)
                 else:
                     acceptable_keys = ["str", "string", "int"] + registry.get_enum_names()
                     raise ValueError(f"Map key type '{key}' for property '{prop_name}' must be one of {acceptable_keys}.")
@@ -374,8 +375,8 @@ def gen_pydantic_type_models(type_defs: Dict[str, TypeDef]):
                     py_type = type_map[value_type_lookup]
                 elif registry.get_enum(value_type_lookup, value_type_lookup_namespace) is not None:
                     py_type = registry.get_enum(value_type_lookup, value_type_lookup_namespace)
-                elif registry.get_type(value_type_lookup, value_type_lookup_namespace) is not None:
-                    py_type = registry.get_type(value_type_lookup, value_type_lookup_namespace)
+                elif registry.get_type(value_type_lookup, value_type_lookup_namespace, type_def.namespace) is not None:
+                    py_type = registry.get_type(value_type_lookup, value_type_lookup_namespace, type_def.namespace)
                 else:
                     raise ValueError(f"Unknown map value type '{value_type_lookup}' for property '{prop_name}'")
                 
@@ -384,11 +385,13 @@ def gen_pydantic_type_models(type_defs: Dict[str, TypeDef]):
                     py_type = List[py_type]
             elif type_lookup.startswith("ref(") and type_lookup.endswith(")"):
                 ref_target = type_lookup[4:-1]
+                if "." not in ref_target:
+                    raise ValueError(f"Reference '{ref_target}' for property '{prop_name}' must be in the format TypeName.PropertyName or Namespace.TypeName.PropertyName")
                 ref_type_name, property_name = ref_target.rsplit('.', 1)
                 ref_type_namespace = None
                 if "." in ref_type_name:
                     ref_type_namespace, ref_type_name = ref_type_name.rsplit(".", 1)
-                target_type = registry.get_type(ref_type_name, ref_type_namespace)
+                target_type = registry.get_type(ref_type_name, ref_type_namespace, type_def.namespace)
                 if not target_type:
                     raise ValueError(f"Referenced type '{ref_type_name}' for property '{prop_name}' not found in type definitions")
                 else:
