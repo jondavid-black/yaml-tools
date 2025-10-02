@@ -82,6 +82,6 @@ To Perform a release:
     ```
 - Tag and push the repo:
     ```bash
-    git tag "v$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")"
+    git tag "v$(uv run python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")"
     git push --tags
     ```
