@@ -50,7 +50,7 @@ types:
         description: The name of the account representative.
         required: true
       customer_name:
-        type: ref(customer.name)
+        type: ref[customer.name]
         description: The name of the customer associated with the account.
         required: true
   business:

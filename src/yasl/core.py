@@ -326,7 +326,7 @@ def gen_pydantic_type_models(type_defs: Dict[str, TypeDef]):
                 type_lookup = prop.type[:-2]
                 is_list = True
 
-            if "ref(" not in type_lookup and "map(" not in type_lookup and "." in type_lookup:
+            if "ref[" not in type_lookup and "map[" not in type_lookup and "." in type_lookup:
                 # likely a ref to another type or enum
                 parts = type_lookup.split(".")
                 type_lookup = parts[-1]
@@ -338,7 +338,7 @@ def gen_pydantic_type_models(type_defs: Dict[str, TypeDef]):
                 py_type = registry.get_enum(type_lookup, type_lookup_namespace)
             elif registry.get_type(type_lookup, type_lookup_namespace, type_def.namespace) is not None:
                 py_type = registry.get_type(type_lookup, type_lookup_namespace, type_def.namespace)
-            elif type_lookup.startswith("map(") and type_lookup.endswith(")"):
+            elif type_lookup.startswith("map[") and type_lookup.endswith("]"):
                 is_map = True
                 key, value = type_lookup[4:-1].split(',', 1)
 
@@ -383,7 +383,7 @@ def gen_pydantic_type_models(type_defs: Dict[str, TypeDef]):
                 # wrap in list if needed
                 if map_value_is_list:
                     py_type = List[py_type]
-            elif type_lookup.startswith("ref(") and type_lookup.endswith(")"):
+            elif type_lookup.startswith("ref[") and type_lookup.endswith("]"):
                 ref_target = type_lookup[4:-1]
                 if "." not in ref_target:
                     raise ValueError(f"Reference '{ref_target}' for property '{prop_name}' must be in the format TypeName.PropertyName or Namespace.TypeName.PropertyName")

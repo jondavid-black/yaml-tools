@@ -21,7 +21,7 @@ types:
     namespace: dynamic
     properties:
       task_list:
-        type: map(other.taskkey, something.task)
+        type: [other.taskkey, something.task]
         description: A list of tasks to do.
         required: true
 enums:

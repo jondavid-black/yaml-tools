@@ -98,15 +98,15 @@ types:
         description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
         required: false
       inputs:
-        type: map(str, input)
+        type: map[str, input]
         description: A map of input names to input properties. For more information, see "Calling a workflow."
         required: false
       outputs:
-        type: map(str, output)
+        type: map[str, output]
         description: A map of output names to output properties. For more information, see "Calling a workflow."
         required: false
       secrets:
-        type: map(str, secrets)
+        type: map[str, secrets]
         description: A map of secret names to secret properties. For more information, see "Calling a workflow."
         required: false
   on_workflow_run_event:
@@ -134,7 +134,7 @@ types:
         description: See filter descriptions in github actions documentation (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
         required: false
       inputs:
-        type: map(str, input)
+        type: map[str, input]
         description: A map of input names to input properties. For more information, see "Calling a workflow."
         required: false
   cron:

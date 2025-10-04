@@ -21,7 +21,7 @@ types:
     namespace: dynamic
     properties:
       task_list:
-        type: map(acme.taskkey, dynamic.task)
+        type: map[acme.taskkey, dynamic.task]
         description: A list of tasks to do.
         required: true
 
