@@ -174,7 +174,7 @@ def ref_exists_validator(cls, value: Any, target: str):
 
     registry = YaslRegistry()
     if not registry.unique_value_exists(type_name, property_name, value, type_namespace):
-        raise ValueError(f"Referenced value '{value}' does not exist for 'ref({target})")
+        raise ValueError(f"Referenced value '{value}' does not exist for 'ref[{target}]")
 
     return value
 
@@ -283,11 +283,11 @@ def property_validator_factory(typedef_name: str, type_def: TypeDef, property_na
         validators.append(partial(url_reachable_valiator, reachable=property.url_reachable))
 
     # any validator
-    if property.any_of is not None and not property.type.startswith("map("):
+    if property.any_of is not None and not property.type.startswith("map[]"):
         validators.append(partial(any_of_validator, any_of=property.any_of))
 
     # ref validators (always validate references)
-    if property.type.startswith("ref(") and (property.no_ref_check is None or property.no_ref_check is False):
+    if property.type.startswith("ref[") and (property.no_ref_check is None or property.no_ref_check is False):
         validators.append(partial(ref_exists_validator, target=property.type[4:-1]))
 
     # enum validators
@@ -301,7 +301,7 @@ def property_validator_factory(typedef_name: str, type_def: TypeDef, property_na
         validators.append(partial(enum_validator, values=[e.value for e in enum_type]))
 
     # map validators
-    if property.type.startswith("map("):
+    if property.type.startswith("map["):
         # extract key and value types
         map_types = property.type[4:-1]
         if ',' not in map_types:

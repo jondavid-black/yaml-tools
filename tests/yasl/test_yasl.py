@@ -63,7 +63,7 @@ types:
         description: The name of the account representative.
         required: true
       customer_name:
-        type: ref(customer.name)
+        type: ref[customer.name]
         description: The name of the customer associated with the account.
         required: true
   business:
@@ -137,7 +137,7 @@ types:
         description: The name of the account representative.
         required: true
       customer_name:
-        type: ref(acme.customer.name)
+        type: ref[acme.customer.name]
         description: The name of the customer associated with the account.
         required: true
   business:
@@ -320,7 +320,7 @@ types:
     namespace: dynamic
     properties:
       task_list:
-        type: map(str, task)
+        type: map[str, task]
         description: A list of tasks to do.
         required: true
 """
@@ -1192,7 +1192,7 @@ types:
     namespace: dynamic
     properties:
       task_list:
-        type: map(int, task)
+        type: map[int, task]
         description: A list of tasks to do.
         required: true
 """
@@ -1238,7 +1238,7 @@ types:
     namespace: dynamic
     properties:
       task_list:
-        type: map(bool, task)
+        type: map[bool, task]
         description: A list of tasks to do.
         required: true
 """
@@ -1280,7 +1280,7 @@ types:
     namespace: dynamic
     properties:
       task_list:
-        type: map(str, junk_task)
+        type: map[str, junk_task]
         description: A list of tasks to do.
         required: true
 """
@@ -1322,7 +1322,7 @@ types:
     namespace: dynamic
     properties:
       task_list:
-        type: map(taskkey, task)
+        type: map[taskkey, task]
         description: A list of tasks to do.
         required: true
 enums:
@@ -1371,7 +1371,7 @@ types:
     namespace: dynamic
     properties:
       task_list:
-        type: map(taskkey, task)
+        type: map[taskkey, task]
         description: A list of tasks to do.
         required: true
 enums:
@@ -1420,7 +1420,7 @@ types:
     namespace: dynamic
     properties:
       task_list:
-        type: map(other.taskkey, something.task)
+        type: map[other.taskkey, something.task]
         description: A list of tasks to do.
         required: true
 enums:
@@ -1478,7 +1478,7 @@ types:
         description: The feature name.
         required: true
       task_list:
-        type: map(str, task)
+        type: map[str, task]
         description: A list of tasks to do.
         required: true
   project:
@@ -1557,7 +1557,7 @@ types:
     namespace: other
     properties:
       task_list:
-        type: map(int, notmain.task)
+        type: map[int, notmain.task]
         description: A list of tasks to do.
         required: true
 """
