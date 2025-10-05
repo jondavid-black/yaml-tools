@@ -1,0 +1,13 @@
+task_list:
+  task_01:
+    description:  Buy coffee.
+    owner: Jim
+    complete: false
+  task_02:
+    description: Lead morning standup.
+    owner: Jim
+    complete: false
+  task_03:
+    description: Refine Backlog.
+    owner: Jim
+    complete: false
