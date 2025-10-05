@@ -23,7 +23,7 @@ definitions:
         description: A list of tasks to complete.
         properties:
           task_list:
-            type: [other.taskkey, something.task]
+            type: map[other.taskkey, something.task]
             description: A list of tasks to do.
             required: true
   other:

@@ -26,9 +26,9 @@ usage: yasl [-h] [--version] [--quiet] [--verbose] [--output {text,json,yaml}] [
 YASL - YAML Advanced Schema Language CLI Tool
 
 positional arguments:
-  schema                YASL schema file
-  yaml                  YAML data file
-  model_name            YASL schema name for the yaml data file (optional)
+  schema                YASL schema file or directory
+  yaml                  YAML data file or directory
+  model_name            YASL schema type name for the yaml data file (optional)
 
 options:
   -h, --help            show this help message and exit
@@ -39,8 +39,6 @@ options:
                         Set output format (text, json, yaml). Default is text.
 ```
 
-Note that all options must be provided before the file arguments.
-
 ## Defining YASL Schemas
 
 At the heart of YASL is the schema definition.
@@ -48,11 +46,227 @@ The intent is to make schema definition as simple and familiar as possible by us
 There are a few key concepts to consider when defining your YASL schema: primitives, enumerations, and data types.
 Once you've mastered these, you'll want to consider things like data validation, referential integrity, and version control.
 
+The root of a YASL schema allows you to define:
+
+```yaml
+imports:
+  ...  # List of other yasl schemas to integrate.
+metadata:
+  ...  # Key-value pairs for your relevant information.
+definitions:
+  ...  # Namespaces with type and enumeration definitions.
+```
+
+All of these are optional to give you maximum flexibility.
+Perhaps you have a top level YASL schema that only provides metadata and imports all definitions from other files.
+Or perhaps you put all your data definitions into a single file and don't care about metadata.
+The YASL schema does not constrain your content organization decision process.
+
 ### Comments
 
 YASL is just YAML, so comments work the same way.
 Start your comment with a `#` and everything after that is comment text.
 You can do full or partial line comments.
+
+### Imports
+
+YASL schemas allow you to organize your data definitions across a collection of files.
+It is recommended that you be as explicit as possible by maintaining a single 'entry point' for your data definitions.
+
+Let's assume you have an engineering team working various products and features and a sales team delivering the resulting products and features to customers.
+
+Your schema definitions may may look like:
+  - my_team/yasl
+    - main.yasl
+    - product.yasl
+    - features.yasl
+    - customers.yasl
+    - sales.yasl
+
+The `main.yasl` might only contain imports from other schema files.
+```yaml
+imports:
+  - product.yasl
+  - features.yasl
+  - customers.yasl
+  - sales.yasl
+```
+
+To validate data, you can simply point to the `main.yasl` as your schema and all other content will be integrated.  
+```bash
+yasl ./my_team/yasl/main.yasl ./data/my_data.yaml
+```
+
+But you do have the flexibility to just put things into a directory and use all yasl files in that directory if you choose.
+This would simply eliminate the `main.yasl` file from the structure above.
+To validate data you would point the yasl tool to the directory containing your schemas rather than a single 'entry point'.
+```bash
+yasl ./my_team/yasl ./data/my_data.yaml
+```
+
+### Metadata
+
+Metadata gives you the flexibility to capture relevant key-value pairs of data related to your schema.
+This information is not used by the yasl validation processes but is available for your use in parsing or using schema data.
+
+```yaml
+metadata:
+  author: John Doe
+  license:  Apache 2.0
+  version: 1.0.0
+definitions:
+  ...
+```
+
+### Namespaces
+
+YASL data type and eunumeration definitions are always defined within a namespace.
+A namespace is just a string value to support unique type naming.
+Namespaces permit the same type name to be used in different contexts without creating naming conflicts.
+
+```yaml
+definitions:
+  namespace_one:  # A namespace declaration.
+    types:
+      thing:  # A type name declearation.
+        ...
+  namespace_two:  # Another namespace declaration.
+    types:
+      thing:  # The same type name declaration, but differentiated by namespace.
+        ...
+```
+
+YASL will attempt to discover and use the correct type declaration based on context, but you can explicitly reference a type using it's namespace in a dot notation (i.e. `namespace_two.thing`) to avoid naming conflicts.
+Should a naming conflict arise, YASL will default to using the namespace of the referencing definition to resolve the conflict if possible.
+Other naming conflicts will result in an error that you must correct by resolving the conflict in your schema.
+
+### YASL Enumeration Definitions
+
+YASL enumerations are a simple way to establish prefined values as a usable type for use in schemas.
+
+An enumeration definition may look like...
+```yaml
+definitions:
+  balloon_city:
+    enums:
+      color:
+        values:
+          - RED
+          - BLUE
+          - GREEN
+      size:
+        values:
+          - SMALL
+          - MEDIUM
+          - LARGE
+```
+
+Once defined, enumerations can be used as types within type definitions.
+Here's an example of using the above enumerations as fields within a type definition.
+
+```yaml
+definitions:
+  balloon_city:
+    types:
+      baloon:
+        description: A baloon product.
+        properties:
+          brand:
+            type: str
+            description: The brand name of the baloon.
+          size:
+            type: size
+            description: The size of the baloon.
+          color:
+            type: color
+            description: The color of the baloon.
+```
+
+### YASL Type Definitions
+
+YASL intends to provide a simple but powerful means of defining complex data types for YAML data set validation.
+
+Types are defined under the `types` key in the schema file.
+Invididual types are captured as a map (or dict in python terms) with the type name being the key and the type attributes defined under that.
+
+These type definitions have the following attributes:
+
+- `description` (optional): str - A description of the type definition.
+- `properties`: property[] - List of data fields for the type.
+- `validators` (optional): validator - Special validators to establish field definition constraints.
+
+#### Type Properties
+
+Type definition properties allow you to establish the composition structure of YAML data within your YASL schema.
+Not only do these serve to support data validation, they also provide a method of data documentation.
+
+Properties are defined under the `properties` key in the type definition.
+Individual properties are captured as a map (or dict in python terms) with the property name being the key and the property attributes defined under that.
+
+Properties have the following attributes:
+
+- `type`: type - The name of the primitive, enumeration, or type definition of the field (may include namespace in dot-notation for clarity).
+- `description` (optional): str - A brief summary of the field.
+- `required` (optional): bool - True if the field must be present in the data set, false otherwise.  Default: true.
+- `unique` (optional): bool - True if the field must be unique across all type_def uses in the data set.  Default: false.
+- `default` (optional): any - The default value of the field if not provided.  The value type must match the type field.
+
+In addition to these fields, the primitive validators from above may be included as desired based on the type.
+
+Here's an example type definition:
+
+```yaml
+definitions:  # This is where we define our schema content.
+  acme:  # This is the namespace for the defined types and enums.
+    types:  # This is where we define our custom data types.
+      task:  # This is a data type named 'task'.
+        description: A thing to do.
+        properties:
+          description:
+            type: str
+            description: A description of the task.
+            required: true
+          owner:
+            type: str
+            description: The person responsible for the task.
+            required: false
+          complete:
+            type: bool
+            description: Is the task finished? True if yes, false if no.
+            required: true
+            default: false
+      list_of_tasks: # This is a data type named 'list_of_tasks'.
+        description: A list of tasks to complete.
+        properties:
+          task_list:
+            type: map[taskkey, task]
+            description: A list of tasks to do.
+            required: true
+
+    enums:  # This is where we define our enumerated types.
+      taskkey:  # This is the name of an enumerated type.
+        description: Allowed task names within the task_list.
+        values:
+          - task_01
+          - task_02
+          - task_03
+```
+
+#### Type Validators
+
+YASL recognizes there can be complexities and conditionals to consider when defining data types.
+Type validators allow you to establish constraints on your type definitions.
+The available validators provide for the basic definition of common data constraints in your schema.
+
+YASL provides the following type validators:
+
+- `only_one`: str[] - List of mutually exclusive property names where only one may be present.
+- `at_least_one`: str[] - List of property names where one or more must be present.
+- `if_then`: IfThen[] - List of conditional checks.
+  - `eval`: str - Name of a property in the `type_def`.
+  - `value`: str[] - List of values to compare to `eval` for equivalence (i.e. `true` for a bool, `42` for int, etc.).
+  - `present`: str[] (optional) - list of property names in the `type_def` that must be present if the check is `true`.
+  - `absent`: str[] (optional) - list of property names in the `type_def` that must be absent of the check is `true`.  Default: none.
 
 ### YASL Primitives
 
@@ -195,129 +409,4 @@ Any validators include:
 
 YASL supports all [Pydantic types](https://docs.pydantic.dev/latest/api/types/) [and Pydantic Network types](https://docs.pydantic.dev/latest/api/networks/).
 
-### YASL Enumeration Definitions
 
-YASL enumerations are a simple way to establish prefined values as a usable type for use in schemas.
-
-An enumeration definition may look like...
-```yaml
-enums:
-  color:
-    values:
-      - RED
-      - BLUE
-      - GREEN
-  size:
-    values:
-      - SMALL
-      - MEDIUM
-      - LARGE
-```
-
-Once defined, enumerations can be used as types within type definitions.
-Here's an example of using the above enumerations as fields within a type definition.
-
-```yaml
-types:
-  baloon:
-    description: A baloon product.
-    fields:
-      brand:
-        type: str
-        description: The brand name of the baloon.
-      size:
-        type: size
-        description: The size of the baloon.
-      color:
-        type: color
-        description: The color of the baloon.
-```
-
-### YASL Type Definitions
-
-YASL intends to provide a simple but powerful means of defining complex data types for YAML data set validation.
-
-Types are defined under the `types` key in the schema file.
-Invididual types are captured as a map (or dict in python terms) with the type name being the key and the type attributes defined under that.
-
-These type definitions have the following attributes:
-
-- `namespace` (optional): str - Establishes a named context for the type within which it must be unique.
-- `description` (optional): str - A description of the type definition.
-- `properties`: property[] - List of data fields for the type.
-- `validators` (optional): validator - Special validators to establish field definition constraints.
-
-### Type Properties
-
-Type definition properties allow you to establish the composition structure of YAML data within your YASL schema.
-Not only do these serve to support data validation, they also provide a method of data documentation.
-
-Properties are defined under the `properties` key in the type definition.
-Individual properties are captured as a map (or dict in python terms) with the property name being the key and the property attributes defined under that.
-
-Properties have the following attributes:
-
-- `namespace` (optional): str - The namespace containing the type definition if not using primitive types.  Default: same package as the type_def.
-- `type`: type - The name of the primitive, enumeration, or type definition of the field.
-- `description` (optional): str - A brief summary of the field.
-- `required` (optional): bool - True if the field must be present in the data set, false otherwise.  Default: true.
-- `unique` (optional): bool - True if the field must be unique across all type_def uses in the data set.  Default: false.
-- `default` (optional): any - The default value of the field if not provided.  The value type must match the type field.
-
-In addition to these fields, the primitive validators from above may be included as desired based on the type.
-
-Here's an example type definition:
-
-```yaml
-types:
-  task:
-    description: A thing to do.
-    namespace: dynamic
-    properties:
-      description:
-        type: str
-        description: A description of the task.
-        required: true
-      owner:
-        type: str
-        description: The person responsible for the task.
-        required: false
-      complete:
-        type: bool
-        description: Is the task finished? True if yes, false if no.
-        required: true
-        default: false
-  list_of_tasks:
-    description: A list of tasks to complete.
-    namespace: dynamic
-    properties:
-      task_list:
-        type: map[taskkey, task]
-        description: A list of tasks to do.
-        required: true
-
-enums:
-  taskkey:
-    namespace: acme
-    description: The type of shape.
-    values:
-      - task_01
-      - task_02
-      - task_03
-```
-
-### Type Validators
-
-YASL recognizes there can be complexities and conditionals to consider when defining data types.
-Type validators allow you to establish constraints on your type definitions.
-The available validators provide for the basic definition of common data constraints in your schema.
-
-YASL provides the following type validators:
-
-- `only_one`: str[] - List of mutually exclusive property names where only one may be present.
-- `at_least_one`: str[] - List of property names where one or more must be present.
-- `if_then`: IfThen[] - List of conditional checks.
-  - `eval`: str - Name of a property in the `type_def`.
-  - `value`: str[] - List of values to compare to `eval` for equivalence (i.e. `true` for a bool, `42` for int, etc.).
-  - `present`: str[] (optional) - list of property names in the `type_def` that must be present if the check is `true`.
-  - `absent`: str[] (optional) - list of property names in the `type_def` that must be absent of the check is `true`.  Default: none.

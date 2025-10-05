@@ -1,33 +1,34 @@
 imports:
   - ./todo02.yasl
-types:
-  task:
-    description: A thing to do.
-    namespace: main
-    properties:
-      description:
-        type: str
-        description: A description of the task.
-        required: true
-      owner:
-        type: str
-        description: The person responsible for the task.
-        required: false
-      complete:
-        type: bool
-        description: Is the task finished? True if yes, false if no.
-        required: true
-        default: false
-        
-  task_list:
-    description: A list of tasks to complete.
-    namespace: other
-    properties:
-      favorite_task:
-        type: task
-        description: The task I like the most.
-        required: false
+definitions:
+  main:
+    types:
+      task:
+        description: A thing to do.
+        properties:
+          description:
+            type: str
+            description: A description of the task.
+            required: true
+          owner:
+            type: str
+            description: The person responsible for the task.
+            required: false
+          complete:
+            type: bool
+            description: Is the task finished? True if yes, false if no.
+            required: true
+            default: false
+  other:
+    types:        
       task_list:
-        type: map[str, task]
-        description: A list of tasks to do.
-        required: true
+        description: A list of tasks to complete.
+        properties:
+          favorite_task:
+            type: task
+            description: The task I like the most.
+            required: false
+          task_list:
+            type: map[str, task]
+            description: A list of tasks to do.
+            required: true

@@ -15,17 +15,17 @@ def main():
     parser.add_argument(
         "schema",
         nargs="?",
-        help="YASL schema file",
+        help="YASL schema file or directory",
     )
     parser.add_argument(
         "yaml",
         nargs="?",
-        help="YAML data file",
+        help="YAML data file or directory",
     )
     parser.add_argument(
         "model_name",
         nargs="?",
-        help="YASL schema name for the yaml data file (optional)",
+        help="YASL schema type name for the yaml data file (optional)",
     )
     parser.add_argument(
         "--version", action="store_true", help="Show version information and exit"

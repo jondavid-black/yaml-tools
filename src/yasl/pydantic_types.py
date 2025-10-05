@@ -14,7 +14,6 @@ class YASLBaseModel(BaseModel):
 class Enumeration(YASLBaseModel):
     # name: str
     description: Optional[str] = None
-    namespace: Optional[str] = None
     values: List[str]
 
     model_config = {"extra": "forbid"}
@@ -23,7 +22,6 @@ class Enumeration(YASLBaseModel):
 class Property(YASLBaseModel):
     # name: str
     type: str
-    namespace: Optional[str] = None
     description: Optional[str] = None
     required: Optional[bool] = True
     unique: Optional[bool] = False
@@ -97,9 +95,14 @@ class TypeDef(YASLBaseModel):
 
     model_config = {"extra": "forbid"}
 
-class YaslRoot(YASLBaseModel):
-    imports: Optional[List[str]] = None
+class YaslItem(YASLBaseModel):
+    description: Optional[str] = None
     enums: Optional[Dict[str, Enumeration]] = None
     types: Optional[Dict[str, TypeDef]] = None
+    model_config = {"extra": "forbid"}
 
+class YaslRoot(YASLBaseModel):
+    imports: Optional[List[str]] = None
+    metadata: Optional[Dict[str, Any]] = None
+    definitions: Optional[Dict[str, YaslItem]] = None
     model_config = {"extra": "forbid"}

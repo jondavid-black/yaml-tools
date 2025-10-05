@@ -195,11 +195,14 @@ def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_
             root_keys: List[str] = list(data.keys())
             log.debug(f"Auto-detecting schema for YAML root keys in '{yaml_file}'")
             for yasl_result in yasl_results or []:
-                for type_name, type_def in yasl_result.types.items() or []:
-                    type_def_root_keys: List[str] = [k for k in type_def.properties.keys()]
-                    if all(k in type_def_root_keys for k in root_keys):
-                        log.debug(f"Auto-detected root model '{type_name}' for YAML file '{yaml_file}'")
-                        candidate_model_names.append((type_name, type_def.namespace))
+                for namespace, yasl_item in yasl_result.definitions.items() or []:
+                    if yasl_item.types is None:
+                        continue
+                    for type_name, type_def in yasl_item.types.items() or []:
+                        type_def_root_keys: List[str] = [k for k in type_def.properties.keys()]
+                        if all(k in type_def_root_keys for k in root_keys):
+                            log.debug(f"Auto-detected root model '{type_name}' for YAML file '{yaml_file}'")
+                            candidate_model_names.append((type_name, namespace))
         else:
             registry_item = registry.get_type(model_name)
             if registry_item:
@@ -227,31 +230,30 @@ def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_
     registry.clear_caches()
     return results
 
-def gen_enum_from_enumerations(enum_defs: Dict[str, Enumeration]):
+def gen_enum_from_enumerations(namespace: str, enum_defs: Dict[str, Enumeration]):
     """
     Dynamically generate a Python Enum class from an Enumeration instance.
     Each value in the Enumeration becomes a member of the Enum.
     """
     registry = YaslRegistry()
     for enum_name, enum_def in enum_defs.items():
-        if registry.get_enum(enum_name, enum_def.namespace) is not None:
-            raise ValueError(f"Enumeration '{enum_name}' already exists.")
+        if registry.get_enum(enum_name, namespace) is not None:
+            raise ValueError(f"Enumeration '{namespace}.{enum_name}' already exists.")
         enum_members = {value: value for value in enum_def.values}
         enum_cls = Enum(enum_name, enum_members)
-        if enum_def.namespace:
-            enum_cls.__module__ = enum_def.namespace
-        registry.register_enum(enum_name, enum_cls, enum_def.namespace)
+        enum_cls.__module__ = namespace
+        registry.register_enum(enum_name, enum_cls, namespace)
 
 
-def gen_pydantic_type_models(type_defs: Dict[str, TypeDef]):
+def gen_pydantic_type_models(namespace: str, type_defs: Dict[str, TypeDef]):
     """
     Dynamically generate Pydantic model classes from a list of TypeDef instances.
     Each property in the TypeDef becomes a field in the generated model.
     """
     registry = YaslRegistry()
     for typedef_name, type_def in type_defs.items():
-        if registry.get_type(typedef_name, type_def.namespace) is not None:
-            raise ValueError(f"Type definition '{type_def.namespace}.{typedef_name}' already exists.")
+        if registry.get_type(typedef_name, namespace) is not None:
+            raise ValueError(f"Type definition '{namespace}.{typedef_name}' already exists.")
         fields: Dict[str, tuple] = {}
         validators: Dict[str, Callable] = {}
         for prop_name, prop in type_def.properties.items():
@@ -334,10 +336,10 @@ def gen_pydantic_type_models(type_defs: Dict[str, TypeDef]):
 
             if type_lookup in type_map:
                 py_type = type_map[type_lookup]
-            elif registry.get_enum(type_lookup, type_lookup_namespace) is not None:
-                py_type = registry.get_enum(type_lookup, type_lookup_namespace)
-            elif registry.get_type(type_lookup, type_lookup_namespace, type_def.namespace) is not None:
-                py_type = registry.get_type(type_lookup, type_lookup_namespace, type_def.namespace)
+            elif registry.get_enum(type_lookup, type_lookup_namespace, namespace) is not None:
+                py_type = registry.get_enum(type_lookup, type_lookup_namespace, namespace)
+            elif registry.get_type(type_lookup, type_lookup_namespace, namespace) is not None:
+                py_type = registry.get_type(type_lookup, type_lookup_namespace, namespace)
             elif type_lookup.startswith("map[") and type_lookup.endswith("]"):
                 is_map = True
                 key, value = type_lookup[4:-1].split(',', 1)
@@ -352,8 +354,8 @@ def gen_pydantic_type_models(type_defs: Dict[str, TypeDef]):
                     key = str
                 elif key == "int":
                     key = int
-                elif registry.get_enum(key_type_lookup, key_type_lookup_namespace) is not None:
-                    key = registry.get_enum(key_type_lookup, key_type_lookup_namespace)
+                elif registry.get_enum(key_type_lookup, key_type_lookup_namespace, namespace) is not None:
+                    key = registry.get_enum(key_type_lookup, key_type_lookup_namespace, namespace)
                 else:
                     acceptable_keys = ["str", "string", "int"] + registry.get_enum_names()
                     raise ValueError(f"Map key type '{key}' for property '{prop_name}' must be one of {acceptable_keys}.")
@@ -373,10 +375,10 @@ def gen_pydantic_type_models(type_defs: Dict[str, TypeDef]):
                     value_type_lookup_namespace, value_type_lookup = value_type_lookup.rsplit(".")
                 if value_type_lookup in type_map:
                     py_type = type_map[value_type_lookup]
-                elif registry.get_enum(value_type_lookup, value_type_lookup_namespace) is not None:
-                    py_type = registry.get_enum(value_type_lookup, value_type_lookup_namespace)
-                elif registry.get_type(value_type_lookup, value_type_lookup_namespace, type_def.namespace) is not None:
-                    py_type = registry.get_type(value_type_lookup, value_type_lookup_namespace, type_def.namespace)
+                elif registry.get_enum(value_type_lookup, value_type_lookup_namespace, namespace) is not None:
+                    py_type = registry.get_enum(value_type_lookup, value_type_lookup_namespace, namespace)
+                elif registry.get_type(value_type_lookup, value_type_lookup_namespace, namespace) is not None:
+                    py_type = registry.get_type(value_type_lookup, value_type_lookup_namespace, namespace)
                 else:
                     raise ValueError(f"Unknown map value type '{value_type_lookup}' for property '{prop_name}'")
                 
@@ -391,7 +393,7 @@ def gen_pydantic_type_models(type_defs: Dict[str, TypeDef]):
                 ref_type_namespace = None
                 if "." in ref_type_name:
                     ref_type_namespace, ref_type_name = ref_type_name.rsplit(".", 1)
-                target_type = registry.get_type(ref_type_name, ref_type_namespace, type_def.namespace)
+                target_type = registry.get_type(ref_type_name, ref_type_namespace, namespace)
                 if not target_type:
                     raise ValueError(f"Referenced type '{ref_type_name}' for property '{prop_name}' not found in type definitions")
                 else:
@@ -426,18 +428,18 @@ def gen_pydantic_type_models(type_defs: Dict[str, TypeDef]):
                 else (None if not prop.required else ...)
             )
             fields[prop_name] = (py_type, default)
-            validators[f"{prop_name}__validator"] = property_validator_factory(typedef_name, type_def, prop_name, prop)
+            validators[f"{prop_name}__validator"] = property_validator_factory(typedef_name, namespace, type_def, prop_name, prop)
         validators["__validate__"] = type_validator_factory(type_def)
         model = create_model(
             typedef_name,
             __base__=YASLBaseModel,
-            __module__=type_def.namespace or None,
+            __module__=namespace,
             __validators__=validators,
             __config__={"extra": "forbid"},
             **fields,
         )
         # Store the generated model in the global registry
-        registry.register_type(typedef_name, model, type_def.namespace)
+        registry.register_type(typedef_name, model, namespace)
 
 
 # --- Helper function to find the line number ---
@@ -484,13 +486,15 @@ def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
                 imported_yasl = load_and_validate_yasl_with_lines(imp_path)
                 if not imported_yasl:
                     raise ValueError(f"Failed to import YASL schema from '{imp}'")
-        if yasl.enums is not None:
-            # must setup enums before types to support enum validation
-            # log.debug(f"Evaluating enum - {enum.name}")
-            gen_enum_from_enumerations(yasl.enums)
-        if yasl.types is not None:
-            gen_pydantic_type_models(yasl.types)
-            # setup_yasl_validators(type_def)
+        if yasl.metadata is not None:
+            log.debug(f"YASL Metadata: {yasl.metadata}")
+        for namespace, yasl_item in yasl.definitions.items():
+            # generate enums first so enum map keys are known when generating types
+            if yasl_item.enums is not None:
+                gen_enum_from_enumerations(namespace, yasl_item.enums)
+        for namespace, yasl_item in yasl.definitions.items():
+            if yasl_item.types is not None:
+                gen_pydantic_type_models(namespace, yasl_item.types)
         log.debug("✅ YASL schema validation successful!")
         return yasl
     except FileNotFoundError:

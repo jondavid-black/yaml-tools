@@ -1,7 +1,5 @@
 name: bob
 type: square
-# radius: 5.0
 side_length: 10.0
 color: red
 location: top-left
-# orientation: centered
