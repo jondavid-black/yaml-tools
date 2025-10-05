@@ -796,3 +796,51 @@ definitions:
                         description: A list of tasks to do.
                         required: true
 """
+
+TODO_DOT_NAMESPACE_YASL = """
+metadata:
+  author: John Doe
+  date: 2024-06-15
+  description: A schema for managing a to-do list with tasks.
+  license: MIT
+  version: 1.0.0
+  tags:
+    - todo
+    - tasks
+    - example
+definitions:
+  acme.dynamic:
+    types:
+      task:
+        description: A thing to do.
+        properties:
+          description:
+            type: str
+            description: A description of the task.
+            required: true
+          owner:
+            type: str
+            description: The person responsible for the task.
+            required: false
+          complete:
+            type: bool
+            description: Is the task finished? True if yes, false if no.
+            required: true
+            default: false
+  acme:
+    types:
+      list_of_tasks:
+        description: A list of tasks to complete.
+        properties:
+          task_list:
+            type: map[acme.taskkey, acme.dynamic.task]
+            description: A list of tasks to do.
+            required: true
+    enums:
+      taskkey:
+        description: The type of shape.
+        values:
+          - task_01
+          - task_02
+          - task_03
+"""

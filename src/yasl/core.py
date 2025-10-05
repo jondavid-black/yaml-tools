@@ -372,7 +372,7 @@ def gen_pydantic_type_models(namespace: str, type_defs: Dict[str, TypeDef]):
 
                 # make sure map value is a known type
                 if "." in value_type_lookup:
-                    value_type_lookup_namespace, value_type_lookup = value_type_lookup.rsplit(".")
+                    value_type_lookup_namespace, value_type_lookup = value_type_lookup.rsplit(".", 1)
                 if value_type_lookup in type_map:
                     py_type = type_map[value_type_lookup]
                 elif registry.get_enum(value_type_lookup, value_type_lookup_namespace, namespace) is not None:

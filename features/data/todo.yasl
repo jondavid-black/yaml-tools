@@ -9,7 +9,7 @@ metadata:
     - tasks
     - example
 definitions:
-  dynamic:
+  acme.dynamic:
     types:
       task:
         description: A thing to do.
@@ -33,7 +33,7 @@ definitions:
         description: A list of tasks to complete.
         properties:
           task_list:
-            type: map[acme.taskkey, dynamic.task]
+            type: map[acme.taskkey, acme.dynamic.task]
             description: A list of tasks to do.
             required: true
     enums:
