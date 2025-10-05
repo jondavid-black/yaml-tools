@@ -104,5 +104,5 @@ class YaslItem(YASLBaseModel):
 class YaslRoot(YASLBaseModel):
     imports: Optional[List[str]] = None
     metadata: Optional[Dict[str, Any]] = None
-    definitions: Dict[str, YaslItem]
+    definitions: Optional[Dict[str, YaslItem]] = None
     model_config = {"extra": "forbid"}
