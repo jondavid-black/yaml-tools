@@ -4,6 +4,5 @@ from yasl.core import yasl_eval
 
 
 __all__ = [
-    # "main",
     "yasl_eval",
 ]

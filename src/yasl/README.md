@@ -10,6 +10,8 @@ Add some thoughts on why this may be valuable.
 ## Usage
 
 To use YASL you must first define your data schema in a YASL file as described in the Defining YASL Schemas section below.
+
+### YASL CLI
 Once you have a schema and a corresponding data file, you run the YASL command line tool.
 
 ```bash
@@ -38,6 +40,68 @@ options:
   --output {text,json,yaml}
                         Set output format (text, json, yaml). Default is text.
 ```
+
+### YASL API
+
+YASL provides an API for evaluating YAML files using your defined schemas.
+API usage is effectively the same as the CLI.
+
+```python
+def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_log: bool = False, quiet_log: bool = False, verbose_log: bool = False, output: str = "text", log_stream: StringIO = sys.stdout) -> Optional[List[BaseModel]]:
+    """
+    Evaluate YAML data against a YASL schema.
+
+    Args:
+        yasl_schema (str): Path to the YASL schema file or directory.
+        yaml_data (str): Path to the YAML data file or directory.
+        model_name (str, optional): Specific model name to use for validation. If not provided, the model will be auto-detected.
+        disable_log (bool): If True, disables all logging output.
+        quiet_log (bool): If True, suppresses all output except for errors.
+        verbose_log (bool): If True, enables verbose logging output.
+        output (str): Output format for logs. Options are 'text', 'json', or 'yaml'. Default is 'text'.
+        log_stream (StringIO): Stream to which logs will be written. Default is sys.stdout.
+
+    Returns:
+        Optional[List[BaseModel]]: List of validated Pydantic models if validation is successful, None otherwise.
+    """
+```
+
+The API interface is intentionally aligned directly to the CLI usage.
+The simplest way to use the API is to pass in your yasl and yaml, then check the return type is not None and use the resulting data as a python object.
+If the result is `None`, then an error has occurred.
+If you wish to process the details of the error, you must capture the log data.
+The simplest way to do this is to provide a `StringIO` object for the `log_stream` parameter and set the `output` to either `json` or `yaml` depending on your preference for parsing.
+
+Example:
+```python
+from yasl import yasl_eval
+
+yasl_log = StringIO()
+# example using JSON logging
+result =  yasl_eval(yasl_path, yaml_path, model_name, verbose_log=True, output="json", log_stream=yasl_log)
+
+if not result:
+  for line in yasl_log:
+      line = line.strip()
+      if not line:
+          continue
+      item = json.loads(line)
+      if item.get("level") == "ERROR":
+          ## handle error
+          print(f"YAML validation error: {item.get('message')}")
+else:
+  # use parsed and validated data as a python object
+  # just remember it is a list of objects
+  ...
+```
+
+Data provided within the json or yaml log stream will have the following attributes:
+
+- **level**: The log level (i.e. DEBUG, INFO, WARN, ERROR) from the python `logging` module.
+- **time**: The timestamp of the entry includeing date and time.
+- **name**: The name of the logger (i.e. 'yasl' in this case).
+- **message**:  The log message.
+
 
 ## Defining YASL Schemas
 

@@ -134,6 +134,22 @@ def yasl_version() -> str:
         return "Unknown due to internal error reading pyproject.toml"
 
 def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_log: bool = False, quiet_log: bool = False, verbose_log: bool = False, output: str = "text", log_stream: StringIO = sys.stdout) -> Optional[List[BaseModel]]:
+    """
+    Evaluate YAML data against a YASL schema.
+
+    Args:
+        yasl_schema (str): Path to the YASL schema file or directory.
+        yaml_data (str): Path to the YAML data file or directory.
+        model_name (str, optional): Specific model name to use for validation. If not provided, the model will be auto-detected.
+        disable_log (bool): If True, disables all logging output.
+        quiet_log (bool): If True, suppresses all output except for errors.
+        verbose_log (bool): If True, enables verbose logging output.
+        output (str): Output format for logs. Options are 'text', 'json', or 'yaml'. Default is 'text'.
+        log_stream (StringIO): Stream to which logs will be written. Default is sys.stdout.
+
+    Returns:
+        Optional[List[BaseModel]]: List of validated Pydantic models if validation is successful, None otherwise.
+    """
 
     setup_logging(disable=disable_log, verbose=verbose_log, quiet=quiet_log, output=output, stream=log_stream)
     log = logging.getLogger("yasl")
@@ -221,6 +237,8 @@ def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_
             if data is not None:
                 results.append(data)
                 break
+            else:
+                log.debug(f"Data in '{yaml_file}' did not validate against schema '{schema_name}'.")
                 
         if len(results) == 0:
             log.error(f"❌ Validation failed. Unable to validate data in YAML file {yaml_file}.")
@@ -547,7 +565,6 @@ def load_and_validate_data_with_lines(
         return None
     except Exception as e:
         log.error(f"❌ An unexpected error occurred - {type(e)} - {e}")
-        # traceback.print_exc()
         return None
     try:
         result = model(**data)
@@ -565,19 +582,15 @@ def load_and_validate_data_with_lines(
                 log.error(f"  - Line {line} - '{path_str}' -> {error['msg']}")
             else:
                 log.error(f"  - Location '{path_str}' -> {error['msg']}")
-        # traceback.print_exc()
         return None
     except SyntaxError as e:
-        # log.error(f"❌ Error: Syntax error in data file '{path}'\n  - {e}")
         log.error(
             f"❌ SyntaxError in file '{path}' "
             f"at line {getattr(e, 'lineno', '?')}, offset {getattr(e, 'offset', '?')} - {getattr(e, 'msg', str(e))}"
         )
         if hasattr(e, "text") and e.text:
             log.error(f"  > {e.text.strip()}")
-        # traceback.print_exc()
         return None
     except Exception as e:
         log.error(f"❌ An unexpected error occurred - {type(e)} - {e}")
-        # traceback.print_exc()
         return None
