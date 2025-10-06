@@ -5,11 +5,25 @@ It supports definition and validation of data structures with primitives, enumer
 
 ## Motivation
 
-Add some thoughts on why this may be valuable.
+YAML is widely used for configuration, data exchange, and automation, but lacks native support for robust schema validation and type safety.
+YASL addresses this gap by providing:
+
+- **Reliable Data Validation:** Ensures YAML files conform to expected structures, reducing runtime errors and misconfigurations.
+- **Strong Typing:** Enables precise definition of data types, enumerations, and constraints, improving clarity and maintainability.
+- **Composability:** Supports modular schema design with namespaces and imports, making it easier to manage complex data models.
+- **Developer Productivity:** Integrates with Pydantic and Python tooling, streamlining validation, error reporting, and code generation.
+- **Documentation:** Schema definitions double as documentation, making data contracts explicit and discoverable.
+- **Extensibility:** Designed to evolve with your needs, supporting advanced validation, referential integrity, and integration with CI/CD pipelines.
+
+YASL empowers teams to confidently use YAML for critical workflows, ensuring data integrity and accelerating development.
 
 ## Usage
 
 To use YASL you must first define your data schema in a YASL file as described in the Defining YASL Schemas section below.
+
+> [!NOTE]
+> YASL schemas are pure YAML, so you can use standard YAML comments and tools for editing and validation.
+> YASL supports multi-doc formatting using the `---` document separator within a single file for both YASL schemas and YAML data.
 
 ### YASL CLI
 Once you have a schema and a corresponding data file, you run the YASL command line tool.
