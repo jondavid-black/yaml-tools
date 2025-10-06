@@ -198,7 +198,7 @@ def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_
             log.error("❌ YASL schema validation failed. Exiting.")
             registry.clear_caches()
             return None
-        yasl_results.append(yasl)
+        yasl_results.extend(yasl)
 
     results = []
     
@@ -448,39 +448,47 @@ def get_line_for_error(data, loc: Tuple[str, ...]) -> Optional[int]:
 
 
 # --- Main schema validation logic ---
-def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
+def load_and_validate_yasl_with_lines(path: str) -> List[YaslRoot]:
     log = logging.getLogger("yasl")
     log.debug(f"--- Attempting to validate schema '{path}' ---")
     try:
+        results = []
         yaml_loader = YAML(typ="rt")
+        docs = []
         with open(path, "r") as f:
-            data = yaml_loader.load(f)
-        yasl = YaslRoot(**data)
-        if yasl is None:
-            raise ValueError("Failed to parse YASL schema from data {data}")
-        if yasl.imports is not None:
-            for imp in yasl.imports:
-                imp_path = imp
-                if not Path(imp_path).exists():
-                    # try relative to current schema file
-                    imp_path = Path(path).parent / imp
-                    if not imp_path.exists():
-                        raise FileNotFoundError(f"Import file '{imp}' not found")
-                log.debug(f"Importing additional schema '{imp}' - resolved to '{imp_path}'")
-                imported_yasl = load_and_validate_yasl_with_lines(imp_path)
-                if not imported_yasl:
-                    raise ValueError(f"Failed to import YASL schema from '{imp}'")
-        if yasl.metadata is not None:
-            log.debug(f"YASL Metadata: {yasl.metadata}")
-        for namespace, yasl_item in yasl.definitions.items():
-            # generate enums first so enum map keys are known when generating types
-            if yasl_item.enums is not None:
-                gen_enum_from_enumerations(namespace, yasl_item.enums)
-        for namespace, yasl_item in yasl.definitions.items():
-            if yasl_item.types is not None:
-                gen_pydantic_type_models(namespace, yasl_item.types)
+            docs.extend(yaml_loader.load_all(f))
+
+        for data in docs:
+            yasl = YaslRoot(**data)
+            if yasl is None:
+                raise ValueError("Failed to parse YASL schema from data {data}")
+            if yasl.imports is not None:
+                for imp in yasl.imports:
+                    imp_path = imp
+                    if not Path(imp_path).exists():
+                        # try relative to current schema file
+                        imp_path = Path(path).parent / imp
+                        if not imp_path.exists():
+                            raise FileNotFoundError(f"Import file '{imp}' not found")
+                    log.debug(f"Importing additional schema '{imp}' - resolved to '{imp_path}'")
+                    imported_yasl = load_and_validate_yasl_with_lines(imp_path)
+                    if not imported_yasl:
+                        raise ValueError(f"Failed to import YASL schema from '{imp}'")
+            if yasl.metadata is not None:
+                log.debug(f"YASL Metadata: {yasl.metadata}")
+            for namespace, yasl_item in yasl.definitions.items():
+                # generate enums first so enum map keys are known when generating types
+                if yasl_item.enums is not None:
+                    gen_enum_from_enumerations(namespace, yasl_item.enums)
+            for namespace, yasl_item in yasl.definitions.items():
+                if yasl_item.types is not None:
+                    gen_pydantic_type_models(namespace, yasl_item.types)
+            results.append(yasl)
+        if not results or len(results) == 0:
+            log.error(f"❌ No YASL schema definitions found in '{path}'")
+            return None    
         log.debug("✅ YASL schema validation successful!")
-        return yasl
+        return results
     except FileNotFoundError:
         log.error(f"❌ Error - YASL schema file not found at '{path}'")
         return None
