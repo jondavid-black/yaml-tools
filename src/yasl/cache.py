@@ -1,4 +1,5 @@
 import logging
+from types import MappingProxyType
 from typing import Any, Dict, List, Type, Tuple, Optional
 from enum import Enum
 from pydantic import BaseModel
@@ -17,10 +18,12 @@ class YaslRegistry:
             cls._instance._init_registry()
         return cls._instance
 
+
     def _init_registry(self) -> None:
         self.yasl_type_defs: Dict[Tuple[str, Optional[str]], Type[BaseModel]] = {}
         self.yasl_enumerations: Dict[Tuple[str, Optional[str]], Type[Enum]] = {}
         self.unique_values_store: Dict[Tuple[str, Optional[str]], Dict[str, set]] = {}
+
 
     def register_type(self, name: str, type_def: Type[BaseModel], namespace: str) -> None:
         key = (name, namespace)
@@ -29,6 +32,12 @@ class YaslRegistry:
             raise ValueError(f"Type '{name}' already exists in namespace '{namespace}'")
         self.yasl_type_defs[key] = type_def
         log.debug(f"Registered type '{name}' in namespace '{namespace}'")
+
+
+    def get_types(self) -> Dict[Tuple[str, Optional[str]], Type[BaseModel]]:
+        # Return a read-only view of the registered types
+        return MappingProxyType(self.yasl_type_defs)
+    
 
     def get_type(self, name: str, namespace: Optional[str] = None, default_namespace: Optional[str] = None) -> Optional[Type[BaseModel]]:
         log = logging.getLogger("yasl")
@@ -52,6 +61,7 @@ class YaslRegistry:
             f"Ambiguous type name '{name}': found in multiple namespaces {matches}. Specify a namespace."
         )
 
+
     def register_enum(self, name: str, enum_def: Type[Enum], namespace: str) -> None:
         log = logging.getLogger("yasl")
         key = (name, namespace)
@@ -60,8 +70,10 @@ class YaslRegistry:
         self.yasl_enumerations[key] = enum_def
         log.debug(f"Registered enum '{name}' in namespace '{namespace}'")
 
+
     def get_enum_names(self) -> List[Tuple[str, Optional[str]]]:
         return [(n, ns) for (n, ns) in self.yasl_enumerations.keys()]
+
 
     def get_enum(self, name: str, namespace: Optional[str] = None, default_namespace: Optional[str] = None) -> Optional[Type[Enum]]:
         log = logging.getLogger("yasl")
@@ -83,6 +95,7 @@ class YaslRegistry:
         raise ValueError(
             f"Ambiguous enum name '{name}': found in multiple namespaces {matches}. Specify a namespace."
         )
+
 
     def register_unique_value(self, type_name: str, property_name: str, value: Any, type_namespace: str = None) -> None:
         if (type_name, type_namespace) not in self.unique_values_store:
@@ -112,11 +125,13 @@ class YaslRegistry:
                property_name in self.unique_values_store[type_name, type_namespace] and \
                value in self.unique_values_store[type_name, type_namespace][property_name]
 
+
     def clear_caches(self) -> None:
         """Clean up global stores after validation."""
         self.unique_values_store.clear()
         self.yasl_type_defs.clear()
         self.yasl_enumerations.clear()
+
 
 # Singleton instance
 yasl_registry = YaslRegistry()

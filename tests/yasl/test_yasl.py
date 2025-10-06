@@ -800,3 +800,18 @@ task_list:
     complete: false
 """
     run_eval_command(yaml_data, yasl, "list_of_tasks", True)
+
+def test_multi_doc_yaml():
+    yasl = PERSON_YASL
+    yaml_data= """
+name: John Doe
+age: 30
+birthday: 1975-11-01
+office: 55
+---
+name: Jane Doe
+age: 28
+birthday: 1975-11-02
+office: 54
+"""
+    run_eval_command(yaml_data, yasl, "person", True)
