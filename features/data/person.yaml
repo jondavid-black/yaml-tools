@@ -5,3 +5,11 @@ office: 55
 bio: docs/design.md
 home_directory: docs/
 website: https://192.168.1.155
+---
+name: Jane Doe
+age: 27
+birthday: 1975-11-02
+office: 54
+bio: docs/design.md
+home_directory: docs/
+website: https://192.168.1.155

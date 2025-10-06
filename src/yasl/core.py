@@ -198,49 +198,15 @@ def yasl_eval(yasl_schema: str, yaml_data: str, model_name: str = None, disable_
             log.error("❌ YASL schema validation failed. Exiting.")
             registry.clear_caches()
             return None
-        yasl_results.append(yasl)
+        yasl_results.extend(yasl)
 
     results = []
     
     for yaml_file in yaml_files:
-        candidate_model_names: List[Tuple[str, Optional[str]]] = []
-        if model_name is None:
-            yaml_loader = YAML(typ="rt")
-            with open(yaml_file, "r") as f:
-                data = yaml_loader.load(f)
-            root_keys: List[str] = list(data.keys())
-            log.debug(f"Auto-detecting schema for YAML root keys in '{yaml_file}'")
-            for yasl_result in yasl_results or []:
-                for namespace, yasl_item in yasl_result.definitions.items() or []:
-                    if yasl_item.types is None:
-                        continue
-                    for type_name, type_def in yasl_item.types.items() or []:
-                        type_def_root_keys: List[str] = [k for k in type_def.properties.keys()]
-                        if all(k in type_def_root_keys for k in root_keys):
-                            log.debug(f"Auto-detected root model '{type_name}' for YAML file '{yaml_file}'")
-                            candidate_model_names.append((type_name, namespace))
-        else:
-            registry_item = registry.get_type(model_name)
-            if registry_item:
-                candidate_model_names.append((model_name, registry_item.__module__ or None))
-            else:
-                candidate_model_names.append((model_name, None))
-
-        log.debug(f"Identified candidate model names for '{yaml_file}' - {candidate_model_names}")
-
-        for (schema_name, schema_namespace) in candidate_model_names:
-            if registry.get_type(schema_name, schema_namespace) is None:
-                continue
-            model = registry.get_type(schema_name, schema_namespace)
-            log.debug(f"Using schema '{schema_name}' for data validation of {yaml_file}.")
-            data = load_and_validate_data_with_lines(model, yaml_file)
-            if data is not None:
-                results.append(data)
-                break
-            else:
-                log.debug(f"Data in '{yaml_file}' did not validate against schema '{schema_name}'.")
+        
+        results = load_and_validate_data_with_lines(model_name, yaml_file)
                 
-        if len(results) == 0:
+        if not results or len(results) == 0:
             log.error(f"❌ Validation failed. Unable to validate data in YAML file {yaml_file}.")
             registry.clear_caches()
             return None
@@ -482,39 +448,47 @@ def get_line_for_error(data, loc: Tuple[str, ...]) -> Optional[int]:
 
 
 # --- Main schema validation logic ---
-def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
+def load_and_validate_yasl_with_lines(path: str) -> List[YaslRoot]:
     log = logging.getLogger("yasl")
     log.debug(f"--- Attempting to validate schema '{path}' ---")
     try:
+        results = []
         yaml_loader = YAML(typ="rt")
+        docs = []
         with open(path, "r") as f:
-            data = yaml_loader.load(f)
-        yasl = YaslRoot(**data)
-        if yasl is None:
-            raise ValueError("Failed to parse YASL schema from data {data}")
-        if yasl.imports is not None:
-            for imp in yasl.imports:
-                imp_path = imp
-                if not Path(imp_path).exists():
-                    # try relative to current schema file
-                    imp_path = Path(path).parent / imp
-                    if not imp_path.exists():
-                        raise FileNotFoundError(f"Import file '{imp}' not found")
-                log.debug(f"Importing additional schema '{imp}' - resolved to '{imp_path}'")
-                imported_yasl = load_and_validate_yasl_with_lines(imp_path)
-                if not imported_yasl:
-                    raise ValueError(f"Failed to import YASL schema from '{imp}'")
-        if yasl.metadata is not None:
-            log.debug(f"YASL Metadata: {yasl.metadata}")
-        for namespace, yasl_item in yasl.definitions.items():
-            # generate enums first so enum map keys are known when generating types
-            if yasl_item.enums is not None:
-                gen_enum_from_enumerations(namespace, yasl_item.enums)
-        for namespace, yasl_item in yasl.definitions.items():
-            if yasl_item.types is not None:
-                gen_pydantic_type_models(namespace, yasl_item.types)
+            docs.extend(yaml_loader.load_all(f))
+
+        for data in docs:
+            yasl = YaslRoot(**data)
+            if yasl is None:
+                raise ValueError("Failed to parse YASL schema from data {data}")
+            if yasl.imports is not None:
+                for imp in yasl.imports:
+                    imp_path = imp
+                    if not Path(imp_path).exists():
+                        # try relative to current schema file
+                        imp_path = Path(path).parent / imp
+                        if not imp_path.exists():
+                            raise FileNotFoundError(f"Import file '{imp}' not found")
+                    log.debug(f"Importing additional schema '{imp}' - resolved to '{imp_path}'")
+                    imported_yasl = load_and_validate_yasl_with_lines(imp_path)
+                    if not imported_yasl:
+                        raise ValueError(f"Failed to import YASL schema from '{imp}'")
+            if yasl.metadata is not None:
+                log.debug(f"YASL Metadata: {yasl.metadata}")
+            for namespace, yasl_item in yasl.definitions.items():
+                # generate enums first so enum map keys are known when generating types
+                if yasl_item.enums is not None:
+                    gen_enum_from_enumerations(namespace, yasl_item.enums)
+            for namespace, yasl_item in yasl.definitions.items():
+                if yasl_item.types is not None:
+                    gen_pydantic_type_models(namespace, yasl_item.types)
+            results.append(yasl)
+        if not results or len(results) == 0:
+            log.error(f"❌ No YASL schema definitions found in '{path}'")
+            return None    
         log.debug("✅ YASL schema validation successful!")
-        return yasl
+        return results
     except FileNotFoundError:
         log.error(f"❌ Error - YASL schema file not found at '{path}'")
         return None
@@ -536,20 +510,20 @@ def load_and_validate_yasl_with_lines(path: str) -> YaslRoot:
         return None
     except Exception as e:
         log.error(f"❌ An schema error occurred processing '{path}' - {type(e)} - {e}")
-        traceback.print_exc()
         return None
 
 
 # --- Main data validation logic ---
 def load_and_validate_data_with_lines(
-    model: type, path: str
+    model_name: str, path: str
 ) -> Any:
     log = logging.getLogger("yasl")
     log.debug(f"--- Attempting to validate data '{path}' ---")
+    docs = []
     try:
         yaml_loader = YAML(typ="rt")
         with open(path, "r") as f:
-            data = yaml_loader.load(f)
+            docs.extend(yaml_loader.load_all(f))
 
     except FileNotFoundError:
         log.error(f"❌ Error - File not found at '{path}'")
@@ -565,14 +539,49 @@ def load_and_validate_data_with_lines(
         return None
     except Exception as e:
         log.error(f"❌ An unexpected error occurred - {type(e)} - {e}")
+        traceback.print_exc()
         return None
     try:
-        result = model(**data)
-        if result is None:
-            log.error(f"❌ Validation failed. Unable to parse data from {json.dumps(data, indent=2)}")
-            raise ValueError(f"Failed to parse data from '{path}'")
+        results = []
+        registry = YaslRegistry()
+        for data in docs:
+            candidate_model_names: List[Tuple[str, Optional[str]]] = []
+            if model_name is None:
+                root_keys: List[str] = list(data.keys())
+                log.debug(f"Auto-detecting schema for YAML root keys in '{path}'")
+                yasl_result = registry.get_types()
+                for type_id, type_def in yasl_result.items() or []:
+                    type_name, type_namespace = type_id
+                    type_def_root_keys: List[str] = list(type_def.model_fields.keys())
+                    if all(k in type_def_root_keys for k in root_keys):
+                        log.debug(f"Auto-detected root model '{type_name}' for YAML file '{path}'")
+                        candidate_model_names.append((type_name, type_namespace))
+            else:
+                registry_item = registry.get_type(model_name)
+                if registry_item:
+                    candidate_model_names.append((model_name, registry_item.__module__ or None))
+                else:
+                    candidate_model_names.append((model_name, None))
+
+            log.debug(f"Identified candidate model names for '{path}' - {candidate_model_names}")
+
+            for (schema_name, schema_namespace) in candidate_model_names:
+                if registry.get_type(schema_name, schema_namespace) is None:
+                    continue
+                model = registry.get_type(schema_name, schema_namespace)
+                log.debug(f"Using schema '{schema_name}' for data validation of {path}.")
+                result = model(**data)
+                if result is not None:
+                    results.append(result)
+                    break
+                else:
+                    log.debug(f"Data in '{path}' did not validate against schema '{schema_name}'.")
+        
+        if not results or len(results) == 0:
+            log.error(f"❌ No valid schema found to validate data in '{path}'")
+            return None
         log.info(f"✅ YAML '{path}' data validation successful!")
-        return result
+        return results
     except ValidationError as e:
         log.error(f"❌ Validation failed with {len(e.errors())} error(s):")
         for error in e.errors():
@@ -593,4 +602,5 @@ def load_and_validate_data_with_lines(
         return None
     except Exception as e:
         log.error(f"❌ An unexpected error occurred - {type(e)} - {e}")
+        traceback.print_exc()
         return None

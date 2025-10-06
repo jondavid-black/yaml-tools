@@ -207,6 +207,96 @@ definitions:
                             - https
 """
 
+PERSON_ADDRESS_MULTI_YASL = """
+definitions:
+  acme:
+    types:
+      address:
+        description: Information about an address.
+        properties:
+          street:
+            type: str
+            description: The street address.
+            required: true
+          city:
+            type: str
+            description: The city.
+            required: false
+          zip_code:
+            type: PositiveInt
+            description: The postal code.
+            required: true
+          other:
+            type: str[]
+            description: The name by which the address is known.
+            required: true
+---
+definitions:
+  acme:
+    types:
+      person:
+        description: Information about a person.
+        properties:
+          name:
+            type: str
+            description: The person's name.
+            required: true
+          age:
+            type: int
+            description: The person's age.
+            required: true
+            ge: 18
+            lt: 125
+            whole_number: true
+            exclude:
+              - 65
+          birthday:
+            type: date
+            description: The person's birthday.
+            required: false
+            after: "1900-01-01"
+            before: "2050-12-31"
+          favorite_time:
+            type: time
+            description: The person's favorite time of day.
+            required: false
+            after: "11:00:00"
+            before: "15:00:00"
+          office:
+            type: any
+            description: The person's office location.
+            required: false
+            any_of:
+              - int
+              - bool
+          bio:
+            type: path
+            description: Path to a file containing the person's biography.
+            required: false
+            path_exists: false
+            is_file: true
+            file_ext:
+              - txt
+              - .md
+          home_directory:
+            type: path
+            description: Path to the person's home directory.
+            required: false
+            path_exists: true
+            is_dir: true
+          website:
+            type: url
+            description: The person's website.
+            required: false
+            url_protocols:
+              - http
+              - https
+          address:
+            type: address
+            description: The person's address.
+            required: false
+"""
+
 PERSON_WEBSITE_REACHABLE_YAML = """
 definitions:
     acme:

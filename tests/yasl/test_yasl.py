@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 from yasl import yasl_eval
 from yasl.cli import main as yasl_cli_main
 
-from schema_data import MARKDOWN_YASL, PERSON_WEBSITE_REACHABLE_YAML, PYDANTIC_TYPES_YASL, TASK_BAD_NAMESPACE_REF_YASL, TODO_BAD_MAP_VALUE_YASL, TODO_BOOL_MAP_YASL, TODO_DOT_NAMESPACE_YASL, TODO_ENUM_MAP_YASL, TODO_INT_MAP_YASL, TODO_MIXED_NAMESPACE_YASL, TODO_NESTED_MAP_YASL, TODO_YASL, PERSON_YASL, SHAPE_YASL, CUSTOMER_LIST_YASL, NAMESPACE_CUSTOMER_LIST_YASL
+from schema_data import MARKDOWN_YASL, PERSON_ADDRESS_MULTI_YASL, PERSON_WEBSITE_REACHABLE_YAML, PYDANTIC_TYPES_YASL, TASK_BAD_NAMESPACE_REF_YASL, TODO_BAD_MAP_VALUE_YASL, TODO_BOOL_MAP_YASL, TODO_DOT_NAMESPACE_YASL, TODO_ENUM_MAP_YASL, TODO_INT_MAP_YASL, TODO_MIXED_NAMESPACE_YASL, TODO_NESTED_MAP_YASL, TODO_YASL, PERSON_YASL, SHAPE_YASL, CUSTOMER_LIST_YASL, NAMESPACE_CUSTOMER_LIST_YASL
 
 def run_cli(args):
     filtered_args = [item for item in args if item is not None]
@@ -800,3 +800,43 @@ task_list:
     complete: false
 """
     run_eval_command(yaml_data, yasl, "list_of_tasks", True)
+
+def test_multi_doc_yaml():
+    yasl = PERSON_YASL
+    yaml_data= """
+name: John Doe
+age: 30
+birthday: 1975-11-01
+office: 55
+---
+name: Jane Doe
+age: 28
+birthday: 1975-11-02
+office: 54
+"""
+    run_eval_command(yaml_data, yasl, "person", True)
+
+def test_multi_doc_yasl():
+    yasl = PERSON_ADDRESS_MULTI_YASL
+    yaml_data= """
+name: John Doe
+age: 30
+birthday: 1975-11-01
+office: 55
+"""
+    run_eval_command(yaml_data, yasl, "person", True)
+
+def test_multi_yasl_and_multi_doc_yaml():
+    yasl = PERSON_ADDRESS_MULTI_YASL
+    yaml_data= """
+name: John Doe
+age: 30
+birthday: 1975-11-01
+office: 55
+---
+name: Jane Doe
+age: 28
+birthday: 1975-11-02
+office: 54
+"""
+    run_eval_command(yaml_data, yasl, "person", True)
