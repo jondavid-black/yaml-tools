@@ -1,5 +1,6 @@
 # --- Version Endpoint ---
 
+import sys
 from .utils import yaml_tools_version
 import os
 import tempfile
@@ -11,6 +12,7 @@ from flask_cors import CORS
 from git import Repo
 import threading
 import requests
+import argparse
 
 app = Flask(__name__)
 CORS(app)
@@ -191,9 +193,9 @@ def git_commit():
 	try:
 		commit = repo.index.commit(message)
 		return jsonify({'message': 'Committed', 'commit': commit.hexsha})
-	except Exception as e:
-	    logging.exception("Error during git commit")
-	    return jsonify({'error': 'Internal server error'}), 500
+	except Exception:
+		logging.exception("Error during git commit")
+		return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/git/push', methods=['POST'])
 def git_push():
@@ -205,7 +207,7 @@ def git_push():
 		origin = repo.remote(name='origin')
 		push_info = origin.push()[0]
 		return jsonify({'message': 'Pushed', 'summary': str(push_info.summary)})
-	except Exception as e:
+	except Exception:
 		logging.exception("Error during git push")
 		return jsonify({'error': 'Internal server error'}), 500
 
@@ -273,5 +275,22 @@ def create_pr():
 	return jsonify({'error': 'Only GitHub supported for now'}), 400
 
 # --- Main ---
+def main():
+	parser = argparse.ArgumentParser(
+		description="YAML-TOOLS API Server"
+	)
+	parser.add_argument('--port', type=int, default=5000, help='Port to run the server on')
+	parser.add_argument('--log-level', type=str, default='WARNING', help='Set log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)')
+	parser.add_argument('--version', action='store_true', help='Show version information and exit')
+	args = parser.parse_args()
+
+	if args.version:
+		print(f"yaml-tools version {yaml_tools_version()}")
+		sys.exit(0)
+
+	app.logger.setLevel(getattr(logging, args.log_level.upper(), logging.WARNING))
+	app.run(port=args.port, use_reloader=False)
+
 if __name__ == '__main__':
-	app.run(port=5001)
+	main()
+

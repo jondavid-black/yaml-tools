@@ -31,7 +31,7 @@ run_lint() {
 # Run linter and fix
 run_lint_fix() {
     echo "Running linter..."
-    uv run ruff check src tests --fix
+    uv run ruff check src tests features
     if [[ $? -ne 0 ]]; then
         echo "Error: Linter (fix) failed."
         exit 1
