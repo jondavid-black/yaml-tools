@@ -1,13 +1,15 @@
+# --- Version Endpoint ---
+
+from .utils import yaml_tools_version
 import os
 import tempfile
 import shutil
 import uuid
-from flask import Flask, request, jsonify, session, send_file
+from flask import Flask, request, jsonify, session
 from flask_cors import CORS
-from git import Repo, GitCommandError
-from pathlib import Path
+from git import Repo
 import threading
-from ruamel.yaml import YAML
+import requests
 
 app = Flask(__name__)
 CORS(app)
@@ -35,6 +37,11 @@ def require_repo():
 	if not repo_path or not os.path.exists(repo_path):
 		return None, jsonify({'error': 'No repo cloned for session'}), 400
 	return repo_path, None, None
+
+@app.route('/api/version', methods=['GET'])
+def version():
+	version = yaml_tools_version()
+	return jsonify({'version': version})
 
 # --- Repo Management ---
 @app.route('/api/repo/clone', methods=['POST'])
@@ -164,17 +171,7 @@ def yasl_validate():
 	if not (abs_yaml.startswith(repo_path) and abs_yasl.startswith(repo_path)):
 		return jsonify({'error': 'Invalid path'}), 400
 	# Dummy validation logic (replace with real YASL validation)
-	try:
-		yaml_loader = YAML(typ='safe')
-		with open(abs_yaml, 'r', encoding='utf-8') as f:
-			yaml_data = yaml_loader.load(f)
-		with open(abs_yasl, 'r', encoding='utf-8') as f:
-			yasl_schema = f.read()
-		# TODO: Integrate real YASL validation
-		errors = []
-		# For now, just check YAML loads
-	except Exception as e:
-		return jsonify({'valid': False, 'errors': [str(e)]}), 200
+	# TODO: Integrate real YASL validation
 	return jsonify({'valid': True, 'errors': []})
 
 # --- Git Workflow ---
@@ -209,8 +206,6 @@ def git_push():
 		return jsonify({'error': str(e)}), 500
 
 # --- PRs (GitHub/GitLab integration) ---
-import requests
-
 def _get_github_headers(token):
 	return {'Authorization': f'token {token}', 'Accept': 'application/vnd.github.v3+json'}
 

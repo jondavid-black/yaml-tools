@@ -11,7 +11,7 @@ usage() {
 # Run unit tests
 run_test() {
     echo "Running unit tests..."
-    uv run pytest --cov=src/yasl --cov-report=xml --cov-fail-under=75 tests/yasl
+    uv run pytest --cov=src --cov-report=xml --cov-fail-under=75 tests
     if [[ $? -ne 0 ]]; then
         echo "Error: Unit tests failed."
         exit 1
@@ -21,7 +21,7 @@ run_test() {
 # Run linter
 run_lint() {
     echo "Running linter..."
-    uv run ruff check src/yasl tests/yasl
+    uv run ruff check src tests
     if [[ $? -ne 0 ]]; then
         echo "Error: Linter failed."
         exit 1
@@ -31,7 +31,7 @@ run_lint() {
 # Run linter and fix
 run_lint_fix() {
     echo "Running linter..."
-    uv run ruff check src/yasl tests/yasl --fix
+    uv run ruff check src tests --fix
     if [[ $? -ne 0 ]]; then
         echo "Error: Linter (fix) failed."
         exit 1

@@ -1,9 +1,8 @@
 import os
 import sys
-import tempfile
-import shutil
 import pytest
-from flask import json
+import re
+from unittest import mock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../src/")))
 
@@ -79,9 +78,6 @@ def test_create_pr_no_repo(client):
     assert resp.status_code == 400
     assert 'No repo cloned' in resp.get_data(as_text=True)
 
-import io
-from unittest import mock
-import types
 
 def mock_repo(tmp_path):
     repo_dir = tmp_path / "repo"
@@ -138,10 +134,7 @@ def test_yasl_validate_success(mock_get_repo_path, client, tmp_path):
     assert resp.get_json()["valid"] is True
     assert resp.get_json()["errors"] == []
 
-from unittest import mock
-
 # --- Success tests for repo management endpoints ---
-
 @mock.patch("common.api.get_session_id", return_value="test-session")
 @mock.patch("common.api.set_repo_path")
 @mock.patch("git.Repo.clone_from")
@@ -288,3 +281,12 @@ def test_create_pr_success(mock_exists, mock_get_repo_path, mock_repo_cls, mock_
     assert "pr" in data
     assert data["pr"]["title"] == "Test PR"
     mock_requests_post.assert_called_once()
+
+@mock.patch("common.api.yaml_tools_version", return_value="0.3.3")
+def test_version_api(mock_version, client):
+    resp = client.get('/api/version')
+    assert resp.status_code == 200
+    data = resp.get_json()
+    # Check for semantic versioning: major.minor.patch
+    assert re.match(r"^\d+\.\d+\.\d+$", data["version"])
+    mock_version.assert_called_once()
