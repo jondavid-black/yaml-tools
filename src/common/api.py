@@ -85,7 +85,7 @@ def checkout_branch():
 	try:
 		repo.git.checkout(branch)
 		return jsonify({'message': f'Checked out {branch}'})
-	except Exception as e:
+	except Exception:
 		logging.exception(f"Error checking out branch '{branch}' in repo at {repo_path}")
 		return jsonify({'error': 'Internal error checking out branch'}), 500
 
@@ -103,7 +103,7 @@ def create_branch():
 		new_branch = repo.create_head(branch)
 		new_branch.checkout()
 		return jsonify({'message': f'Created and checked out {branch}'})
-	except Exception as e:
+	except Exception:
 		logging.exception(f"Error creating and checking out branch '{branch}' in repo at {repo_path}")
 		return jsonify({'error': 'Internal error creating branch'}), 500
 
