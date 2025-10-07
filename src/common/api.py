@@ -205,7 +205,8 @@ def git_push():
 		push_info = origin.push()[0]
 		return jsonify({'message': 'Pushed', 'summary': str(push_info.summary)})
 	except Exception as e:
-		return jsonify({'error': str(e)}), 500
+		logging.exception("Error during git push")
+		return jsonify({'error': 'Internal server error'}), 500
 
 # --- PRs (GitHub/GitLab integration) ---
 def _get_github_headers(token):
