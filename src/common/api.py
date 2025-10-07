@@ -192,7 +192,8 @@ def git_commit():
 		commit = repo.index.commit(message)
 		return jsonify({'message': 'Committed', 'commit': commit.hexsha})
 	except Exception as e:
-	    return jsonify({'error': str(e)}), 500
+	    logging.exception("Error during git commit")
+	    return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/git/push', methods=['POST'])
 def git_push():
