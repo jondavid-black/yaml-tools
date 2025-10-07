@@ -5,6 +5,7 @@ import os
 import tempfile
 import shutil
 import uuid
+import logging
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from git import Repo
@@ -57,7 +58,8 @@ def clone_repo():
 		return jsonify({'message': 'Cloned', 'session_id': get_session_id()})
 	except Exception as e:
 		shutil.rmtree(temp_dir, ignore_errors=True)
-		return jsonify({'error': str(e)}), 500
+		logging.exception(f"Error cloning repo from {git_url} into {temp_dir}")
+		return jsonify({'error': 'Internal error cloning repo'}), 500
 
 @app.route('/api/repo/branches', methods=['GET'])
 def list_branches():
