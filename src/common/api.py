@@ -102,7 +102,8 @@ def create_branch():
 		new_branch.checkout()
 		return jsonify({'message': f'Created and checked out {branch}'})
 	except Exception as e:
-		return jsonify({'error': str(e)}), 500
+		logging.exception(f"Error creating and checking out branch '{branch}' in repo at {repo_path}")
+		return jsonify({'error': 'Internal error creating branch'}), 500
 
 # --- File System ---
 def _find_yaml_files(repo_path):
