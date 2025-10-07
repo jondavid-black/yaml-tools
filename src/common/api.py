@@ -84,7 +84,8 @@ def checkout_branch():
 		repo.git.checkout(branch)
 		return jsonify({'message': f'Checked out {branch}'})
 	except Exception as e:
-		return jsonify({'error': str(e)}), 500
+		logging.exception(f"Error checking out branch '{branch}' in repo at {repo_path}")
+		return jsonify({'error': 'Internal error checking out branch'}), 500
 
 @app.route('/api/repo/branch/create', methods=['POST'])
 def create_branch():
