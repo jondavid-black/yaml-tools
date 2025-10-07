@@ -56,7 +56,7 @@ def clone_repo():
 		Repo.clone_from(git_url, temp_dir)
 		set_repo_path(temp_dir)
 		return jsonify({'message': 'Cloned', 'session_id': get_session_id()})
-	except Exception as e:
+	except Exception:
 		shutil.rmtree(temp_dir, ignore_errors=True)
 		logging.exception(f"Error cloning repo from {git_url} into {temp_dir}")
 		return jsonify({'error': 'Internal error cloning repo'}), 500
