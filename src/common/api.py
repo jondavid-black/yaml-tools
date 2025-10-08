@@ -1,3 +1,4 @@
+
 # --- Version Endpoint ---
 
 import sys
@@ -18,28 +19,49 @@ app = Flask(__name__)
 CORS(app)
 app.secret_key = os.environ.get('YAML_TOOLS_SECRET_KEY', 'yamltools-secret')
 
-# Session repo management
-_session_repos = {}
+
+# Session repo management (track repo name and path)
+_session_repos = {}  # {session_id: {'name': repo_name, 'path': repo_path}}
 _lock = threading.Lock()
+
 def get_session_id():
 	if 'session_id' not in session:
 		session['session_id'] = str(uuid.uuid4())
 	return session['session_id']
 
-def get_repo_path():
+def _parse_repo_name(git_url):
+	# Extract repo name from git url
+	if git_url.endswith('.git'):
+		git_url = git_url[:-4]
+	return git_url.rstrip('/').split('/')[-1]
+
+def set_repo(name, path):
+	sid = get_session_id()
+	with _lock:
+		_session_repos[sid] = {'name': name, 'path': path}
+
+def get_repo():
 	sid = get_session_id()
 	with _lock:
 		return _session_repos.get(sid)
-def set_repo_path(path):
-	sid = get_session_id()
-	with _lock:
-		_session_repos[sid] = path
+
+def get_repo_path():
+	repo = get_repo()
+	if repo:
+		return repo['path']
+	return None
+
+def get_repo_name():
+	repo = get_repo()
+	if repo:
+		return repo['name']
+	return None
 
 def require_repo():
-	repo_path = get_repo_path()
-	if not repo_path or not os.path.exists(repo_path):
+	repo = get_repo()
+	if not repo or not os.path.exists(repo['path']):
 		return None, jsonify({'error': 'No repo cloned for session'}), 400
-	return repo_path, None, None
+	return repo['path'], None, None
 
 @app.route('/api/version', methods=['GET'])
 def version():
@@ -47,6 +69,34 @@ def version():
 	return jsonify({'version': version})
 
 # --- Repo Management ---
+
+# List all repo names for all sessions (for demo, only current session's repo is returned)
+@app.route('/api/repos', methods=['GET'])
+def get_repos():
+	with _lock:
+		# Only return the current session's repo name for privacy
+		repo = _session_repos.get(get_session_id())
+		if repo:
+			return jsonify({'repos': [repo['name']]})
+		else:
+			return jsonify({'repos': []})
+
+# Select a repo by name (for multi-repo support; here, only one per session)
+@app.route('/api/repo/select', methods=['POST'])
+def select_repo():
+	data = request.json
+	repo_name = data.get('name')
+	if not repo_name:
+		return jsonify({'error': 'name required'}), 400
+	with _lock:
+		# Only one repo per session in this implementation
+		repo = _session_repos.get(get_session_id())
+		if repo and repo['name'] == repo_name:
+			return jsonify({'message': f'Selected repo {repo_name}'})
+		else:
+			return jsonify({'error': 'Repo not found for session'}), 404
+
+
 @app.route('/api/repo/clone', methods=['POST'])
 def clone_repo():
 	data = request.json
@@ -54,10 +104,11 @@ def clone_repo():
 	if not git_url:
 		return jsonify({'error': 'git_url required'}), 400
 	temp_dir = tempfile.mkdtemp(prefix='yamltools_')
+	repo_name = _parse_repo_name(git_url)
 	try:
 		Repo.clone_from(git_url, temp_dir)
-		set_repo_path(temp_dir)
-		return jsonify({'message': 'Cloned', 'session_id': get_session_id()})
+		set_repo(repo_name, temp_dir)
+		return jsonify({'message': 'Cloned', 'session_id': get_session_id(), 'repo_name': repo_name})
 	except Exception:
 		shutil.rmtree(temp_dir, ignore_errors=True)
 		logging.exception(f"Error cloning repo from {git_url} into {temp_dir}")

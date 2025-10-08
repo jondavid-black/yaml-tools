@@ -86,49 +86,53 @@ def mock_repo(tmp_path):
     (repo_dir / ".git").mkdir()
     return str(repo_dir)
 
-@mock.patch("common.api.get_repo_path")
-def test_list_files_with_yaml_files(mock_get_repo_path, client, tmp_path):
+
+@mock.patch("common.api.get_repo")
+def test_list_files_with_yaml_files(mock_get_repo, client, tmp_path):
     repo_dir = tmp_path / "repo"
     repo_dir.mkdir()
     (repo_dir / "foo.yaml").write_text("foo: bar")
     (repo_dir / "bar.yasl").write_text("schema: true")
     (repo_dir / ".git").mkdir()
-    mock_get_repo_path.return_value = str(repo_dir)
+    mock_get_repo.return_value = {"name": "repo", "path": str(repo_dir)}
     resp = client.get("/api/files")
     assert resp.status_code == 200
     data = resp.get_json()
     assert "foo.yaml" in data["files"]
     assert "bar.yasl" in data["files"]
 
-@mock.patch("common.api.get_repo_path")
-def test_get_file_success(mock_get_repo_path, client, tmp_path):
+
+@mock.patch("common.api.get_repo")
+def test_get_file_success(mock_get_repo, client, tmp_path):
     repo_dir = tmp_path / "repo"
     repo_dir.mkdir()
     (repo_dir / "foo.yaml").write_text("foo: bar")
     (repo_dir / ".git").mkdir()
-    mock_get_repo_path.return_value = str(repo_dir)
+    mock_get_repo.return_value = {"name": "repo", "path": str(repo_dir)}
     resp = client.get("/api/file?path=foo.yaml")
     assert resp.status_code == 200
     assert "foo: bar" in resp.get_json()["content"]
 
-@mock.patch("common.api.get_repo_path")
-def test_save_file_success(mock_get_repo_path, client, tmp_path):
+
+@mock.patch("common.api.get_repo")
+def test_save_file_success(mock_get_repo, client, tmp_path):
     repo_dir = tmp_path / "repo"
     repo_dir.mkdir()
     (repo_dir / ".git").mkdir()
-    mock_get_repo_path.return_value = str(repo_dir)
+    mock_get_repo.return_value = {"name": "repo", "path": str(repo_dir)}
     resp = client.post("/api/file?path=foo.yaml", json={"content": "foo: bar"})
     assert resp.status_code == 200
     assert (repo_dir / "foo.yaml").read_text() == "foo: bar"
 
-@mock.patch("common.api.get_repo_path")
-def test_yasl_validate_success(mock_get_repo_path, client, tmp_path):
+
+@mock.patch("common.api.get_repo")
+def test_yasl_validate_success(mock_get_repo, client, tmp_path):
     repo_dir = tmp_path / "repo"
     repo_dir.mkdir()
     (repo_dir / "foo.yaml").write_text("foo: bar")
     (repo_dir / "foo.yasl").write_text("schema: true")
     (repo_dir / ".git").mkdir()
-    mock_get_repo_path.return_value = str(repo_dir)
+    mock_get_repo.return_value = {"name": "repo", "path": str(repo_dir)}
     resp = client.post("/api/yasl/validate", json={"yaml_path": "foo.yaml", "yasl_path": "foo.yasl"})
     assert resp.status_code == 200
     assert resp.get_json()["valid"] is True
@@ -136,22 +140,23 @@ def test_yasl_validate_success(mock_get_repo_path, client, tmp_path):
 
 # --- Success tests for repo management endpoints ---
 @mock.patch("common.api.get_session_id", return_value="test-session")
-@mock.patch("common.api.set_repo_path")
 @mock.patch("git.Repo.clone_from")
-def test_clone_repo_success(mock_clone_from, mock_set_repo_path, mock_get_session_id, client):
+@mock.patch("common.api.set_repo")
+def test_clone_repo_success(mock_set_repo, mock_clone_from, mock_get_session_id, client):
     git_url = "https://github.com/example/repo.git"
     resp = client.post('/api/repo/clone', json={'git_url': git_url})
     assert resp.status_code == 200
     data = resp.get_json()
     assert data["message"] == "Cloned"
     assert data["session_id"] == "test-session"
+    assert data["repo_name"] == "repo"
     mock_clone_from.assert_called_once_with(git_url, mock.ANY)
-    mock_set_repo_path.assert_called_once()
+    mock_set_repo.assert_called_once()
 
 @mock.patch("common.api.Repo")
-@mock.patch("common.api.get_repo_path")
+@mock.patch("common.api.get_repo")
 @mock.patch("os.path.exists", return_value=True)
-def test_list_branches_success(mock_exists, mock_get_repo_path, mock_repo_cls, client):
+def test_list_branches_success(mock_exists, mock_get_repo, mock_repo_cls, client):
     mock_repo = mock.Mock()
     mock_head_main = mock.Mock()
     mock_head_main.name = "main"
@@ -160,7 +165,7 @@ def test_list_branches_success(mock_exists, mock_get_repo_path, mock_repo_cls, c
     mock_repo.heads = [mock_head_main, mock_head_dev]
     mock_repo.active_branch.name = "main"
     mock_repo_cls.return_value = mock_repo
-    mock_get_repo_path.return_value = "/fake/repo"
+    mock_get_repo.return_value = {"name": "repo", "path": "/fake/repo"}
     resp = client.get('/api/repo/branches')
     assert resp.status_code == 200
     data = resp.get_json()
@@ -168,28 +173,28 @@ def test_list_branches_success(mock_exists, mock_get_repo_path, mock_repo_cls, c
     assert data["current"] == "main"
 
 @mock.patch("common.api.Repo")
-@mock.patch("common.api.get_repo_path")
+@mock.patch("common.api.get_repo")
 @mock.patch("os.path.exists", return_value=True)
-def test_checkout_branch_success(mock_exists, mock_get_repo_path, mock_repo_cls, client):
+def test_checkout_branch_success(mock_exists, mock_get_repo, mock_repo_cls, client):
     mock_repo = mock.Mock()
     mock_repo.git.checkout.return_value = None
     mock_repo_cls.return_value = mock_repo
-    mock_get_repo_path.return_value = "/fake/repo"
+    mock_get_repo.return_value = {"name": "repo", "path": "/fake/repo"}
     resp = client.post('/api/repo/branch/checkout', json={'branch': 'dev'})
     assert resp.status_code == 200
     assert 'Checked out dev' in resp.get_json()['message']
     mock_repo.git.checkout.assert_called_once_with('dev')
 
 @mock.patch("common.api.Repo")
-@mock.patch("common.api.get_repo_path")
+@mock.patch("common.api.get_repo")
 @mock.patch("os.path.exists", return_value=True)
-def test_create_branch_success(mock_exists, mock_get_repo_path, mock_repo_cls, client):
+def test_create_branch_success(mock_exists, mock_get_repo, mock_repo_cls, client):
     mock_repo = mock.Mock()
     mock_branch = mock.Mock()
     mock_repo.create_head.return_value = mock_branch
     mock_branch.checkout.return_value = None
     mock_repo_cls.return_value = mock_repo
-    mock_get_repo_path.return_value = "/fake/repo"
+    mock_get_repo.return_value = {"name": "repo", "path": "/fake/repo"}
     resp = client.post('/api/repo/branch/create', json={'branch': 'feature'})
     assert resp.status_code == 200
     assert 'Created and checked out feature' in resp.get_json()['message']
@@ -197,15 +202,15 @@ def test_create_branch_success(mock_exists, mock_get_repo_path, mock_repo_cls, c
     mock_branch.checkout.assert_called_once()
 
 @mock.patch("common.api.Repo")
-@mock.patch("common.api.get_repo_path")
+@mock.patch("common.api.get_repo")
 @mock.patch("os.path.exists", return_value=True)
-def test_git_commit_success(mock_exists, mock_get_repo_path, mock_repo_cls, client):
+def test_git_commit_success(mock_exists, mock_get_repo, mock_repo_cls, client):
     mock_repo = mock.Mock()
     mock_commit = mock.Mock()
     mock_commit.hexsha = "abc123"
     mock_repo.index.commit.return_value = mock_commit
     mock_repo_cls.return_value = mock_repo
-    mock_get_repo_path.return_value = "/fake/repo"
+    mock_get_repo.return_value = {"name": "repo", "path": "/fake/repo"}
     resp = client.post('/api/git/commit', json={'message': 'test commit'})
     assert resp.status_code == 200
     data = resp.get_json()
@@ -215,9 +220,9 @@ def test_git_commit_success(mock_exists, mock_get_repo_path, mock_repo_cls, clie
     mock_repo.index.commit.assert_called_once_with('test commit')
 
 @mock.patch("common.api.Repo")
-@mock.patch("common.api.get_repo_path")
+@mock.patch("common.api.get_repo")
 @mock.patch("os.path.exists", return_value=True)
-def test_git_push_success(mock_exists, mock_get_repo_path, mock_repo_cls, client):
+def test_git_push_success(mock_exists, mock_get_repo, mock_repo_cls, client):
     mock_repo = mock.Mock()
     mock_origin = mock.Mock()
     mock_push_info = mock.Mock()
@@ -225,7 +230,7 @@ def test_git_push_success(mock_exists, mock_get_repo_path, mock_repo_cls, client
     mock_origin.push.return_value = [mock_push_info]
     mock_repo.remote.return_value = mock_origin
     mock_repo_cls.return_value = mock_repo
-    mock_get_repo_path.return_value = "/fake/repo"
+    mock_get_repo.return_value = {"name": "repo", "path": "/fake/repo"}
     resp = client.post('/api/git/push')
     assert resp.status_code == 200
     data = resp.get_json()
@@ -236,13 +241,13 @@ def test_git_push_success(mock_exists, mock_get_repo_path, mock_repo_cls, client
 
 @mock.patch("common.api.requests.get")
 @mock.patch("common.api.Repo")
-@mock.patch("common.api.get_repo_path")
+@mock.patch("common.api.get_repo")
 @mock.patch("os.path.exists", return_value=True)
-def test_list_prs_success(mock_exists, mock_get_repo_path, mock_repo_cls, mock_requests_get, client):
+def test_list_prs_success(mock_exists, mock_get_repo, mock_repo_cls, mock_requests_get, client):
     mock_repo = mock.Mock()
     mock_repo.remotes.origin.url = "https://github.com/example/repo.git"
     mock_repo_cls.return_value = mock_repo
-    mock_get_repo_path.return_value = "/fake/repo"
+    mock_get_repo.return_value = {"name": "repo", "path": "/fake/repo"}
     mock_response = mock.Mock()
     mock_response.status_code = 200
     mock_response.json.return_value = [{"id": 1, "title": "Test PR"}]
@@ -256,13 +261,13 @@ def test_list_prs_success(mock_exists, mock_get_repo_path, mock_repo_cls, mock_r
 
 @mock.patch("common.api.requests.post")
 @mock.patch("common.api.Repo")
-@mock.patch("common.api.get_repo_path")
+@mock.patch("common.api.get_repo")
 @mock.patch("os.path.exists", return_value=True)
-def test_create_pr_success(mock_exists, mock_get_repo_path, mock_repo_cls, mock_requests_post, client):
+def test_create_pr_success(mock_exists, mock_get_repo, mock_repo_cls, mock_requests_post, client):
     mock_repo = mock.Mock()
     mock_repo.remotes.origin.url = "https://github.com/example/repo.git"
     mock_repo_cls.return_value = mock_repo
-    mock_get_repo_path.return_value = "/fake/repo"
+    mock_get_repo.return_value = {"name": "repo", "path": "/fake/repo"}
     mock_response = mock.Mock()
     mock_response.status_code = 201
     mock_response.json.return_value = {"id": 1, "title": "Test PR"}
@@ -290,3 +295,30 @@ def test_version_api(mock_version, client):
     # Check for semantic versioning: major.minor.patch
     assert re.match(r"^\d+\.\d+\.\d+$", data["version"])
     mock_version.assert_called_once()
+
+
+@mock.patch("common.api._session_repos", {"sid1": {"name": "repo1", "path": "/tmp/repo1"}})
+@mock.patch("common.api.get_session_id", return_value="sid1")
+def test_get_repos(mock_get_session_id, client):
+    resp = client.get('/api/repos')
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert "repos" in data
+    assert data["repos"] == ["repo1"]
+
+
+@mock.patch("common.api._session_repos", {"sid1": {"name": "repo1", "path": "/tmp/repo1"}})
+@mock.patch("common.api.get_session_id", return_value="sid1")
+def test_select_repo_success(mock_get_session_id, client):
+    resp = client.post('/api/repo/select', json={"name": "repo1"})
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["message"] == "Selected repo repo1"
+
+@mock.patch("common.api._session_repos", {"sid1": {"name": "repo1", "path": "/tmp/repo1"}})
+@mock.patch("common.api.get_session_id", return_value="sid1")
+def test_select_repo_not_found(mock_get_session_id, client):
+    resp = client.post('/api/repo/select', json={"name": "repo2"})
+    assert resp.status_code == 404
+    data = resp.get_json()
+    assert data["error"] == "Repo not found for session"
