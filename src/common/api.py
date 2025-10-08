@@ -1,0 +1,349 @@
+
+# --- Version Endpoint ---
+
+import sys
+from .utils import yaml_tools_version
+import os
+import tempfile
+import shutil
+import uuid
+import logging
+from flask import Flask, request, jsonify, session
+from flask_cors import CORS
+from git import Repo
+import threading
+import requests
+import argparse
+
+app = Flask(__name__)
+CORS(app)
+app.secret_key = os.environ.get('YAML_TOOLS_SECRET_KEY', 'yamltools-secret')
+
+
+# Session repo management (track repo name and path)
+_session_repos = {}  # {session_id: {'name': repo_name, 'path': repo_path}}
+_lock = threading.Lock()
+
+def get_session_id():
+	if 'session_id' not in session:
+		session['session_id'] = str(uuid.uuid4())
+	return session['session_id']
+
+def _parse_repo_name(git_url):
+	# Extract repo name from git url
+	if git_url.endswith('.git'):
+		git_url = git_url[:-4]
+	return git_url.rstrip('/').split('/')[-1]
+
+def set_repo(name, path):
+	sid = get_session_id()
+	with _lock:
+		_session_repos[sid] = {'name': name, 'path': path}
+
+def get_repo():
+	sid = get_session_id()
+	with _lock:
+		return _session_repos.get(sid)
+
+def get_repo_path():
+	repo = get_repo()
+	if repo:
+		return repo['path']
+	return None
+
+def get_repo_name():
+	repo = get_repo()
+	if repo:
+		return repo['name']
+	return None
+
+def require_repo():
+	repo = get_repo()
+	if not repo or not os.path.exists(repo['path']):
+		return None, jsonify({'error': 'No repo cloned for session'}), 400
+	return repo['path'], None, None
+
+@app.route('/api/version', methods=['GET'])
+def version():
+	version = yaml_tools_version()
+	return jsonify({'version': version})
+
+# --- Repo Management ---
+
+# List all repo names for all sessions (for demo, only current session's repo is returned)
+@app.route('/api/repos', methods=['GET'])
+def get_repos():
+	with _lock:
+		# Only return the current session's repo name for privacy
+		repo = _session_repos.get(get_session_id())
+		if repo:
+			return jsonify({'repos': [repo['name']]})
+		else:
+			return jsonify({'repos': []})
+
+# Select a repo by name (for multi-repo support; here, only one per session)
+@app.route('/api/repo/select', methods=['POST'])
+def select_repo():
+	data = request.json
+	repo_name = data.get('name')
+	if not repo_name:
+		return jsonify({'error': 'name required'}), 400
+	with _lock:
+		# Only one repo per session in this implementation
+		repo = _session_repos.get(get_session_id())
+		if repo and repo['name'] == repo_name:
+			return jsonify({'message': f'Selected repo {repo_name}'})
+		else:
+			return jsonify({'error': 'Repo not found for session'}), 404
+
+
+@app.route('/api/repo/clone', methods=['POST'])
+def clone_repo():
+	data = request.json
+	git_url = data.get('git_url')
+	if not git_url:
+		return jsonify({'error': 'git_url required'}), 400
+	temp_dir = tempfile.mkdtemp(prefix='yamltools_')
+	repo_name = _parse_repo_name(git_url)
+	try:
+		Repo.clone_from(git_url, temp_dir)
+		set_repo(repo_name, temp_dir)
+		return jsonify({'message': 'Cloned', 'session_id': get_session_id(), 'repo_name': repo_name})
+	except Exception:
+		shutil.rmtree(temp_dir, ignore_errors=True)
+		logging.exception(f"Error cloning repo from {git_url} into {temp_dir}")
+		return jsonify({'error': 'Internal error cloning repo'}), 500
+
+@app.route('/api/repo/branches', methods=['GET'])
+def list_branches():
+	repo_path, err, code = require_repo()
+	if err:
+		return err, code
+	repo = Repo(repo_path)
+	branches = [h.name for h in repo.heads]
+	return jsonify({'branches': branches, 'current': repo.active_branch.name})
+
+@app.route('/api/repo/branch/checkout', methods=['POST'])
+def checkout_branch():
+	repo_path, err, code = require_repo()
+	if err:
+		return err, code
+	data = request.json
+	branch = data.get('branch')
+	if not branch:
+		return jsonify({'error': 'branch required'}), 400
+	repo = Repo(repo_path)
+	try:
+		repo.git.checkout(branch)
+		return jsonify({'message': f'Checked out {branch}'})
+	except Exception:
+		logging.exception(f"Error checking out branch '{branch}' in repo at {repo_path}")
+		return jsonify({'error': 'Internal error checking out branch'}), 500
+
+@app.route('/api/repo/branch/create', methods=['POST'])
+def create_branch():
+	repo_path, err, code = require_repo()
+	if err:
+		return err, code
+	data = request.json
+	branch = data.get('branch')
+	if not branch:
+		return jsonify({'error': 'branch required'}), 400
+	repo = Repo(repo_path)
+	try:
+		new_branch = repo.create_head(branch)
+		new_branch.checkout()
+		return jsonify({'message': f'Created and checked out {branch}'})
+	except Exception:
+		logging.exception(f"Error creating and checking out branch '{branch}' in repo at {repo_path}")
+		return jsonify({'error': 'Internal error creating branch'}), 500
+
+# --- File System ---
+def _find_yaml_files(repo_path):
+	result = []
+	for root, dirs, files in os.walk(repo_path):
+		for f in files:
+			if f.endswith(('.yasl', '.yml', '.yaml')):
+				rel = os.path.relpath(os.path.join(root, f), repo_path)
+				result.append(rel)
+	return result
+
+@app.route('/api/files', methods=['GET'])
+def list_files():
+	repo_path, err, code = require_repo()
+	if err:
+		return err, code
+	files = _find_yaml_files(repo_path)
+	return jsonify({'files': files})
+@app.route('/api/file', methods=['GET'])
+def get_file():
+	repo_path, err, code = require_repo()
+	if err:
+		return err, code
+	path = request.args.get('path')
+	if not path:
+		return jsonify({'error': 'path required'}), 400
+	abs_path = os.path.abspath(os.path.join(repo_path, path))
+	if not abs_path.startswith(repo_path):
+		return jsonify({'error': 'Invalid path'}), 400
+	if not os.path.exists(abs_path):
+		return jsonify({'error': 'File not found'}), 404
+	with open(abs_path, 'r', encoding='utf-8') as f:
+		content = f.read()
+	return jsonify({'content': content})
+
+@app.route('/api/file', methods=['POST'])
+def save_file():
+	repo_path, err, code = require_repo()
+	if err:
+		return err, code
+	path = request.args.get('path')
+	if not path:
+		return jsonify({'error': 'path required'}), 400
+	abs_path = os.path.abspath(os.path.join(repo_path, path))
+	if not abs_path.startswith(repo_path):
+		return jsonify({'error': 'Invalid path'}), 400
+	data = request.json
+	content = data.get('content')
+	if content is None:
+		return jsonify({'error': 'content required'}), 400
+	os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+	with open(abs_path, 'w', encoding='utf-8') as f:
+		f.write(content)
+	return jsonify({'message': 'File saved'})
+
+# --- Schema & Validation ---
+@app.route('/api/yasl/validate', methods=['POST'])
+def yasl_validate():
+	repo_path, err, code = require_repo()
+	if err:
+		return err, code
+	data = request.json
+	yaml_path = data.get('yaml_path')
+	yasl_path = data.get('yasl_path')
+	if not yaml_path or not yasl_path:
+		return jsonify({'error': 'yaml_path and yasl_path required'}), 400
+	abs_yaml = os.path.abspath(os.path.join(repo_path, yaml_path))
+	abs_yasl = os.path.abspath(os.path.join(repo_path, yasl_path))
+	if not (abs_yaml.startswith(repo_path) and abs_yasl.startswith(repo_path)):
+		return jsonify({'error': 'Invalid path'}), 400
+	# Dummy validation logic (replace with real YASL validation)
+	# TODO: Integrate real YASL validation
+	return jsonify({'valid': True, 'errors': []})
+
+# --- Git Workflow ---
+@app.route('/api/git/commit', methods=['POST'])
+def git_commit():
+	repo_path, err, code = require_repo()
+	if err:
+		return err, code
+	data = request.json
+	message = data.get('message')
+	if not message:
+		return jsonify({'error': 'message required'}), 400
+	repo = Repo(repo_path)
+	repo.git.add(A=True)
+	try:
+		commit = repo.index.commit(message)
+		return jsonify({'message': 'Committed', 'commit': commit.hexsha})
+	except Exception:
+		logging.exception("Error during git commit")
+		return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/git/push', methods=['POST'])
+def git_push():
+	repo_path, err, code = require_repo()
+	if err:
+		return err, code
+	repo = Repo(repo_path)
+	try:
+		origin = repo.remote(name='origin')
+		push_info = origin.push()[0]
+		return jsonify({'message': 'Pushed', 'summary': str(push_info.summary)})
+	except Exception:
+		logging.exception("Error during git push")
+		return jsonify({'error': 'Internal server error'}), 500
+
+# --- PRs (GitHub/GitLab integration) ---
+def _get_github_headers(token):
+	return {'Authorization': f'token {token}', 'Accept': 'application/vnd.github.v3+json'}
+
+@app.route('/api/git/prs', methods=['GET'])
+def list_prs():
+	repo_path, err, code = require_repo()
+	if err:
+		return err, code
+	provider = request.args.get('provider', 'github')
+	token = request.args.get('token')
+	if not token:
+		return jsonify({'error': 'token required'}), 400
+	repo = Repo(repo_path)
+	url = repo.remotes.origin.url
+	if provider == 'github':
+		# Parse owner/repo from url
+		if url.startswith('git@'):
+			_, path = url.split(':', 1)
+		elif url.startswith('https://'):
+			path = url.split('github.com/', 1)[-1]
+		else:
+			return jsonify({'error': 'Unsupported repo url'}), 400
+		owner_repo = path.replace('.git', '').strip()
+		api_url = f'https://api.github.com/repos/{owner_repo}/pulls'
+		resp = requests.get(api_url, headers=_get_github_headers(token))
+		if resp.status_code != 200:
+			return jsonify({'error': resp.text}), resp.status_code
+		return jsonify({'prs': resp.json()})
+	return jsonify({'error': 'Only GitHub supported for now'}), 400
+
+@app.route('/api/git/pr/create', methods=['POST'])
+def create_pr():
+	repo_path, err, code = require_repo()
+	if err:
+		return err, code
+	data = request.json
+	provider = data.get('provider', 'github')
+	token = data.get('token')
+	title = data.get('title')
+	body = data.get('body', '')
+	base = data.get('base', 'main')
+	head = data.get('head')
+	if not (token and title and head):
+		return jsonify({'error': 'token, title, and head required'}), 400
+	repo = Repo(repo_path)
+	url = repo.remotes.origin.url
+	if provider == 'github':
+		if url.startswith('git@'):
+			_, path = url.split(':', 1)
+		elif url.startswith('https://'):
+			path = url.split('github.com/', 1)[-1]
+		else:
+			return jsonify({'error': 'Unsupported repo url'}), 400
+		owner_repo = path.replace('.git', '').strip()
+		api_url = f'https://api.github.com/repos/{owner_repo}/pulls'
+		payload = {'title': title, 'body': body, 'head': head, 'base': base}
+		resp = requests.post(api_url, headers=_get_github_headers(token), json=payload)
+		if resp.status_code not in (200, 201):
+			return jsonify({'error': resp.text}), resp.status_code
+		return jsonify({'pr': resp.json()})
+	return jsonify({'error': 'Only GitHub supported for now'}), 400
+
+# --- Main ---
+def main():
+	parser = argparse.ArgumentParser(
+		description="YAML-TOOLS API Server"
+	)
+	parser.add_argument('--port', type=int, default=5000, help='Port to run the server on')
+	parser.add_argument('--log-level', type=str, default='WARNING', help='Set log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)')
+	parser.add_argument('--version', action='store_true', help='Show version information and exit')
+	args = parser.parse_args()
+
+	if args.version:
+		print(f"yaml-tools version {yaml_tools_version()}")
+		sys.exit(0)
+
+	app.logger.setLevel(getattr(logging, args.log_level.upper(), logging.WARNING))
+	app.run(port=args.port, use_reloader=False)
+
+if __name__ == '__main__':
+	main()
+

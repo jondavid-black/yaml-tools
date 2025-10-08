@@ -1,4 +1,4 @@
-name: YASL CI
+name: Yaml-Tools CI
 permissions:
   contents: read
 
@@ -11,7 +11,7 @@ on:
       - main
 
 jobs:
-  yasl-ci:
+  yt-ci:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -46,7 +46,7 @@ jobs:
           uv run yasl --help
 
   check-build:
-    needs: [yasl-ci]
+    needs: [yt-ci]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository

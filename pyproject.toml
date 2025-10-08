@@ -1,6 +1,6 @@
 [project]
 name = "yaml-tools"
-version = "0.3.3"
+version = "0.3.4"
 description = "A suite of tools to advance your usage of yaml.  YASL provides schema definition and verification.  YAQL let's you query your yalm as if it were a database.  YARL provides analysis and reporting.  And YATL allows you to transform yaml from one structure (schema) to another."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -14,6 +14,9 @@ dependencies = [
     "cucumber-tag-expressions==6.2.0",
     "dnspython==2.8.0",
     "email-validator==2.3.0",
+    "flask>=3.1.2",
+    "flask-cors>=6.0.1",
+    "gitpython>=3.1.45",
     "idna==3.10",
     "iniconfig==2.1.0",
     "markdown-it-py==4.0.0",
@@ -49,3 +52,4 @@ yasl = "yasl.cli:main"
 yaql = "yaql.cli:main"
 yarl = "yarl.cli:main"
 yatl = "yatl.cli:main"
+yt-serve = "common.api:main"
