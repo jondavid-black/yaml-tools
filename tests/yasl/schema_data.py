@@ -369,14 +369,14 @@ definitions:
             - orientation
           if_then:
             - eval: type
-              value: 
+              value:
                 - circle
               present:
                 - radius
               absent:
                 - side_length
             - eval: type
-              value: 
+              value:
                 - square
                 - triangle
               present:

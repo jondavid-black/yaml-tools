@@ -32,9 +32,13 @@ jobs:
         run: |
           ./ci.sh test
 
-      - name: Check formatting with ruff
+      - name: Check linting with ruff
         run: |
           ./ci.sh lint
+
+      - name: Check formatter with ruff
+        run: |
+          ./ci.sh format
 
       - name: Run BDD tests with Behave
         run: |
@@ -44,6 +48,10 @@ jobs:
         run: |
           uv run yasl --version
           uv run yasl --help
+
+      - name: Build documentation website
+        run: |
+          ./ci.sh docs
 
   check-build:
     needs: [yasl-ci]

@@ -4,8 +4,10 @@ YASL CLI main entry point.
 
 import argparse
 import sys
-from yasl import yasl_eval
+
 from common import yaml_tools_version
+from yasl import yasl_eval
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -50,21 +52,28 @@ def main():
     if args.version:
         print(f"YASL version {yaml_tools_version()}")
         sys.exit(0)
-    
+
     if not args.schema or not args.yaml:
         print(
             "❌ requires a YASL file, a YAML schema file, and optionally a model name as parameters."
         )
         parser.print_help()
         sys.exit(1)
-    
-    yasl = yasl_eval(args.schema, args.yaml, args.model_name, disable_log=False, quiet_log=args.quiet, verbose_log=args.verbose, output=args.output)
+
+    yasl = yasl_eval(
+        args.schema,
+        args.yaml,
+        args.model_name,
+        disable_log=False,
+        quiet_log=args.quiet,
+        verbose_log=args.verbose,
+        output=args.output,
+    )
 
     if not yasl:
         sys.exit(1)
     else:
-        sys.exit(0) 
-
+        sys.exit(0)
 
 
 if __name__ == "__main__":

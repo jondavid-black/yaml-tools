@@ -1,25 +1,45 @@
+import os
 import subprocess
 import sys
 import tempfile
-import os
 from io import StringIO
 from pathlib import Path
+
 import pytest
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../src/")))
+
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../src/"))
+)
+
+from schema_data import (
+    CUSTOMER_LIST_YASL,
+    MARKDOWN_YASL,
+    NAMESPACE_CUSTOMER_LIST_YASL,
+    PERSON_ADDRESS_MULTI_YASL,
+    PERSON_WEBSITE_REACHABLE_YAML,
+    PERSON_YASL,
+    PYDANTIC_TYPES_YASL,
+    SHAPE_YASL,
+    TASK_BAD_NAMESPACE_REF_YASL,
+    TODO_BAD_MAP_VALUE_YASL,
+    TODO_BOOL_MAP_YASL,
+    TODO_DOT_NAMESPACE_YASL,
+    TODO_ENUM_MAP_YASL,
+    TODO_INT_MAP_YASL,
+    TODO_MIXED_NAMESPACE_YASL,
+    TODO_NESTED_MAP_YASL,
+    TODO_YASL,
+)
 
 from yasl import yasl_eval
 from yasl.cli import main as yasl_cli_main
 
-from schema_data import MARKDOWN_YASL, PERSON_ADDRESS_MULTI_YASL, PERSON_WEBSITE_REACHABLE_YAML, PYDANTIC_TYPES_YASL, TASK_BAD_NAMESPACE_REF_YASL, TODO_BAD_MAP_VALUE_YASL, TODO_BOOL_MAP_YASL, TODO_DOT_NAMESPACE_YASL, TODO_ENUM_MAP_YASL, TODO_INT_MAP_YASL, TODO_MIXED_NAMESPACE_YASL, TODO_NESTED_MAP_YASL, TODO_YASL, PERSON_YASL, SHAPE_YASL, CUSTOMER_LIST_YASL, NAMESPACE_CUSTOMER_LIST_YASL
 
 def run_cli(args):
     filtered_args = [item for item in args if item is not None]
-    result = subprocess.run(
-        ["yasl"] + filtered_args,
-        capture_output=True,
-        text=True
-    )
+    result = subprocess.run(["yasl"] + filtered_args, capture_output=True, text=True)
     return result
+
 
 def test_cli_version(monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["yasl", "--version"])
@@ -29,6 +49,7 @@ def test_cli_version(monkeypatch, capsys):
     captured = capsys.readouterr()
     assert "YASL version" in captured.out
 
+
 def test_cli_quiet_and_verbose(monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["yasl", "--quiet", "--verbose"])
     with pytest.raises(SystemExit) as e:
@@ -37,27 +58,42 @@ def test_cli_quiet_and_verbose(monkeypatch, capsys):
     captured = capsys.readouterr()
     assert "❌ Cannot use both --quiet and --verbose." in captured.out
 
+
 def test_cli_missing_args(monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["yasl", "./file.yasl"])
     with pytest.raises(SystemExit) as e:
         yasl_cli_main()
     assert e.value.code == 1
     captured = capsys.readouterr()
-    assert "❌ requires a YASL file, a YAML schema file, and optionally a model name as parameters." in captured.out
+    assert (
+        "❌ requires a YASL file, a YAML schema file, and optionally a model name as parameters."
+        in captured.out
+    )
+
 
 def test_cli_good(monkeypatch, capsys):
-    monkeypatch.setattr(sys, "argv", ["yasl", "./features/data/todo.yasl", "./features/data/todo.yaml", "list_of_tasks"])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "yasl",
+            "./features/yasl/data/todo.yasl",
+            "./features/yasl/data/todo.yaml",
+            "list_of_tasks",
+        ],
+    )
     with pytest.raises(SystemExit) as e:
         yasl_cli_main()
     assert e.value.code == 0
+
 
 def test_quiet_and_verbose():
     result = run_cli(["file.yasl", "file.yaml", "--quiet", "--verbose"])
     assert result.returncode != 0
     assert "Cannot use both" in result.stdout
 
+
 def run_eval_command(yaml_data, yasl_schema, model_name, expect_valid):
-    
     with tempfile.TemporaryDirectory() as tmpdir:
         yaml_path = os.path.join(tmpdir, "test.yaml")
         yasl_path = os.path.join(tmpdir, "test.yasl")
@@ -70,10 +106,16 @@ def run_eval_command(yaml_data, yasl_schema, model_name, expect_valid):
 
 
 def run_eval_command_with_paths(yaml_path, yasl_path, model_name, expect_valid):
-    
     # Test via the API
     test_log = StringIO()
-    yasl_model = yasl_eval(yasl_path, yaml_path, model_name, verbose_log=True, output="text", log_stream=test_log)
+    yasl_model = yasl_eval(
+        yasl_path,
+        yaml_path,
+        model_name,
+        verbose_log=True,
+        output="text",
+        log_stream=test_log,
+    )
     if not expect_valid:
         assert yasl_model is None
         assert "❌" in test_log.getvalue()
@@ -90,6 +132,7 @@ def run_eval_command_with_paths(yaml_path, yasl_path, model_name, expect_valid):
         assert result.returncode == 0
         assert "data validation successful" in result.stdout
 
+
 def test_eval_nested_types_and_enum():
     yaml_data = """
 customers:
@@ -104,6 +147,7 @@ customers:
 """
     yasl_schema = CUSTOMER_LIST_YASL
     run_eval_command(yaml_data, yasl_schema, "customer_list", True)
+
 
 def test_eval_nested_types_with_bad_enum():
     yaml_data = """
@@ -120,6 +164,7 @@ customers:
     yasl_schema = CUSTOMER_LIST_YASL
     run_eval_command(yaml_data, yasl_schema, "customer_list", False)
 
+
 def test_eval_non_unique():
     yaml_data = """
 customers:
@@ -134,6 +179,7 @@ customers:
 """
     yasl_schema = CUSTOMER_LIST_YASL
     run_eval_command(yaml_data, yasl_schema, "customer_list", False)
+
 
 def test_eval_business_good():
     yaml_data = """
@@ -158,6 +204,7 @@ accounts:
     yasl_schema = CUSTOMER_LIST_YASL
     run_eval_command(yaml_data, yasl_schema, "business", True)
 
+
 def test_eval_business_namespace_good():
     yaml_data = """
 business_name: Acme Corporation
@@ -180,6 +227,7 @@ accounts:
 """
     yasl_schema = NAMESPACE_CUSTOMER_LIST_YASL
     run_eval_command(yaml_data, yasl_schema, "business", True)
+
 
 def test_eval_business_bad_ref():
     yaml_data = """
@@ -204,6 +252,7 @@ accounts:
     yasl_schema = CUSTOMER_LIST_YASL
     run_eval_command(yaml_data, yasl_schema, "business", False)
 
+
 def test_eval_min_list():
     yaml_data = """
 customers:
@@ -214,6 +263,7 @@ customers:
 """
     yasl_schema = CUSTOMER_LIST_YASL
     run_eval_command(yaml_data, yasl_schema, "customer_list", False)
+
 
 def test_eval_max_list():
     yaml_data = """
@@ -238,6 +288,7 @@ customers:
     yasl_schema = CUSTOMER_LIST_YASL
     run_eval_command(yaml_data, yasl_schema, "customer_list", False)
 
+
 def test_eval_person_good():
     yaml_data = """
 name: John Doe
@@ -245,6 +296,7 @@ age: 20
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", True)
+
 
 def test_eval_age_too_small():
     yaml_data = """
@@ -254,6 +306,7 @@ age: 10
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
 
+
 def test_eval_age_too_big():
     yaml_data = """
 name: John Doe
@@ -261,6 +314,7 @@ age: 130
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
+
 
 def test_eval_age_excluded():
     yaml_data = """
@@ -270,6 +324,7 @@ age: 64
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
 
+
 def test_eval_age_float():
     yaml_data = """
 name: John Doe
@@ -277,6 +332,7 @@ age: 34.2
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
+
 
 def test_eval_age_odd():
     yaml_data = """
@@ -286,6 +342,7 @@ age: 35
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
 
+
 def test_eval_name_short():
     yaml_data = """
 name: Joe
@@ -293,6 +350,7 @@ age: 24
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
+
 
 def test_eval_name_long():
     yaml_data = """
@@ -302,6 +360,7 @@ age: 24
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
 
+
 def test_eval_name_invalid():
     yaml_data = """
 name: Joe-Smith123
@@ -309,6 +368,7 @@ age: 24
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
+
 
 def test_eval_birthday_good():
     yaml_data = """
@@ -319,6 +379,7 @@ birthday: 1970-01-01
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", True)
 
+
 def test_eval_birthday_before():
     yaml_data = """
 name: Joe Smith
@@ -327,6 +388,7 @@ birthday: 1800-01-01
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
+
 
 def test_eval_birthday_after():
     yaml_data = """
@@ -337,6 +399,7 @@ birthday: 2800-01-01
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
 
+
 def test_eval_favorite_time_good():
     yaml_data = """
 name: Joe Smith
@@ -345,6 +408,7 @@ favorite_time: 12:30:00
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", True)
+
 
 def test_eval_favorite_time_early():
     yaml_data = """
@@ -355,6 +419,7 @@ favorite_time: 06:30:00
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", True)
 
+
 def test_eval_favorite_time_late():
     yaml_data = """
 name: Joe Smith
@@ -363,6 +428,7 @@ favorite_time: 16:30:00
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", True)
+
 
 def test_eval_office_int_good():
     yaml_data = """
@@ -373,6 +439,7 @@ office: 42
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", True)
 
+
 def test_eval_office_bool_good():
     yaml_data = """
 name: Joe Smith
@@ -381,6 +448,7 @@ office: true
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", True)
+
 
 def test_eval_office_str():
     yaml_data = """
@@ -391,6 +459,7 @@ office: please
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
 
+
 def test_eval_office_float():
     yaml_data = """
 name: Joe Smith
@@ -399,6 +468,7 @@ office: 33.3
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
+
 
 def test_eval_bio_good():
     yaml_data = """
@@ -409,6 +479,7 @@ bio: ./myfile.txt
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", True)
 
+
 def test_eval_bio_bad_ext():
     yaml_data = """
 name: Joe Smith
@@ -417,6 +488,7 @@ bio: ./myfile.docx
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
+
 
 def test_eval_home_dir_good():
     yaml_data = f"""
@@ -427,6 +499,7 @@ home_directory: {os.getcwd()}
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", True)
 
+
 def test_eval_home_dir_not_exist():
     yaml_data = """
 name: Joe Smith
@@ -435,6 +508,7 @@ home_directory: /not/a/real/dir
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
+
 
 def test_eval_website_good():
     yaml_data = """
@@ -445,6 +519,7 @@ website: https://www.example.com/joe_smith
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", True)
 
+
 def test_eval_website_bad_protocol():
     yaml_data = """
 name: Joe Smith
@@ -454,6 +529,7 @@ website: ftp://www.example.com/joe_smith
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
 
+
 def test_eval_website_reachable():
     yasl_schema = PERSON_WEBSITE_REACHABLE_YAML
     yaml_data = """
@@ -461,6 +537,7 @@ name: Joe Smith
 website: https://www.google.com
 """
     run_eval_command(yaml_data, yasl_schema, "person", True)
+
 
 def test_eval_website_bad_base():
     yaml_data = """
@@ -470,6 +547,7 @@ website: ftp://www.notexample.com/joe_smith
 """
     yasl_schema = PERSON_YASL
     run_eval_command(yaml_data, yasl_schema, "person", False)
+
 
 def test_eval_shape_good():
     yaml_data = """
@@ -481,6 +559,7 @@ location: top-left
 """
     yasl_schema = SHAPE_YASL
     run_eval_command(yaml_data, yasl_schema, "shape", True)
+
 
 def test_eval_shape_only_one_fail():
     yaml_data = """
@@ -494,6 +573,7 @@ location: top-left
     yasl_schema = SHAPE_YASL
     run_eval_command(yaml_data, yasl_schema, "shape", False)
 
+
 def test_eval_shape_at_least_one_fail():
     yaml_data = """
 name: bob
@@ -503,6 +583,7 @@ color: red
 """
     yasl_schema = SHAPE_YASL
     run_eval_command(yaml_data, yasl_schema, "shape", False)
+
 
 def test_eval_shape_if_then_1_fail():
     yaml_data = """
@@ -514,6 +595,7 @@ color: red
     yasl_schema = SHAPE_YASL
     run_eval_command(yaml_data, yasl_schema, "shape", False)
 
+
 def test_eval_shape_if_then_2_fail():
     yaml_data = """
 name: bob
@@ -523,6 +605,7 @@ color: red
 """
     yasl_schema = SHAPE_YASL
     run_eval_command(yaml_data, yasl_schema, "shape", False)
+
 
 def test_eval_shape_if_then_3_fail():
     yaml_data = """
@@ -534,10 +617,12 @@ color: red
     yasl_schema = SHAPE_YASL
     run_eval_command(yaml_data, yasl_schema, "shape", False)
 
+
 def test_version_command():
     result = run_cli(["--version"])
     assert result.returncode == 0
     assert "YASL version" in result.stdout
+
 
 def test_pydantic_types():
     yasl = PYDANTIC_TYPES_YASL
@@ -546,10 +631,8 @@ id: test
 strict_bool: true
 markdown: |
   # Hello World
-  
   This is some random markdown.
   [Link to Google](https://www.google.com)
-      
 positive_int: 42
 negative_int: -42
 non_positive_int: -1
@@ -569,8 +652,8 @@ uuid5: "550e8400-e29b-51d4-a716-446655440000"
 uuid6: "550e8400-e29b-61d4-a716-446655440000"
 uuid7: "550e8400-e29b-71d4-a716-446655440000"
 uuid8: "550e8400-e29b-81d4-a716-446655440000"
-file_path: "./features/data/thing.yaml"
-directory_path: "./features/data/"
+file_path: "./features/yasl/data/thing.yaml"
+directory_path: "./features/yasl/data/"
 base64_bytes: "SGVsbG8sIFdvcmxkIQ=="
 base64_str: "SGVsbG8sIFdvcmxkIQ=="
 base64_url_bytes: "SHc_dHc-TXc=="
@@ -599,21 +682,28 @@ ipvany_address: "192.0.2.1"
 """
     run_eval_command(yaml_data, yasl, "thing", True)
 
+
 def test_dir_inputs_good():
-    yasl_path = "./features/data/dir_test"
-    yaml_path = "./features/data/dir_test"
+    yasl_path = "./features/yasl/data/dir_test"
+    yaml_path = "./features/yasl/data/dir_test"
     # cwd = os.getcwd()
     # os.chdir(str((Path(__file__).parent.parent.parent / "features").resolve()))
-    run_eval_command_with_paths(str(Path(yasl_path).absolute()), str(Path(yaml_path).absolute()), None, True)
+    run_eval_command_with_paths(
+        str(Path(yasl_path).absolute()), str(Path(yaml_path).absolute()), None, True
+    )
     # os.chdir(cwd)
 
+
 def test_dir_inputs_bad():
-    yasl_path = "./features/data/bad_dir_test"
-    yaml_path = "./features/data/bad_dir_test"
+    yasl_path = "./features/yasl/data/bad_dir_test"
+    yaml_path = "./features/yasl/data/bad_dir_test"
     # cwd = os.getcwd()
     # os.chdir(str((Path(__file__).parent.parent.parent / "features").resolve()))
-    run_eval_command_with_paths(str(Path(yasl_path).absolute()), str(Path(yaml_path).absolute()), None, False)
+    run_eval_command_with_paths(
+        str(Path(yasl_path).absolute()), str(Path(yaml_path).absolute()), None, False
+    )
     # os.chdir(cwd)
+
 
 def test_map_type__str_good():
     yasl = TODO_YASL
@@ -634,6 +724,7 @@ task_list:
 """
     run_eval_command(yaml_data, yasl, "list_of_tasks", True)
 
+
 def test_map_type_int_good():
     yasl = TODO_INT_MAP_YASL
     yaml_data = """
@@ -653,6 +744,7 @@ task_list:
 """
     run_eval_command(yaml_data, yasl, "list_of_tasks", True)
 
+
 def test_map_type_bool_bad():
     yasl = TODO_BOOL_MAP_YASL
     yaml_data = """
@@ -667,6 +759,7 @@ task_list:
     complete: false
 """
     run_eval_command(yaml_data, yasl, "list_of_tasks", False)
+
 
 def test_map_type_bad():
     yasl = TODO_BAD_MAP_VALUE_YASL
@@ -683,6 +776,7 @@ task_list:
 """
     run_eval_command(yaml_data, yasl, "list_of_tasks", False)
 
+
 def test_map_type_enum_key_good():
     yasl = TODO_ENUM_MAP_YASL
     yaml_data = """
@@ -698,6 +792,7 @@ task_list:
 """
     run_eval_command(yaml_data, yasl, "list_of_tasks", True)
 
+
 def test_map_type_enum_value_bad():
     yasl = TODO_ENUM_MAP_YASL
     yaml_data = """
@@ -712,6 +807,7 @@ task_list:
     complete: false
 """
     run_eval_command(yaml_data, yasl, "list_of_tasks", False)
+
 
 def test_map_nested_value_namespace_good():
     yasl = TODO_MIXED_NAMESPACE_YASL
@@ -732,6 +828,7 @@ task_list:
 """
     run_eval_command(yaml_data, yasl, "list_of_tasks", True)
 
+
 def test_map_nested_value_good():
     yasl = TODO_NESTED_MAP_YASL
     yaml_data = """
@@ -750,6 +847,7 @@ features:
 """
     run_eval_command(yaml_data, yasl, "project", True)
 
+
 def test_empty_markdown():
     yasl = MARKDOWN_YASL
     yaml_data = """
@@ -757,6 +855,7 @@ id: test
 markdown: ""
 """
     run_eval_command(yaml_data, yasl, "thing", False)
+
 
 def test_namespace_refs_bad():
     yasl = TASK_BAD_NAMESPACE_REF_YASL
@@ -777,14 +876,21 @@ task_list:
 """
     run_eval_command(yaml_data, yasl, "list_of_tasks", False)
 
+
 def test_default_namespace():
-    yasl_path = "./features/data/ambiguous_ns/todo01.yasl"
-    yaml_path = "./features/data/ambiguous_ns/todo.yaml"
-    run_eval_command_with_paths(str(Path(yaml_path).absolute()), str(Path(yasl_path).absolute()), "task_list", True)
+    yasl_path = "./features/yasl/data/ambiguous_ns/todo01.yasl"
+    yaml_path = "./features/yasl/data/ambiguous_ns/todo.yaml"
+    run_eval_command_with_paths(
+        str(Path(yaml_path).absolute()),
+        str(Path(yasl_path).absolute()),
+        "task_list",
+        True,
+    )
+
 
 def test_dot_in_namespace():
     yasl = TODO_DOT_NAMESPACE_YASL
-    yaml_data= """
+    yaml_data = """
 task_list:
   task_01:
     description:  Buy coffee.
@@ -801,9 +907,10 @@ task_list:
 """
     run_eval_command(yaml_data, yasl, "list_of_tasks", True)
 
+
 def test_multi_doc_yaml():
     yasl = PERSON_YASL
-    yaml_data= """
+    yaml_data = """
 name: John Doe
 age: 30
 birthday: 1975-11-01
@@ -816,9 +923,10 @@ office: 54
 """
     run_eval_command(yaml_data, yasl, "person", True)
 
+
 def test_multi_doc_yasl():
     yasl = PERSON_ADDRESS_MULTI_YASL
-    yaml_data= """
+    yaml_data = """
 name: John Doe
 age: 30
 birthday: 1975-11-01
@@ -826,9 +934,10 @@ office: 55
 """
     run_eval_command(yaml_data, yasl, "person", True)
 
+
 def test_multi_yasl_and_multi_doc_yaml():
     yasl = PERSON_ADDRESS_MULTI_YASL
-    yaml_data= """
+    yaml_data = """
 name: John Doe
 age: 30
 birthday: 1975-11-01

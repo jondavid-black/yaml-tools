@@ -4,13 +4,15 @@ YATL CLI main entry point.
 
 import argparse
 import sys
+
 from common import yaml_tools_version
+
 
 def main():
     parser = argparse.ArgumentParser(
         description="YATL - YAML Advanced Transform Language CLI Tool"
     )
-    
+
     parser.add_argument(
         "--version", action="store_true", help="Show version information and exit"
     )
@@ -35,9 +37,10 @@ def main():
         print(f"YATL version {yaml_tools_version()}")
         sys.exit(0)
 
-    print("❌ This is a placeholder for the YATL CLI tool. Functionality to be implemented.")
+    print(
+        "❌ This is a placeholder for the YATL CLI tool. Functionality to be implemented."
+    )
     sys.exit(1)
-
 
 
 if __name__ == "__main__":

@@ -27,8 +27,8 @@ venv/
 *.egg-info/
 dist/
 
-# Node.js
-node_modules/
+# Mkdocs site
+/site/
 
 # Test and coverage
 coverage*
@@ -37,6 +37,7 @@ coverage*
 htmlcov/
 .pytest_cache/
 .ruff_cache/
+pretty.output
 
 # Logs
 *.log

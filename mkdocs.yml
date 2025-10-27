@@ -1,0 +1,36 @@
+# Project information
+site_name: "YAML Tools"
+site_url: "https://example.com/"
+site_author: "JD Black"
+
+# --- Theme Configuration ---
+# This enables the 'material' theme
+theme:
+  name: "material"
+  
+  # Features like navigation tabs, search, etc.
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - search.suggest
+    - search.highlight
+
+# --- Navigation Structure ---
+# This is the most important part.
+# It defines your sidebar and top-level navigation.
+nav:
+  - "Home": "index.md"
+  - "User Guide":
+      - "Installation": "guide/installation.md"
+      - "Quick Start": "guide/quick-start.md"
+  - "About":
+      - "License": "license.md"
+      - "Contributing": "contributing.md"
+
+# --- Extensions ---
+# Enables extra markdown features
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - admonition
