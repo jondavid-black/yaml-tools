@@ -1,32 +1,35 @@
-from functools import partial
-from typing import Dict, List, Any, Optional, Tuple, Union, Callable
-from pydantic import field_validator, model_validator
-from yasl.pydantic_types import (
-    IfThen,
-    TypeDef,
-    Property
-)
-from yasl.cache import YaslRegistry
 import datetime
 import re
-from urllib.parse import urlparse
-import requests
+from collections.abc import Callable
+from functools import partial
 from pathlib import Path
+from typing import Any
+from urllib.parse import urlparse
+
 import markdown_it
+import requests
+from pydantic import field_validator, model_validator
+
+from yasl.cache import YaslRegistry
+from yasl.pydantic_types import IfThen, Property, TypeDef
 
 
-def unique_value_validator(cls, value: Any, type_name: str, property_name: str, type_namespace: str = None):
+def unique_value_validator(
+    cls, value: Any, type_name: str, property_name: str, type_namespace: str = None
+):
     registry = YaslRegistry()
     registry.register_unique_value(type_name, property_name, value, type_namespace)
     return value
 
+
 # list validation
-def list_min_validator(cls, value: List[Any], bound: int):
+def list_min_validator(cls, value: list[Any], bound: int):
     if len(value) < bound:
         raise ValueError(f"List must contain at least {bound} items")
     return value
 
-def list_max_validator(cls, value: List[Any], bound: int):
+
+def list_max_validator(cls, value: list[Any], bound: int):
     if len(value) > bound:
         raise ValueError(f"List must contain at most {bound} items")
     return value
@@ -62,6 +65,7 @@ def exclude_validator(cls, value, excluded_values):
         raise ValueError(f"Value must not be one of {excluded_values}")
     return value
 
+
 def multiple_of_validator(cls, value, bound):
     if value % bound != 0:
         raise ValueError(f"Value must be a multiple of {bound}")
@@ -88,21 +92,29 @@ def str_regex_validator(cls, value: str, regex: str):
 
 
 # date validators
-def date_before_validator(cls, 
-                          value: Union[datetime.datetime, datetime.date, datetime.time], 
-                          before: Union[datetime.datetime, datetime.date, datetime.time]):
+def date_before_validator(
+    cls,
+    value: datetime.datetime | datetime.date | datetime.time,
+    before: datetime.datetime | datetime.date | datetime.time,
+):
     if not isinstance(value, type(before)):
-        raise ValueError(f"Type of value '{type(value)}' does not match type of 'before' '{type(before)}'")
+        raise ValueError(
+            f"Type of value '{type(value)}' does not match type of 'before' '{type(before)}'"
+        )
     if value >= before:
         raise ValueError(f"Date '{value}' must be before '{before}'")
     return value
 
 
-def date_after_validator(cls, 
-                         value: Union[datetime.datetime, datetime.date, datetime.time], 
-                         after: Union[datetime.datetime, datetime.date, datetime.time]):
+def date_after_validator(
+    cls,
+    value: datetime.datetime | datetime.date | datetime.time,
+    after: datetime.datetime | datetime.date | datetime.time,
+):
     if not isinstance(value, type(after)):
-        raise ValueError(f"Type of value '{type(value)}' does not match type of 'after' '{type(after)}'")
+        raise ValueError(
+            f"Type of value '{type(value)}' does not match type of 'after' '{type(after)}'"
+        )
     if value <= after:
         raise ValueError(f"Date '{value}' must be after '{after}'")
     return value
@@ -116,27 +128,30 @@ def url_base_validator(cls, value: str, url_base: str):
     return value
 
 
-def url_protocol_validator(cls, value: str, protocols: List[str]):
+def url_protocol_validator(cls, value: str, protocols: list[str]):
     parsed = urlparse(value)
     if parsed.scheme and parsed.scheme not in protocols:
         raise ValueError(f"URL '{value}' must use one of the protocols {protocols}")
     return value
+
 
 def url_reachable_valiator(cls, value: str, reachable: bool):
     if reachable:
         try:
             response = requests.head(value, allow_redirects=True, timeout=3)
             if response.status_code >= 400:
-                raise ValueError(f"URL '{value}' is not reachable (status {response.status_code})")
+                raise ValueError(
+                    f"URL '{value}' is not reachable (status {response.status_code})"
+                )
         except requests.RequestException as e:
-            raise ValueError(f"URL '{value}' is not reachable: {e}")
+            raise ValueError(f"URL '{value}' is not reachable: {e}") from e
     return value
 
 
 def is_dir_validator(cls, value: str, is_dir: bool):
     path = Path(value)
     # Check if the path looks like a directory (ends with separator or no suffix)
-    if not(path.suffix == '' or value.endswith(('/', '\\'))):
+    if not (path.suffix == "" or value.endswith(("/", "\\"))):
         raise ValueError(f"Path '{value}' must be a directory")
     return value
 
@@ -144,18 +159,24 @@ def is_dir_validator(cls, value: str, is_dir: bool):
 def is_file_validator(cls, value: str, is_file: bool):
     path = Path(value)
     # Check if the path looks like a file (does not end with a separator, has a suffix)
-    if not(path.suffix != '' and not value.endswith(('/', '\\'))):
+    if not (path.suffix != "" and not value.endswith(("/", "\\"))):
         raise ValueError(f"Path '{value}' must be a file")
     return value
 
-def file_ext_validator(cls, value: str, extensions: List[str]):
+
+def file_ext_validator(cls, value: str, extensions: list[str]):
     path = Path(value)
     # First, ensure it's a file
     is_file_validator(cls, value, True)
     # Check if the file has one of the allowed extensions
-    if extensions and path.suffix not in [f".{ext}" if not ext.startswith('.') else ext for ext in extensions] :
-        raise ValueError(f"File '{value}' must have one of the following extensions: {extensions}")
+    if extensions and path.suffix not in [
+        f".{ext}" if not ext.startswith(".") else ext for ext in extensions
+    ]:
+        raise ValueError(
+            f"File '{value}' must have one of the following extensions: {extensions}"
+        )
     return value
+
 
 def path_exists_validator(cls, value: str, exists: bool):
     path = Path(value)
@@ -164,54 +185,69 @@ def path_exists_validator(cls, value: str, exists: bool):
         raise ValueError(f"Path '{value}' must exist on the filesystem")
     return value
 
+
 # ref validators
 def ref_exists_validator(cls, value: Any, target: str):
-
-    type_name, property_name = target.rsplit('.', 1)
+    type_name, property_name = target.rsplit(".", 1)
     type_namespace = None
-    if type_name and '.' in type_name:
-        type_namespace, type_name = type_name.rsplit('.', 1)
+    if type_name and "." in type_name:
+        type_namespace, type_name = type_name.rsplit(".", 1)
 
     registry = YaslRegistry()
-    if not registry.unique_value_exists(type_name, property_name, value, type_namespace):
-        raise ValueError(f"Referenced value '{value}' does not exist for 'ref[{target}]")
+    if not registry.unique_value_exists(
+        type_name, property_name, value, type_namespace
+    ):
+        raise ValueError(
+            f"Referenced value '{value}' does not exist for 'ref[{target}]"
+        )
 
     return value
 
+
 # any validator
-def any_of_validator(cls, value: Any, any_of: List[str]):
+def any_of_validator(cls, value: Any, any_of: list[str]):
     for t in any_of:
-        if t.endswith('[]'):
+        if t.endswith("[]"):
             elem_type = t[:-2]
-            if isinstance(value, list) and all(isinstance(v, eval(elem_type)) for v in value):
+            if isinstance(value, list) and all(
+                isinstance(v, eval(elem_type)) for v in value
+            ):
                 return value
         else:
             if isinstance(value, eval(t)):
                 return value
     raise ValueError(f"Value '{value}' must be one of {any_of}")
 
+
 # enum validator
-def enum_validator(cls, value: Any, values: List[str]):
+def enum_validator(cls, value: Any, values: list[str]):
     str_value = str(value)
-    if str_value.split('.')[-1] not in values:
+    if str_value.split(".")[-1] not in values:
         raise ValueError(f"Value '{value}' must be one of {values}")
     return value
 
+
 # map validator
-def map_validator(cls, value: Dict[Any, Any], key_type: str, value_type: str, any_of: List[str] = None):
+def map_validator(
+    cls, value: dict[Any, Any], key_type: str, value_type: str, any_of: list[str] = None
+):
     # validate key type is str, int, or an enumation
     registry = YaslRegistry()
     enum_namespace = None
     enum_name = key_type
     if "." in key_type:
-        enum_namespace, enum_name = key_type.rsplit('.', 1)
-    if key_type not in ['str', 'int'] and registry.get_enum(enum_name, enum_namespace) is None:
+        enum_namespace, enum_name = key_type.rsplit(".", 1)
+    if (
+        key_type not in ["str", "int"]
+        and registry.get_enum(enum_name, enum_namespace) is None
+    ):
         raise ValueError(f"Map key type '{key_type}' is not supported")
     # validate value type of any is allowed by constraints
-    if value_type == 'any' and any_of is not None:
+    if value_type == "any" and any_of is not None:
         if not any(isinstance(v, eval(t)) for t in any_of for v in value.values()):
             raise ValueError(f"Map values must be one of {any_of}")
     return value
+
 
 # markdown validator
 def markdown_validator(cls, value: str):
@@ -221,24 +257,38 @@ def markdown_validator(cls, value: str):
         if not tokens:
             raise ValueError("Markdown content is empty or invalid.")
         return value
-    except Exception:
-        raise ValueError("Markdown content is not valid.") 
+    except Exception as e:
+        raise ValueError("Markdown content is not valid.") from e
 
-def property_validator_factory(typedef_name: str, type_namespace: str, type_def: TypeDef, property_name: str, property: Property) -> Callable:
+
+def property_validator_factory(
+    typedef_name: str,
+    type_namespace: str,
+    type_def: TypeDef,
+    property_name: str,
+    property: Property,
+) -> Callable:
     validators = []
     # list validators
     if property.list_min is not None:
-        validators.append((partial(list_min_validator, bound=property.list_min)))
+        validators.append(partial(list_min_validator, bound=property.list_min))
     if property.list_max is not None:
         validators.append(partial(list_max_validator, bound=property.list_max))
 
     # unique validator
     if property.unique:
         if "." in property_name:
-            property_namespace, property_name = property_name.rsplit('.', 1)
+            property_namespace, property_name = property_name.rsplit(".", 1)
         else:
             property_namespace = type_namespace
-        validators.append(partial(unique_value_validator, type_name=typedef_name, property_name=property_name, type_namespace=property_namespace))
+        validators.append(
+            partial(
+                unique_value_validator,
+                type_name=typedef_name,
+                property_name=property_name,
+                type_namespace=property_namespace,
+            )
+        )
 
     # numeric validators
     if property.gt is not None:
@@ -282,41 +332,55 @@ def property_validator_factory(typedef_name: str, type_namespace: str, type_def:
     if property.url_base is not None:
         validators.append(partial(url_base_validator, url_base=property.url_base))
     if property.url_protocols is not None:
-        validators.append(partial(url_protocol_validator, protocols=property.url_protocols))
+        validators.append(
+            partial(url_protocol_validator, protocols=property.url_protocols)
+        )
     if property.url_reachable is not None:
-        validators.append(partial(url_reachable_valiator, reachable=property.url_reachable))
+        validators.append(
+            partial(url_reachable_valiator, reachable=property.url_reachable)
+        )
 
     # any validator
     if property.any_of is not None and not property.type.startswith("map[]"):
         validators.append(partial(any_of_validator, any_of=property.any_of))
 
     # ref validators (always validate references)
-    if property.type.startswith("ref[") and (property.no_ref_check is None or property.no_ref_check is False):
+    if property.type.startswith("ref[") and (
+        property.no_ref_check is None or property.no_ref_check is False
+    ):
         validators.append(partial(ref_exists_validator, target=property.type[4:-1]))
 
     # enum validators
     registry = YaslRegistry()
-    enum_names: List[Tuple[str, Optional[str]]] = registry.get_enum_names()
+    enum_names: list[tuple[str, str | None]] = registry.get_enum_names()
 
     if property.type in dict(enum_names).keys():
         enum_type = registry.get_enum(property.type, type_def.namespace)
         if enum_type is None:
-            raise ValueError(f"Enum type '{property.type}' not found for property '{property_name}' in type '{typedef_name}'")
+            raise ValueError(
+                f"Enum type '{property.type}' not found for property '{property_name}' in type '{typedef_name}'"
+            )
         validators.append(partial(enum_validator, values=[e.value for e in enum_type]))
 
     # map validators
     if property.type.startswith("map["):
         # extract key and value types
         map_types = property.type[4:-1]
-        if ',' not in map_types:
+        if "," not in map_types:
             raise ValueError(f"Map type '{property.type}' is not valid")
-        key_type, value_type = map(str.strip, map_types.split(',', 1))
-        validators.append(partial(map_validator, key_type=key_type, value_type=value_type, any_of=property.any_of))
+        key_type, value_type = map(str.strip, map_types.split(",", 1))
+        validators.append(
+            partial(
+                map_validator,
+                key_type=key_type,
+                value_type=value_type,
+                any_of=property.any_of,
+            )
+        )
 
     # markdown validator
     if property.type == "markdown":
         validators.append(markdown_validator)
-        
 
     def multi_validator(cls, value):
         for validator in validators:
@@ -325,22 +389,23 @@ def property_validator_factory(typedef_name: str, type_namespace: str, type_def:
 
     return field_validator(property_name)(multi_validator)
 
+
 # type validators
-def only_one_validator(cls, values: Dict[str, Any], fields: List[str]):
+def only_one_validator(cls, values: dict[str, Any], fields: list[str]):
     data_keys = [key for key, val in values.model_dump().items() if val is not None]
     if sum(1 for field in fields if field in data_keys) != 1:
         raise ValueError(f"Exactly one of {fields} must be present")
     return values
 
 
-def at_least_one_validator(cls, values: Dict[str, Any], fields: List[str]):
+def at_least_one_validator(cls, values: dict[str, Any], fields: list[str]):
     data_keys = [key for key, val in values.model_dump().items() if val is not None]
     if sum(1 for field in fields if field in data_keys) < 1:
         raise ValueError(f"At least one of {fields} must be present")
     return values
 
 
-def if_then_validator(cls, values: Dict[str, Any], if_then: IfThen):
+def if_then_validator(cls, values: dict[str, Any], if_then: IfThen):
     eval_field = if_then.eval
     eval_value = if_then.value
     present_fields = if_then.present or []
@@ -352,11 +417,16 @@ def if_then_validator(cls, values: Dict[str, Any], if_then: IfThen):
         if values_dict[eval_field] in typed_eval_value:
             for field in present_fields:
                 if field not in values_dict or values_dict[field] is None:
-                    raise ValueError(f"Field '{field}' must be present when '{eval_field}' is in {eval_value}")
+                    raise ValueError(
+                        f"Field '{field}' must be present when '{eval_field}' is in {eval_value}"
+                    )
             for field in absent_fields:
                 if field in values_dict and values_dict[field] is not None:
-                    raise ValueError(f"Field '{field}' must be absent when '{eval_field}' is in {eval_value}")
+                    raise ValueError(
+                        f"Field '{field}' must be absent when '{eval_field}' is in {eval_value}"
+                    )
     return values
+
 
 def type_validator_factory(model: TypeDef) -> Callable:
     validators = []
@@ -371,9 +441,7 @@ def type_validator_factory(model: TypeDef) -> Callable:
             )
         if model.validators.if_then is not None:
             for item in model.validators.if_then:
-                validators.append(
-                    partial(if_then_validator, if_then=item)
-                )
+                validators.append(partial(if_then_validator, if_then=item))
 
     @model_validator(mode="after")
     def multi_validator(cls, values):

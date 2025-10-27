@@ -4,14 +4,16 @@ YAQL CLI main entry point.
 
 import argparse
 import sys
+
 from common import yaml_tools_version
+
 
 def main():
     parser = argparse.ArgumentParser(
         description="YAQL - YAML Advanced Query Language CLI Tool"
     )
     # Removed --project-name argument; 'param' will be used for project name in 'init'
-    
+
     parser.add_argument(
         "--version", action="store_true", help="Show version information and exit"
     )
@@ -35,10 +37,11 @@ def main():
     if args.version:
         print(f"YAQL version {yaml_tools_version()}")
         sys.exit(0)
-    
-    print("❌ This is a placeholder for the YAQL CLI tool. Functionality to be implemented.")
-    sys.exit(1)
 
+    print(
+        "❌ This is a placeholder for the YAQL CLI tool. Functionality to be implemented."
+    )
+    sys.exit(1)
 
 
 if __name__ == "__main__":
