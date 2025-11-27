@@ -10,7 +10,7 @@ from collections.abc import Callable
 from enum import Enum
 from io import StringIO
 from pathlib import Path
-from typing import Any, Optional, TextIO
+from typing import Any, Optional, TextIO, cast
 
 from pydantic import (
     UUID1,
@@ -337,6 +337,7 @@ def gen_pydantic_type_models(namespace: str, type_defs: dict[str, TypeDef]):
             type_lookup_namespace = None
             is_list = False
             is_map = False
+            key = None
             if type_lookup.endswith("[]"):
                 type_lookup = prop.type[:-2]
                 is_list = True
@@ -532,20 +533,20 @@ def gen_pydantic_type_models(namespace: str, type_defs: dict[str, TypeDef]):
         fields["yaml_line"] = (Optional[int], Field(default=None, exclude=True))
 
         validators["__validate__"] = type_validator_factory(type_def)
-        model = create_model(
+        model = create_model(  # type: ignore
             typedef_name,
             __base__=YASLBaseModel,
             __module__=namespace,
             __validators__=validators,
             __config__={"extra": "forbid"},
-            **fields,
+            **fields,  # type: ignore
         )
         # Store the generated model in the global registry
         registry.register_type(typedef_name, model, namespace)
 
 
 # --- Helper function to find the line number ---
-def get_line_for_error(data, loc: tuple[str, ...]) -> int | None:
+def get_line_for_error(data: Any, loc: tuple[str | int, ...]) -> int | None:
     """Traverse the ruamel.yaml data to find the line number for an error location."""
     current_data = data
     try:
@@ -566,9 +567,10 @@ def get_line_for_error(data, loc: tuple[str, ...]) -> int | None:
 
 
 # --- Main schema validation logic ---
-def load_and_validate_yasl_with_lines(path: str) -> list[YaslRoot]:
+def load_and_validate_yasl_with_lines(path: str) -> list[YaslRoot] | None:
     log = logging.getLogger("yasl")
     log.debug(f"--- Attempting to validate schema '{path}' ---")
+    data = None
     try:
         results = []
         yaml_loader = YAML(typ="rt")
@@ -588,6 +590,7 @@ def load_and_validate_yasl_with_lines(path: str) -> list[YaslRoot]:
                         imp_path = Path(path).parent / imp
                         if not imp_path.exists():
                             raise FileNotFoundError(f"Import file '{imp}' not found")
+                        imp_path = imp_path.as_posix()
                     log.debug(
                         f"Importing additional schema '{imp}' - resolved to '{imp_path}'"
                     )
@@ -596,13 +599,14 @@ def load_and_validate_yasl_with_lines(path: str) -> list[YaslRoot]:
                         raise ValueError(f"Failed to import YASL schema from '{imp}'")
             if yasl.metadata is not None:
                 log.debug(f"YASL Metadata: {yasl.metadata}")
-            for namespace, yasl_item in yasl.definitions.items():
-                # generate enums first so enum map keys are known when generating types
-                if yasl_item.enums is not None:
-                    gen_enum_from_enumerations(namespace, yasl_item.enums)
-            for namespace, yasl_item in yasl.definitions.items():
-                if yasl_item.types is not None:
-                    gen_pydantic_type_models(namespace, yasl_item.types)
+            if yasl.definitions is not None:
+                for namespace, yasl_item in yasl.definitions.items():
+                    # generate enums first so enum map keys are known when generating types
+                    if yasl_item.enums is not None:
+                        gen_enum_from_enumerations(namespace, yasl_item.enums)
+                for namespace, yasl_item in yasl.definitions.items():
+                    if yasl_item.types is not None:
+                        gen_pydantic_type_models(namespace, yasl_item.types)
             results.append(yasl)
         if not results or len(results) == 0:
             log.error(f"❌ No YASL schema definitions found in '{path}'")
@@ -640,6 +644,7 @@ def load_and_validate_data_with_lines(model_name: str | None, path: str) -> Any:
     log = logging.getLogger("yasl")
     log.debug(f"--- Attempting to validate data '{path}' ---")
     docs = []
+    data = None
     try:
         yaml_loader = YAML(typ="rt")
         with open(path) as f:
@@ -703,14 +708,15 @@ def load_and_validate_data_with_lines(model_name: str | None, path: str) -> Any:
                 if hasattr(data, "lc") and hasattr(data.lc, "line"):
                     data["yaml_line"] = data.lc.line + 1
 
-                result = model(**data)
-                if result is not None:
-                    results.append(result)
-                    break
-                else:
-                    log.debug(
-                        f"Data in '{path}' did not validate against schema '{schema_name}'."
-                    )
+                if model is not None:
+                    result = cast(type[BaseModel], model)(**data)  # type: ignore
+                    if result is not None:
+                        results.append(result)
+                        break
+                    else:
+                        log.debug(
+                            f"Data in '{path}' did not validate against schema '{schema_name}'."
+                        )
 
         if not results or len(results) == 0:
             log.error(f"❌ No valid schema found to validate data in '{path}'")

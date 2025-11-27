@@ -369,7 +369,7 @@ def property_validator_factory(
             raise ValueError(
                 f"Enum type '{property.type}' not found for property '{property_name}' in type '{typedef_name}'"
             )
-        validators.append(partial(enum_validator, values=[e.value for e in enum_type]))
+        validators.append(partial(enum_validator, values=[e.value for e in enum_type]))  # type: ignore
 
     # map validators
     if property.type.startswith("map["):
@@ -401,14 +401,14 @@ def property_validator_factory(
 
 # type validators
 def only_one_validator(cls, values: dict[str, Any], fields: list[str]):
-    data_keys = [key for key, val in values.model_dump().items() if val is not None]
+    data_keys = [key for key, val in values.model_dump().items() if val is not None]  # type: ignore
     if sum(1 for field in fields if field in data_keys) != 1:
         raise ValueError(f"Exactly one of {fields} must be present")
     return values
 
 
 def at_least_one_validator(cls, values: dict[str, Any], fields: list[str]):
-    data_keys = [key for key, val in values.model_dump().items() if val is not None]
+    data_keys = [key for key, val in values.model_dump().items() if val is not None]  # type: ignore
     if sum(1 for field in fields if field in data_keys) < 1:
         raise ValueError(f"At least one of {fields} must be present")
     return values
@@ -419,7 +419,7 @@ def if_then_validator(cls, values: dict[str, Any], if_then: IfThen):
     eval_value = if_then.value
     present_fields = if_then.present or []
     absent_fields = if_then.absent or []
-    values_dict = values.model_dump()
+    values_dict = values.model_dump()  # type: ignore
     if eval_field in values_dict:
         eval_value_type = type(values_dict[eval_field])
         typed_eval_value = [eval_value_type(v) for v in eval_value]
@@ -481,4 +481,4 @@ def type_validator_factory(model: TypeDef) -> Callable:
             values = validator(cls, values)
         return values
 
-    return multi_validator
+    return multi_validator  # type: ignore
