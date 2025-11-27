@@ -872,7 +872,7 @@ wheels = [
 [[package]]
 name = "yaml-tools"
 version = "0.3.3"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "annotated-types" },
     { name = "certifi" },

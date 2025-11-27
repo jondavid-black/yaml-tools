@@ -75,3 +75,6 @@ testpaths = [
 [tool.behave]
 paths = ["features/yasl", "features/yaql", "features/yarl", "features/yatl"]
 format = ["pretty"]
+
+[tool.uv]
+package = true

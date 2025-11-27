@@ -9,7 +9,7 @@ The project follows a modular structure:
 - `src/`: Contains the python source code for YAML-TOOLS.
 - `src/yasl/`: Contains the core YASL (YAML Advanced Scripting Language) implementation.
 - `src/yaql/`: Contains the core YAQL (YAML Advanced Query Language) implementation.
-- 'src/yarl/': Contains the core YARL (YAML Advanced Reporting Language) implementation.
+- `src/yarl/`: Contains the core YARL (YAML Advanced Reporting Language) implementation.
 - `README.md`: Project documentation and usage instructions.
 - `docs/`: Contains YAML-TOOLS documentation in Markdown for publication in GitHub Pages.
 - `tests/`: Contains the python unit test code for YAML-TOOLS.
