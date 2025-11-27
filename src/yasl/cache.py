@@ -21,13 +21,11 @@ class YaslRegistry:
         return cls._instance
 
     def _init_registry(self) -> None:
-        self.yasl_type_defs: dict[tuple[str, str | None], type[BaseModel]] = {}
-        self.yasl_enumerations: dict[tuple[str, str | None], type[Enum]] = {}
+        self.yasl_type_defs: dict[tuple[str, str | None], BaseModel] = {}
+        self.yasl_enumerations: dict[tuple[str, str | None], Enum] = {}
         self.unique_values_store: dict[tuple[str, str | None], dict[str, set]] = {}
 
-    def register_type(
-        self, name: str, type_def: type[BaseModel], namespace: str
-    ) -> None:
+    def register_type(self, name: str, type_def: BaseModel, namespace: str) -> None:
         key = (name, namespace)
         log = logging.getLogger("yasl")
         if key in self.yasl_type_defs:
@@ -35,7 +33,7 @@ class YaslRegistry:
         self.yasl_type_defs[key] = type_def
         log.debug(f"Registered type '{name}' in namespace '{namespace}'")
 
-    def get_types(self) -> dict[tuple[str, str | None], type[BaseModel]]:
+    def get_types(self) -> MappingProxyType[tuple[str, str | None], BaseModel]:
         # Return a read-only view of the registered types
         return MappingProxyType(self.yasl_type_defs)
 
@@ -44,7 +42,7 @@ class YaslRegistry:
         name: str,
         namespace: str | None = None,
         default_namespace: str | None = None,
-    ) -> type[BaseModel] | None:
+    ) -> BaseModel | None:
         log = logging.getLogger("yasl")
         log.debug(
             f"Looking up type '{name}' in namespace '{namespace}' with default namespace '{default_namespace}'"
@@ -70,7 +68,7 @@ class YaslRegistry:
             f"Ambiguous type name '{name}': found in multiple namespaces {matches}. Specify a namespace."
         )
 
-    def register_enum(self, name: str, enum_def: type[Enum], namespace: str) -> None:
+    def register_enum(self, name: str, enum_def: Enum, namespace: str) -> None:
         log = logging.getLogger("yasl")
         key = (name, namespace)
         if key in self.yasl_enumerations:
@@ -86,7 +84,7 @@ class YaslRegistry:
         name: str,
         namespace: str | None = None,
         default_namespace: str | None = None,
-    ) -> type[Enum] | None:
+    ) -> Enum | None:
         log = logging.getLogger("yasl")
         log.debug(
             f"Looking up enum '{name}' in namespace '{namespace}' with default namespace '{default_namespace}'"
@@ -110,7 +108,11 @@ class YaslRegistry:
         )
 
     def register_unique_value(
-        self, type_name: str, property_name: str, value: Any, type_namespace: str = None
+        self,
+        type_name: str,
+        property_name: str,
+        value: Any,
+        type_namespace: str | None = None,
     ) -> None:
         if (type_name, type_namespace) not in self.unique_values_store:
             self.unique_values_store[type_name, type_namespace] = {}
@@ -123,7 +125,11 @@ class YaslRegistry:
         self.unique_values_store[type_name, type_namespace][property_name].add(value)
 
     def unique_value_exists(
-        self, type_name: str, property_name: str, value: Any, type_namespace: str = None
+        self,
+        type_name: str,
+        property_name: str,
+        value: Any,
+        type_namespace: str | None = None,
     ) -> bool:
         if type_namespace is None:
             matches = [

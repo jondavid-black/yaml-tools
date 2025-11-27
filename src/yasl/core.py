@@ -10,7 +10,7 @@ from collections.abc import Callable
 from enum import Enum
 from io import StringIO
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, TextIO
 
 from pydantic import (
     UUID1,
@@ -33,6 +33,7 @@ from pydantic import (
     CockroachDsn,
     DirectoryPath,
     EmailStr,
+    Field,
     FilePath,
     FileUrl,
     FiniteFloat,
@@ -104,7 +105,7 @@ def setup_logging(
     verbose: bool,
     quiet: bool,
     output: str,
-    stream: StringIO = sys.stdout,
+    stream: StringIO | TextIO = sys.stdout,
 ):
     logger = logging.getLogger()
     logger.handlers.clear()
@@ -145,12 +146,12 @@ def yasl_version() -> str:
 def yasl_eval(
     yasl_schema: str,
     yaml_data: str,
-    model_name: str = None,
+    model_name: str | None = None,
     disable_log: bool = False,
     quiet_log: bool = False,
     verbose_log: bool = False,
     output: str = "text",
-    log_stream: StringIO = sys.stdout,
+    log_stream: StringIO | TextIO = sys.stdout,
 ) -> list[BaseModel] | None:
     """
     Evaluate YAML data against a YASL schema.
@@ -502,18 +503,34 @@ def gen_pydantic_type_models(namespace: str, type_defs: dict[str, TypeDef]):
             if is_map:
                 py_type = dict[key, py_type]
 
-            if not prop.required:
+            # Handle presence
+            is_required = False
+            if prop.presence == "required":
+                is_required = True
+            elif prop.presence == "preferred":
+                is_required = False
+            elif prop.presence == "optional":
+                is_required = False
+            else:
+                # Default to optional if None (though default is "optional" in model)
+                is_required = False
+
+            if not is_required:
                 py_type = Optional[py_type]
 
             default = (
                 prop.default
                 if prop.default is not None
-                else (None if not prop.required else ...)
+                else (None if not is_required else ...)
             )
             fields[prop_name] = (py_type, default)
             validators[f"{prop_name}__validator"] = property_validator_factory(
                 typedef_name, namespace, type_def, prop_name, prop
             )
+
+        # Add hidden field for YAML line number
+        fields["yaml_line"] = (Optional[int], Field(default=None, exclude=True))
+
         validators["__validate__"] = type_validator_factory(type_def)
         model = create_model(
             typedef_name,
@@ -619,7 +636,7 @@ def load_and_validate_yasl_with_lines(path: str) -> list[YaslRoot]:
 
 
 # --- Main data validation logic ---
-def load_and_validate_data_with_lines(model_name: str, path: str) -> Any:
+def load_and_validate_data_with_lines(model_name: str | None, path: str) -> Any:
     log = logging.getLogger("yasl")
     log.debug(f"--- Attempting to validate data '{path}' ---")
     docs = []
@@ -681,6 +698,11 @@ def load_and_validate_data_with_lines(model_name: str, path: str) -> Any:
                 log.debug(
                     f"Using schema '{schema_name}' for data validation of {path}."
                 )
+
+                # Inject line number if available
+                if hasattr(data, "lc") and hasattr(data.lc, "line"):
+                    data["yaml_line"] = data.lc.line + 1
+
                 result = model(**data)
                 if result is not None:
                     results.append(result)

@@ -88,4 +88,4 @@ As a schema author, I want fields to be optional by default or explicitly marked
 - **SC-001**: 100% of missing fields marked `required` trigger a validation error.
 - **SC-002**: 100% of missing fields marked `preferred` trigger a validation warning.
 - **SC-003**: 100% of missing fields marked `optional` (or default) trigger no validation messages.
-- **SC-004**: Existing schemas can be updated to use `presence` instead of `required` with a clear mapping (`required: true` -> `presence: required`, `required: false` -> `presence: optional`).
+- **SC-004**: Existing schemas can be updated to use `presence` instead of `required` with a clear mapping (`presence: required` -> `presence: required`, `presence: optional` -> `presence: optional`).

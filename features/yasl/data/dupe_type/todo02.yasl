@@ -6,13 +6,13 @@ types:
       description:
         type: str
         description: A description of the task.
-        required: true
+        presence: required
       owner:
         type: str
         description: The person responsible for the task.
-        required: false
+        presence: optional
       complete:
         type: bool
         description: Is the task finished? True if yes, false if no.
-        required: true
+        presence: required
         default: false

@@ -1,4 +1,5 @@
 import datetime
+import logging
 import re
 from collections.abc import Callable
 from functools import partial
@@ -15,7 +16,11 @@ from yasl.pydantic_types import IfThen, Property, TypeDef
 
 
 def unique_value_validator(
-    cls, value: Any, type_name: str, property_name: str, type_namespace: str = None
+    cls,
+    value: Any,
+    type_name: str,
+    property_name: str,
+    type_namespace: str | None = None,
 ):
     registry = YaslRegistry()
     registry.register_unique_value(type_name, property_name, value, type_namespace)
@@ -101,7 +106,7 @@ def date_before_validator(
         raise ValueError(
             f"Type of value '{type(value)}' does not match type of 'before' '{type(before)}'"
         )
-    if value >= before:
+    if value >= before:  # type: ignore
         raise ValueError(f"Date '{value}' must be before '{before}'")
     return value
 
@@ -115,7 +120,7 @@ def date_after_validator(
         raise ValueError(
             f"Type of value '{type(value)}' does not match type of 'after' '{type(after)}'"
         )
-    if value <= after:
+    if value <= after:  # type: ignore
         raise ValueError(f"Date '{value}' must be after '{after}'")
     return value
 
@@ -229,7 +234,11 @@ def enum_validator(cls, value: Any, values: list[str]):
 
 # map validator
 def map_validator(
-    cls, value: dict[Any, Any], key_type: str, value_type: str, any_of: list[str] = None
+    cls,
+    value: dict[Any, Any],
+    key_type: str,
+    value_type: str,
+    any_of: list[str] | None = None,
 ):
     # validate key type is str, int, or an enumation
     registry = YaslRegistry()
@@ -428,6 +437,24 @@ def if_then_validator(cls, values: dict[str, Any], if_then: IfThen):
     return values
 
 
+def preferred_presence_validator(cls, values: Any, properties: dict[str, Property]):
+    log = logging.getLogger("yasl")
+    values_dict = values.model_dump()
+
+    # Access the hidden yaml_line field if it exists
+    line_info = ""
+    if hasattr(values, "yaml_line") and values.yaml_line is not None:
+        line_info = f" at line {values.yaml_line}"
+
+    for prop_name, prop in properties.items():
+        if prop.presence == "preferred":
+            if prop_name not in values_dict or values_dict[prop_name] is None:
+                log.warning(
+                    f"⚠️  Warning: Preferred property '{prop_name}' is missing{line_info}"
+                )
+    return values
+
+
 def type_validator_factory(model: TypeDef) -> Callable:
     validators = []
     if model.validators is not None:
@@ -442,6 +469,11 @@ def type_validator_factory(model: TypeDef) -> Callable:
         if model.validators.if_then is not None:
             for item in model.validators.if_then:
                 validators.append(partial(if_then_validator, if_then=item))
+
+    if model.properties:
+        validators.append(
+            partial(preferred_presence_validator, properties=model.properties)
+        )
 
     @model_validator(mode="after")
     def multi_validator(cls, values):

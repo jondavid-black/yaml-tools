@@ -5,14 +5,14 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Create feature branch `001-yasl-presence-attribute` (already done)
-- [ ] T002 Create `specs/001-yasl-presence-attribute/contracts` directory (already done)
+- [x] T001 Create feature branch `001-yasl-presence-attribute` (already done)
+- [x] T002 Create `specs/001-yasl-presence-attribute/contracts` directory (already done)
 
 ## Phase 2: Foundational
 
-- [ ] T003 Update `Property` model in `src/yasl/pydantic_types.py` to replace `required` with `presence`
-- [ ] T004 Update `Property` model in `src/yasl/pydantic_types.py` to set default `presence` to `optional`
-- [ ] T005 Update `Property` model in `src/yasl/pydantic_types.py` to validate `presence` values (`required`, `preferred`, `optional`)
+- [x] T003 Update `Property` model in `src/yasl/pydantic_types.py` to replace `required` with `presence`
+- [x] T004 Update `Property` model in `src/yasl/pydantic_types.py` to set default `presence` to `optional`
+- [x] T005 Update `Property` model in `src/yasl/pydantic_types.py` to validate `presence` values (`required`, `preferred`, `optional`)
 
 ## Phase 3: User Story 1 - Define Required Field (P1)
 
@@ -20,13 +20,13 @@
 
 **Independent Test**: Create a schema with `presence: required` and verify validation fails when field is missing.
 
-- [ ] T006 [US1] Create test schema `tests/yasl/data/presence_required.yasl` with a required field
-- [ ] T007 [US1] Create valid test data `tests/yasl/data/presence_required_valid.yaml`
-- [ ] T008 [US1] Create invalid test data `tests/yasl/data/presence_required_invalid.yaml` (missing field)
-- [ ] T009 [US1] Create unit test `tests/yasl/test_presence_required.py` to verify `presence: required` behavior
-- [ ] T010 [US1] Update `gen_pydantic_type_models` in `src/yasl/core.py` to handle `presence: required` (make field required in Pydantic model)
-- [ ] T011 [US1] Update `gen_pydantic_type_models` in `src/yasl/core.py` to handle `presence: optional` (make field Optional in Pydantic model)
-- [ ] T012 [US1] Update `load_and_validate_yasl_with_lines` in `src/yasl/core.py` to reject schemas with legacy `required` attribute
+- [x] T006 [US1] Create test schema `tests/yasl/data/presence_required.yasl` with a required field
+- [x] T007 [US1] Create valid test data `tests/yasl/data/presence_required_valid.yaml`
+- [x] T008 [US1] Create invalid test data `tests/yasl/data/presence_required_invalid.yaml` (missing field)
+- [x] T009 [US1] Create unit test `tests/yasl/test_presence_required.py` to verify `presence: required` behavior
+- [x] T010 [US1] Update `gen_pydantic_type_models` in `src/yasl/core.py` to handle `presence: required` (make field required in Pydantic model)
+- [x] T011 [US1] Update `gen_pydantic_type_models` in `src/yasl/core.py` to handle `presence: optional` (make field Optional in Pydantic model)
+- [x] T012 [US1] Update `load_and_validate_yasl_with_lines` in `src/yasl/core.py` to reject schemas with legacy `required` attribute
 
 ## Phase 4: User Story 2 - Define Preferred Field (P2)
 
@@ -34,12 +34,12 @@
 
 **Independent Test**: Create a schema with `presence: preferred` and verify validation succeeds with a warning when field is missing.
 
-- [ ] T013 [US2] Create test schema `tests/yasl/data/presence_preferred.yasl` with a preferred field
-- [ ] T014 [US2] Create valid test data `tests/yasl/data/presence_preferred_missing.yaml` (missing field)
-- [ ] T015 [US2] Create unit test `tests/yasl/test_presence_preferred.py` to verify `presence: preferred` behavior (warning generation)
-- [ ] T016 [US2] Update `gen_pydantic_type_models` in `src/yasl/core.py` to handle `presence: preferred` (make field Optional in Pydantic model)
-- [ ] T017 [US2] Update `load_and_validate_data_with_lines` in `src/yasl/core.py` to check for missing `preferred` fields after validation
-- [ ] T018 [US2] Update `load_and_validate_data_with_lines` in `src/yasl/core.py` to log warnings for missing `preferred` fields
+- [x] T013 [US2] Create test schema `tests/yasl/data/presence_preferred.yasl` with a preferred field (Used `presence_required.yasl`)
+- [x] T014 [US2] Create valid test data `tests/yasl/data/presence_preferred_missing.yaml` (missing field) (Used `presence_required_warn.yaml`)
+- [x] T015 [US2] Create unit test `tests/yasl/test_presence_preferred.py` to verify `presence: preferred` behavior (warning generation) (Used `test_presence_required.py`)
+- [x] T016 [US2] Update `gen_pydantic_type_models` in `src/yasl/core.py` to handle `presence: preferred` (make field Optional in Pydantic model)
+- [x] T017 [US2] Update `load_and_validate_data_with_lines` in `src/yasl/core.py` to check for missing `preferred` fields after validation (Implemented in `validators.py`)
+- [x] T018 [US2] Update `load_and_validate_data_with_lines` in `src/yasl/core.py` to log warnings for missing `preferred` fields (Implemented in `validators.py`)
 
 ## Phase 5: User Story 3 - Define Optional Field (P3)
 
@@ -47,16 +47,16 @@
 
 **Independent Test**: Create a schema with `presence: optional` and verify validation succeeds silently when field is missing.
 
-- [ ] T019 [US3] Create test schema `tests/yasl/data/presence_optional.yasl` with an optional field
-- [ ] T020 [US3] Create valid test data `tests/yasl/data/presence_optional_missing.yaml` (missing field)
-- [ ] T021 [US3] Create unit test `tests/yasl/test_presence_optional.py` to verify `presence: optional` behavior (no errors/warnings)
-- [ ] T022 [US3] Verify default behavior (no `presence` attribute) acts as `optional` in `tests/yasl/test_presence_optional.py`
+- [x] T019 [US3] Create test schema `tests/yasl/data/presence_optional.yasl` with an optional field
+- [x] T020 [US3] Create valid test data `tests/yasl/data/presence_optional_missing.yaml` (missing field)
+- [x] T021 [US3] Create unit test `tests/yasl/test_presence_optional.py` to verify `presence: optional` behavior (no errors/warnings)
+- [x] T022 [US3] Verify default behavior (no `presence` attribute) acts as `optional` in `tests/yasl/test_presence_optional.py`
 
 ## Final Phase: Polish
 
-- [ ] T023 Update `README.md` or documentation to reflect the new `presence` attribute and deprecation of `required`
-- [ ] T024 Run full test suite to ensure no regressions
-- [ ] T025 Verify all new tests pass
+- [x] T023 Update `README.md` or documentation to reflect the new `presence` attribute and deprecation of `required`
+- [x] T024 Run full test suite to ensure no regressions
+- [x] T025 Verify all new tests pass
 
 ## Dependencies
 
