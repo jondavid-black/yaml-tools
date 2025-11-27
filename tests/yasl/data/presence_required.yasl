@@ -1,0 +1,18 @@
+definitions:
+    acme:
+        description: Acme Corporation schema definitions.
+        types:
+            person:
+                description: Information about a person.
+                properties:
+                    username:
+                        type: str
+                        description: The person's name.
+                        presence: required
+                        str_min: 5
+                        str_max: 15
+                        str_regex: '^[A-Za-z ]+$'
+                    email:
+                        type: EmailStr
+                        description: The person's email address.
+                        presence: preferred

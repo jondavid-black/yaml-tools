@@ -7,15 +7,15 @@ definitions:
           description:
             type: str
             description: A description of the task.
-            required: true
+            presence: required
           owner:
             type: str
             description: The person responsible for the task.
-            required: false
+            presence: optional
           complete:
             type: bool
             description: Is the task finished? True if yes, false if no.
-            required: true
+            presence: required
             default: false
   dynamic:
     types:
@@ -25,7 +25,7 @@ definitions:
           task_list:
             type: [other.taskkey, something.task]
             description: A list of tasks to do.
-            required: true
+            presence: required
   other:
     enums:
       taskkey:

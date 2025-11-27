@@ -1,0 +1,19 @@
+definitions:
+    acme:
+        description: Acme Corporation schema definitions.
+        types:
+            person_optional:
+                description: Information about a person with optional fields.
+                properties:
+                    username:
+                        type: str
+                        description: The person's name.
+                        presence: required
+                    nickname:
+                        type: str
+                        description: The person's nickname.
+                        presence: optional
+                    bio:
+                        type: str
+                        description: The person's biography.
+                        # Default presence should be optional

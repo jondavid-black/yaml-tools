@@ -7,15 +7,15 @@ definitions:
           description:
             type: str
             description: A description of the input. The description is shown to users when they manually trigger a workflow. Default - "" (an empty string).
-            required: false
+            presence: optional
           required:
             type: bool
             description: Whether the input is required. If true, the user must provide a value for the input when they manually trigger a workflow. Default - false.
-            required: false
+            presence: optional
           default:
             type: any
             description: The default value for the input. If the user does not provide a value for the input when they manually trigger a workflow, this value is used. Default - "" (an empty string).
-            required: false
+            presence: optional
             any_of:
               - str
               - bool
@@ -24,96 +24,96 @@ definitions:
           type:
             type: input_types
             description: The type of the input. Valid values are string, boolean, and number. Default - string.
-            required: true
+            presence: required
           options:
             type: str[]
             description: A list of possible values for the input. This property is only valid when type is choice. Default - [] (an empty list).
-            required: false
+            presence: optional
       output:
         description: An output defined for a workflow or job that is triggered by the workflow_call event. For more information, see "Calling a workflow."
         properties:
           description:
             type: str
             description: A description of the output. The description is shown to users when they view the workflow run summary. Default - "" (an empty string).
-            required: false
+            presence: optional
           value:
             type: str  # TODO: consider adding regular expression validation for GitHub Actions expressions
             description: The value of the output. This value is returned to the caller of the workflow. Default - "" (an empty string).
-            required: false
+            presence: optional
       secrets:
         description: A secret defined for a workflow or job that is triggered by the workflow_call event. For more information, see "Calling a workflow."
         properties:
           description:
             type: str
             description: A description of the secret. The description is shown to users when they view the workflow run summary. Default - "" (an empty string).
-            required: false
+            presence: optional
           required:
             type: bool
             description: Whether the secret is required. If true, the caller of the workflow must provide a value for the secret. Default - false.
-            required: false
+            presence: optional
       permissions:
         description: The permissions granted to the GITHUB_TOKEN for the workflow or job.
         properties:
           actions:
             type: permission_level
             description: The actions permission for the GITHUB_TOKEN. Can be read, write, or none. Default is none.
-            required: false
+            presence: optional
           attestations:
             type: permission_level
             description: The attestations permission for the GITHUB_TOKEN. Can be read, write, or none. Default is none.
-            required: false
+            presence: optional
           checks:
             type: permission_level
             description: The checks permission for the GITHUB_TOKEN. Can be read, write, or none. Default is none.
-            required: false
+            presence: optional
           contents:
             type: permission_level
             description: The contents permission for the GITHUB_TOKEN. Can be read, write, or none. Default is read.
-            required: false
+            presence: optional
           deployments:
             type: permission_level
             description: The deployments permission for the GITHUB_TOKEN. Can be read, write, or none. Default is none.
-            required: false
+            presence: optional
           id-token:
             type: permission_level
             description: The id-token permission for the GITHUB_TOKEN. Can be read, write, or none. Default is none.
-            required: false
+            presence: optional
           issues:
             type: permission_level
             description: The issues permission for the GITHUB_TOKEN. Can be read, write, or none. Default is none.
-            required: false
+            presence: optional
           models:
             type: permission_level
             description: The models permission for the GITHUB_TOKEN. Can be read, write, or none. Default is none.
-            required: false
+            presence: optional
           discussions:
             type: permission_level
             description: The discussions permission for the GITHUB_TOKEN. Can be read, write, or none. Default is none.
-            required: false
+            presence: optional
           packages:
             type: permission_level
             description: The packages permission for the GITHUB_TOKEN. Can be read, write, or none. Default is none.
-            required: false
+            presence: optional
           pages:
             type: permission_level
             description: The pages permission for the GITHUB_TOKEN. Can be read, write, or none. Default is none.
-            required: false
+            presence: optional
           pull-requests:
             type: permission_level
             description: The pull-requests permission for the GITHUB_TOKEN. Can be read, write, or none. Default is none.
-            required: false
+            presence: optional
           repository-projects:
             type: permission_level
             description: The repository-projects permission for the GITHUB_TOKEN. Can be read, write, or none. Default is none.
-            required: false
+            presence: optional
           security-events:
             type: permission_level
             description: The security-events permission for the GITHUB_TOKEN. Can be read, write, or none. Default is none.
-            required: false
+            presence: optional
           statuses:
             type: permission_level
             description: The statuses permission for the GITHUB_TOKEN. Can be read, write, or none. Default is none.
-            required: false
+            presence: optional
 
       concurrency:
         description: A concurrency group ensures that only a single job or workflow using the same concurrency group will run at a time. For more information, see "Using concurrency to control access to resources."
@@ -121,11 +121,11 @@ definitions:
           group:
             type: str  # TODO: consider adding regular expression validation for GitHub Actions expressions
             description: A string or expression that defines a concurrency group. You can use the github.workflow and github.ref context to create a unique group for each workflow and branch. For more information, see "Using concurrency to control access to resources."
-            required: true
+            presence: required
           cancel-in-progress:
             type: bool
             description: If true, any currently running job or workflow in the same concurrency group will be cancelled when a new job or workflow is triggered. Default is false.
-            required: false
+            presence: optional
     enums:
       permission_level:
         description:  GitHub permission levels for the workflow or job.

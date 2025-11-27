@@ -14,20 +14,20 @@ definitions:
           name:
             type: str
             description: The customer's name.
-            required: true
+            presence: required
             unique: true
           age:
             type: int
             description: The customer's age.
-            required: false
+            presence: optional
           email:
             type: str
             description:  The customer's email address.
-            required: true
+            presence: required
           status:
             type: customer_status
             description: The customer's status.
-            required: true
+            presence: required
       customer_list:
         description: A list of customers.
         properties:
@@ -42,27 +42,27 @@ definitions:
           id:
             type: str
             description: The unique identifier for the account.
-            required: true
+            presence: required
           account_rep:
             type: str
             description: The name of the account representative.
-            required: true
+            presence: required
           customer_name:
             type: ref[acme.customer.name]
             description: The name of the customer associated with the account.
-            required: true
+            presence: required
       business:
         description: A list of accounts.
         properties:
           business_name:
             type: str
             description: The name of the business.
-            required: true
+            presence: required
           customers:
             type: acme.customer[]
             description: Information about a list of customers.
-            required: true
+            presence: required
           accounts:
             type: acme.account[]
             description: Information about an account.
-            required: true
+            presence: required

@@ -17,15 +17,15 @@ definitions:
           description:
             type: str
             description: A description of the task.
-            required: true
+            presence: required
           owner:
             type: str
             description: The person responsible for the task.
-            required: false
+            presence: optional
           complete:
             type: bool
             description: Is the task finished? True if yes, false if no.
-            required: true
+            presence: required
             default: false
   acme:
     types:
@@ -35,7 +35,7 @@ definitions:
           task_list:
             type: map[acme.taskkey, acme.dynamic.task]
             description: A list of tasks to do.
-            required: true
+            presence: required
     enums:
       taskkey:
         description: The type of shape.

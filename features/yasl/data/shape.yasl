@@ -7,37 +7,37 @@ definitions:
           name:
               type: str
               description: The name of the shape.
-              required: true
+              presence: required
           type:
               type: ShapeType
               description: The type of shape.
-              required: true
+              presence: required
           radius:
               type: float
               description: The radius of the circle.
-              required: false
+              presence: optional
               gt: 0
           side_length:
               type: float
               description: The length of the side of the square or triangle.
-              required: false
+              presence: optional
               gt: 0
           color:
               type: str
               description: The color of the shape.
-              required: false
+              presence: optional
           colour:
               type: str
               description: The color of the shape (British spelling).
-              required: false
+              presence: optional
           location:
               type: str
               description: The location of the shape.
-              required: false
+              presence: optional
           orientation:
               type: str
               description: The orientation of the shape.
-              required: false
+              presence: optional
         validators:
           only_one:
             - color

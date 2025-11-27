@@ -1,4 +1,5 @@
 import datetime
+import logging
 import re
 from collections.abc import Callable
 from functools import partial
@@ -15,7 +16,11 @@ from yasl.pydantic_types import IfThen, Property, TypeDef
 
 
 def unique_value_validator(
-    cls, value: Any, type_name: str, property_name: str, type_namespace: str = None
+    cls,
+    value: Any,
+    type_name: str,
+    property_name: str,
+    type_namespace: str | None = None,
 ):
     registry = YaslRegistry()
     registry.register_unique_value(type_name, property_name, value, type_namespace)
@@ -101,7 +106,7 @@ def date_before_validator(
         raise ValueError(
             f"Type of value '{type(value)}' does not match type of 'before' '{type(before)}'"
         )
-    if value >= before:
+    if value >= before:  # type: ignore
         raise ValueError(f"Date '{value}' must be before '{before}'")
     return value
 
@@ -115,7 +120,7 @@ def date_after_validator(
         raise ValueError(
             f"Type of value '{type(value)}' does not match type of 'after' '{type(after)}'"
         )
-    if value <= after:
+    if value <= after:  # type: ignore
         raise ValueError(f"Date '{value}' must be after '{after}'")
     return value
 
@@ -229,7 +234,11 @@ def enum_validator(cls, value: Any, values: list[str]):
 
 # map validator
 def map_validator(
-    cls, value: dict[Any, Any], key_type: str, value_type: str, any_of: list[str] = None
+    cls,
+    value: dict[Any, Any],
+    key_type: str,
+    value_type: str,
+    any_of: list[str] | None = None,
 ):
     # validate key type is str, int, or an enumation
     registry = YaslRegistry()
@@ -360,7 +369,7 @@ def property_validator_factory(
             raise ValueError(
                 f"Enum type '{property.type}' not found for property '{property_name}' in type '{typedef_name}'"
             )
-        validators.append(partial(enum_validator, values=[e.value for e in enum_type]))
+        validators.append(partial(enum_validator, values=[e.value for e in enum_type]))  # type: ignore
 
     # map validators
     if property.type.startswith("map["):
@@ -392,14 +401,14 @@ def property_validator_factory(
 
 # type validators
 def only_one_validator(cls, values: dict[str, Any], fields: list[str]):
-    data_keys = [key for key, val in values.model_dump().items() if val is not None]
+    data_keys = [key for key, val in values.model_dump().items() if val is not None]  # type: ignore
     if sum(1 for field in fields if field in data_keys) != 1:
         raise ValueError(f"Exactly one of {fields} must be present")
     return values
 
 
 def at_least_one_validator(cls, values: dict[str, Any], fields: list[str]):
-    data_keys = [key for key, val in values.model_dump().items() if val is not None]
+    data_keys = [key for key, val in values.model_dump().items() if val is not None]  # type: ignore
     if sum(1 for field in fields if field in data_keys) < 1:
         raise ValueError(f"At least one of {fields} must be present")
     return values
@@ -410,7 +419,7 @@ def if_then_validator(cls, values: dict[str, Any], if_then: IfThen):
     eval_value = if_then.value
     present_fields = if_then.present or []
     absent_fields = if_then.absent or []
-    values_dict = values.model_dump()
+    values_dict = values.model_dump()  # type: ignore
     if eval_field in values_dict:
         eval_value_type = type(values_dict[eval_field])
         typed_eval_value = [eval_value_type(v) for v in eval_value]
@@ -425,6 +434,24 @@ def if_then_validator(cls, values: dict[str, Any], if_then: IfThen):
                     raise ValueError(
                         f"Field '{field}' must be absent when '{eval_field}' is in {eval_value}"
                     )
+    return values
+
+
+def preferred_presence_validator(cls, values: Any, properties: dict[str, Property]):
+    log = logging.getLogger("yasl")
+    values_dict = values.model_dump()
+
+    # Access the hidden yaml_line field if it exists
+    line_info = ""
+    if hasattr(values, "yaml_line") and values.yaml_line is not None:
+        line_info = f" at line {values.yaml_line}"
+
+    for prop_name, prop in properties.items():
+        if prop.presence == "preferred":
+            if prop_name not in values_dict or values_dict[prop_name] is None:
+                log.warning(
+                    f"⚠️  Warning: Preferred property '{prop_name}' is missing{line_info}"
+                )
     return values
 
 
@@ -443,10 +470,15 @@ def type_validator_factory(model: TypeDef) -> Callable:
             for item in model.validators.if_then:
                 validators.append(partial(if_then_validator, if_then=item))
 
+    if model.properties:
+        validators.append(
+            partial(preferred_presence_validator, properties=model.properties)
+        )
+
     @model_validator(mode="after")
     def multi_validator(cls, values):
         for validator in validators:
             values = validator(cls, values)
         return values
 
-    return multi_validator
+    return multi_validator  # type: ignore

@@ -9,4 +9,4 @@ definitions:
           people:
             type: person[]
             description: A list of persons.
-            required: true
+            presence: required

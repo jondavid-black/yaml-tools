@@ -63,3 +63,6 @@ The project follows a modular structure:
 
 ---
 **NOTE:** This `copilot-instructions.md` file is intended to guide GitHub Copilot's suggestions and is subject to evolution as the project grows and its conventions solidify.
+
+## Recent Changes
+- 001-yasl-presence-attribute: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]

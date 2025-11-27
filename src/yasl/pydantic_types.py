@@ -1,9 +1,7 @@
 import datetime
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import (
-    BaseModel,
-)
+from pydantic import BaseModel
 
 
 class YASLBaseModel(BaseModel):
@@ -25,7 +23,7 @@ class Property(YASLBaseModel):
     # name: str
     type: str
     description: str | None = None
-    required: bool | None = True
+    presence: Literal["required", "preferred", "optional"] | None = "optional"
     unique: bool | None = False
     default: Any | None = None
 

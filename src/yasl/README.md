@@ -285,9 +285,13 @@ Properties have the following attributes:
 
 - `type`: type - The name of the primitive, enumeration, or type definition of the field (may include namespace in dot-notation for clarity).
 - `description` (optional): str - A brief summary of the field.
-- `required` (optional): bool - True if the field must be present in the data set, false otherwise.  Default: true.
+- `presence` (optional): 'required', 'preferred', or 'optional' - If required and not present results in an error.  If preferred and not present results in a warning.  Default: 'optional'.
 - `unique` (optional): bool - True if the field must be unique across all type_def uses in the data set.  Default: false.
 - `default` (optional): any - The default value of the field if not provided.  The value type must match the type field.
+
+> [!NOTE]
+> The legacy `required` boolean attribute is deprecated and has been replaced by `presence`.
+> Use `presence: required` instead of `required: true`.
 
 In addition to these fields, the primitive validators from above may be included as desired based on the type.
 
@@ -303,15 +307,15 @@ definitions:  # This is where we define our schema content.
           description:
             type: str
             description: A description of the task.
-            required: true
+            presence: required
           owner:
             type: str
             description: The person responsible for the task.
-            required: false
+            presence: optional
           complete:
             type: bool
             description: Is the task finished? True if yes, false if no.
-            required: true
+            presence: required
             default: false
       list_of_tasks: # This is a data type named 'list_of_tasks'.
         description: A list of tasks to complete.
@@ -319,7 +323,7 @@ definitions:  # This is where we define our schema content.
           task_list:
             type: map[taskkey, task]
             description: A list of tasks to do.
-            required: true
+            presence: required
 
     enums:  # This is where we define our enumerated types.
       taskkey:  # This is the name of an enumerated type.

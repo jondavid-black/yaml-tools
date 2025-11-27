@@ -8,193 +8,193 @@ definitions:
           id:
             type: str
             description: The unique identifier for the thing.
-            required: true
+            presence: required
           strict_bool:
             type: StrictBool
             description: A strict boolean value.
-            required: false
+            presence: optional
           positive_int:
             type: PositiveInt
             description: A positive integer value.
-            required: false
+            presence: optional
           negative_int:
             type: NegativeInt
             description: A negative integer value.
-            required: false
+            presence: optional
           non_positive_int:
             type: NonPositiveInt
             description: A non-positive integer value.
-            required: false
+            presence: optional
           non_negative_int:
             type: NonNegativeInt
             description: A non-negative integer value.
-            required: false
+            presence: optional
           strict_int:
             type: StrictInt
             description: A strict integer value.
-            required: false
+            presence: optional
           positive_float:
             type: PositiveFloat
             description: A positive float value.
-            required: false
+            presence: optional
           negative_float:
             type: NegativeFloat
             description: A negative float value.
-            required: false
+            presence: optional
           non_positive_float:
             type: NonPositiveFloat
             description: A non-positive float value.
-            required: false
+            presence: optional
           non_negative_float:
             type: NonNegativeFloat
             description: A non-negative float value.
-            required: false
+            presence: optional
           strict_float:
             type: StrictFloat
             description: A strict float value.
-            required: false
+            presence: optional
           finite_float:
             type: FiniteFloat
             description: A finite float value (not NaN or infinite).
-            required: false
+            presence: optional
           strict_str:
             type: StrictStr
             description: A strict string value.
-            required: false
+            presence: optional
           uuid1:
             type: UUID1
             description: A UUID version 1.
-            required: false
+            presence: optional
           uuid3:
             type: UUID3
             description: A UUID version 3.
-            required: false
+            presence: optional
           uuid4:
             type: UUID4
             description: A UUID version 4.
-            required: false
+            presence: optional
           uuid5:
             type: UUID5
             description: A UUID version 5.
-            required: false
+            presence: optional
           uuid6:
             type: UUID6
             description: A UUID version 6.
-            required: false
+            presence: optional
           uuid7:
             type: UUID7
             description: A UUID version 7.
-            required: false
+            presence: optional
           uuid8:
             type: UUID8
             description: A UUID version 8.
-            required: false
+            presence: optional
           file_path:
             type: FilePath
             description: A valid file path.
-            required: false
+            presence: optional
           directory_path:
             type: DirectoryPath
             description: A valid directory path.
-            required: false
+            presence: optional
           base64_bytes:
             type: Base64Bytes
             description: A base64 encoded byte string.
-            required: false
+            presence: optional
           base64_str:
             type: Base64Str
             description: A base64 encoded string.
-            required: false
+            presence: optional
           base64_url_bytes:
             type: Base64UrlBytes
             description: A base64 URL-safe encoded byte string.
-            required: false
+            presence: optional
           base64_url_str:
             type: Base64UrlStr
             description: A base64 URL-safe encoded string.
-            required: false
+            presence: optional
           any_url:
             type: AnyUrl
             description: Any valid URL.
-            required: false
+            presence: optional
           any_http_url:
             type: AnyHttpUrl
             description: Any valid HTTP or HTTPS URL.
-            required: false
+            presence: optional
           http_url:
             type: HttpUrl
             description: A valid HTTP or HTTPS URL.
-            required: false
+            presence: optional
           any_websocket_url:
             type: AnyWebsocketUrl
             description: Any valid WebSocket or secure WebSocket URL.
-            required: false
+            presence: optional
           websocket_url:
             type: WebsocketUrl
             description: A valid WebSocket or secure WebSocket URL.
-            required: false
+            presence: optional
           file_url:
             type: FileUrl
             description: A valid file URL.
-            required: false
+            presence: optional
           ftp_url:
             type: FtpUrl
             description: A valid FTP or FTPS URL.
-            required: false
+            presence: optional
           postgres_dsn:
             type: PostgresDsn
             description: A valid PostgreSQL DSN.
-            required: false
+            presence: optional
           cockroach_dsn:
             type: CockroachDsn
             description: A valid CockroachDB DSN.
-            required: false
+            presence: optional
           amqp_dsn:
             type: AmqpDsn
             description: A valid AMQP DSN.
-            required: false
+            presence: optional
           redis_dsn:
             type: RedisDsn
             description: A valid Redis DSN.
-            required: false
+            presence: optional
           mongo_dsn:
             type: MongoDsn
             description: A valid MongoDB DSN.
-            required: false
+            presence: optional
           kafka_dsn:
             type: KafkaDsn
             description: A valid Kafka DSN.
-            required: false
+            presence: optional
           nats_dsn:
             type: NatsDsn
             description: A valid NATS DSN.
-            required: false
+            presence: optional
           mysql_dsn:
             type: MySQLDsn
             description: A valid MySQL DSN.
-            required: false
+            presence: optional
           mariadb_dsn:
             type: MariaDBDsn
             description: A valid MariaDB DSN.
-            required: false
+            presence: optional
           clickhouse_dsn:
             type: ClickHouseDsn
             description: A valid ClickHouse DSN.
-            required: false
+            presence: optional
           snowflake_dsn:
             type: SnowflakeDsn
             description: A valid Snowflake DSN.
-            required: false
+            presence: optional
           email_str:
             type: EmailStr
             description: A valid email address.
-            required: false
+            presence: optional
           name_email:
             type: NameEmail
             description: A valid name and email address.
-            required: false
+            presence: optional
           ipvany_address:
             type: IPvAnyAddress
             description: A valid IPv4 or IPv6 address.
-            required: false
+            presence: optional
           
