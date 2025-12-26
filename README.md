@@ -1,4 +1,4 @@
-![advanced-yaml](./advanced-yaml-logo.svg)
+![advanced-yaml](./AdvancedYamlLogo.png)
 
 # Advanced YAML
 
