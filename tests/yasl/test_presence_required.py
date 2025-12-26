@@ -1,4 +1,3 @@
-
 from io import StringIO
 
 from yasl import yasl_eval
