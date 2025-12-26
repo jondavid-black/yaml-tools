@@ -1,18 +1,18 @@
-# YAML-TOOLS Project Instructions for GitHub Copilot
+# advanced-yaml Project Instructions for GitHub Copilot
 
 ## Project Overview
-This project, YAML-TOOLS, aims to provide robust collection of YAML validation, procssing, and manipulation capabilities. YAML-TOOLS is written in Python. 
+This project, advanced-yaml, aims to provide robust collection of YAML validation, procssing, and manipulation capabilities. advanced-yaml is written in Python. 
 We emphasize clean code, strong typing, comprehensive testing, and clear documentation.
 
 ## Project Structure
 The project follows a modular structure:
-- `src/`: Contains the python source code for YAML-TOOLS.
+- `src/`: Contains the python source code for advanced-yaml.
 - `src/yasl/`: Contains the core YASL (YAML Advanced Scripting Language) implementation.
 - `src/yaql/`: Contains the core YAQL (YAML Advanced Query Language) implementation.
 - `src/yarl/`: Contains the core YARL (YAML Advanced Reporting Language) implementation.
 - `README.md`: Project documentation and usage instructions.
-- `docs/`: Contains YAML-TOOLS documentation in Markdown for publication in GitHub Pages.
-- `tests/`: Contains the python unit test code for YAML-TOOLS.
+- `docs/`: Contains advanced-yaml documentation in Markdown for publication in GitHub Pages.
+- `tests/`: Contains the python unit test code for advanced-yaml.
 - `tests/yasl/`: Contains unit tests for the YASL implementation.
 - `tests/yaql/`: Contains unit tests for the YAQL implementation.
 - `tests/yarl/`: Contains unit tests for the YARL implementation.

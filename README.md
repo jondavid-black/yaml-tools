@@ -1,4 +1,4 @@
-![Yaml-Tools](./yaml-tools-logo.svg)
+![advanced-yaml](./advanced-yaml-logo.svg)
 
 # YAML Tools
 
@@ -21,14 +21,14 @@ Who made the change?
 Was the change valid?
 Establishing this visibility within databases can become complex and costly.
 
-The vision of yaml-tools is to allow for 'semi-static' data to be persisted in structured human and machine readable files that can be validated for correctness and referential integrity.
+The vision of advanced-yaml is to allow for 'semi-static' data to be persisted in structured human and machine readable files that can be validated for correctness and referential integrity.
 We see clear examples of this concept in infrastructure-as-code tools.
-Yaml-tools seeks to explore that paradigm for data in a highly flexible manner, suitable for a variety of domains.
+advanced-yaml seeks to explore that paradigm for data in a highly flexible manner, suitable for a variety of domains.
 This would allow teams to leverage robust version control systems to rigorously manage change.
 Teams can create automations to ensure data validity and integrity.
 And this could be done without compromising the common user experiences teams are accustomed to when working with their data.
 
-Yaml-tools attempts to enable this by providing robust solutions for defining and validating data structure and integrity through schemas in the `yasl` tool.
+advanced-yaml attempts to enable this by providing robust solutions for defining and validating data structure and integrity through schemas in the `yasl` tool.
 The `yaql` tool builds upon this by providing a query language and database fascade for your data.
 And the `yarl` tool further enhances this by enabling analysis and reporting for your data.
 Over time additional tools will be added to support other use cases and streamline development of products that utilize this 'semi-static' data management concept.
@@ -42,10 +42,10 @@ YAML tools is written in python and managed with the `UV` tool.
     ```bash
     curl -LsSf https://astral.sh/uv/install.sh | sh
     ```
-- Clone the yaml-tools repo
+- Clone the advanced-yaml repo
     ```bash
-    git clone git@github.com:jondavid-black/yaml-tools.git
-    cd yaml-tools
+    git clone git@github.com:jondavid-black/advanced-yaml.git
+    cd advanced-yaml
     ```
 
 - Setup the virtual environment and install dependencies

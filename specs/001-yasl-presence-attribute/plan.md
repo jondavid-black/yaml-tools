@@ -28,7 +28,7 @@ This feature replaces the boolean `required` attribute in YASL schema definition
 - [x] **I. Code Quality**: Simple implementation, extending existing patterns.
 - [x] **II. Testing**: Will include unit tests and BDD features.
 - [x] **III. Tooling**: Uses `uv`, `ruff`.
-- [x] **IV. Single-Package**: Part of `yaml-tools`.
+- [x] **IV. Single-Package**: Part of `advanced-yaml`.
 - [x] **V. Documentation**: Docs will be updated.
 
 ## Project Structure
