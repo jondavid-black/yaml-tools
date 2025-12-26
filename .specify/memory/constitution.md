@@ -9,7 +9,7 @@ Templates requiring updates: plan-template.md (✅), spec-template.md (✅), tas
 Follow-up TODOs: TODO(RATIFICATION_DATE): Original ratification date unknown, needs confirmation.
 -->
 
-# YAML-TOOLS Constitution
+# advanced-yaml Constitution
 
 
 ## Core Principles
@@ -24,7 +24,7 @@ All code MUST be covered by unit tests using `pytest` and acceptance tests using
 Development and CI/CD MUST use Python 3.12+ and the `uv` tool for environment management. All quality checks, formatting, and test runs MUST use `uv run` in the terminal. `ruff` is used for linting and formatting. GitHub Actions is the only CI/CD system.
 
 ### IV. Single-Package Management
-All tools are managed in a single repository and published as a unified `yaml-tools` package. Each application is defined as a script in `pyproject.toml`. The repository structure is: `src/` (code), `tests/` (unit tests), `features/` (BDD), `docs/` (documentation).
+All tools are managed in a single repository and published as a unified `advanced-yaml` package. Each application is defined as a script in `pyproject.toml`. The repository structure is: `src/` (code), `tests/` (unit tests), `features/` (BDD), `docs/` (documentation).
 
 ### V. Documentation and Transparency
 All tools and APIs MUST be documented in the `docs/` folder using MkDocs Material. Documentation is updated with every feature or breaking change. All changes are tracked in version control.
