@@ -222,8 +222,12 @@ for _unit, names in _units_and_physical_types:
         names_set = names
 
     for name in names_set:
-        ASTROPY_TYPES[name] = create_quantity_type(name, name)
-
+        # Handle collision with standard 'time' type (clock time)
+        if name == "time":
+            ASTROPY_TYPES["duration"] = create_quantity_type("duration", "time")
+        else:
+            # We use the name itself as the identifier for the type check
+            ASTROPY_TYPES[name] = create_quantity_type(name, name)
 # --- Standard Pydantic Types ---
 
 STANDARD_TYPES = {
@@ -231,7 +235,7 @@ STANDARD_TYPES = {
     "string": str,
     "date": datetime.date,
     "datetime": datetime.datetime,
-    "clocktime": datetime.time,  # Note: 'time' renamed to 'clocktime' to avoid conflict with astropy 'time' type
+    "time": datetime.time,
     "int": int,
     "float": float,
     "bool": bool,

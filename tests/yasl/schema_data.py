@@ -172,7 +172,7 @@ definitions:
                         after: "1900-01-01"
                         before: "2050-12-31"
                     favorite_time:
-                        type: time
+                        type: clocktime
                         description: The person's favorite time of day.
                         presence: optional
                     office:
@@ -257,7 +257,7 @@ definitions:
             after: "1900-01-01"
             before: "2050-12-31"
           favorite_time:
-            type: time
+            type: clocktime
             description: The person's favorite time of day.
             presence: optional
             after: "11:00:00"

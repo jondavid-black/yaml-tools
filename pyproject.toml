@@ -67,6 +67,7 @@ select = ["E", "F", "I", "W", "UP", "B"] # A good starting set of rules
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q --cov=src --cov-report=html --cov-fail-under=75"
+pythonpath = ["src"]
 testpaths = [
     "tests/yasl",
     "tests/yaql",

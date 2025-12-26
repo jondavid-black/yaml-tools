@@ -6,11 +6,6 @@ from io import StringIO
 from pathlib import Path
 
 import pytest
-
-sys.path.insert(
-    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../src/"))
-)
-
 from schema_data import (
     CUSTOMER_LIST_YASL,
     MARKDOWN_YASL,

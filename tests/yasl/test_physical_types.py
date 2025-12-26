@@ -1,13 +1,8 @@
 import os
-import sys
 import tempfile
 from io import StringIO
-import pytest
 
-# Add src to path just like in test_yasl.py
-sys.path.insert(
-    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../src/"))
-)
+import pytest
 
 from yasl import yasl_eval
 from yasl.primitives import PRIMITIVE_TYPE_MAP
@@ -45,18 +40,18 @@ def run_eval_command(yaml_data, yasl_schema, model_name, expect_valid):
 
 
 def test_duration_validation():
-    duration_type = PRIMITIVE_TYPE_MAP["duration"]
-    # Valid duration
-    assert duration_type.validate("10 s") == "10 s"
-    assert duration_type.validate("2.5 min") == "2.5 min"
+    time_type = PRIMITIVE_TYPE_MAP["time"]
+    # Valid time
+    assert time_type.validate("10 s") == "10 s"
+    assert time_type.validate("2.5 min") == "2.5 min"
 
-    # Invalid unit for duration (using length instead)
+    # Invalid unit for time (using length instead)
     with pytest.raises(ValueError, match="Physical type mismatch"):
-        duration_type.validate("10 m")
+        time_type.validate("10 m")
 
     # Invalid format
     with pytest.raises(ValueError, match="Invalid quantity"):
-        duration_type.validate("not a number")
+        time_type.validate("not a number")
 
 
 def test_length_validation():
@@ -106,10 +101,54 @@ def test_temperature_validation():
         temp_type.validate("10 m")
 
 
+def test_volume_validation():
+    volume_type = PRIMITIVE_TYPE_MAP["volume"]
+    # Valid volume
+    assert volume_type.validate("10 m3") == "10 m3"
+    # Liters
+    assert volume_type.validate("5 L") == "5 L"
+    assert volume_type.validate("500 ml") == "500 ml"
+
+    # Invalid unit
+    with pytest.raises(ValueError, match="Physical type mismatch"):
+        volume_type.validate("10 m")
+
+
+def test_complex_units_validation():
+    # Test multi-word physical type names
+
+    # "amount of substance"
+    amount_type = PRIMITIVE_TYPE_MAP["amount of substance"]
+    assert amount_type.validate("5 mol") == "5 mol"
+    with pytest.raises(ValueError, match="Physical type mismatch"):
+        amount_type.validate("5 kg")
+
+    # "thermal conductivity"
+    thermal_cond_type = PRIMITIVE_TYPE_MAP["thermal conductivity"]
+    # W / (m K)
+    assert thermal_cond_type.validate("10 W / (m K)") == "10 W / (m K)"
+    with pytest.raises(ValueError, match="Physical type mismatch"):
+        thermal_cond_type.validate("10 W")
+
+    # "specific heat capacity"
+    spec_heat_type = PRIMITIVE_TYPE_MAP["specific heat capacity"]
+    # J / (kg K)
+    assert spec_heat_type.validate("4184 J / (kg K)") == "4184 J / (kg K)"
+    with pytest.raises(ValueError, match="Physical type mismatch"):
+        spec_heat_type.validate("100 J")
+
+    # "electric field strength" - note mismatch in PRIMITIVE_TYPE_MAP vs astropy name sometimes, let's check
+    # In primitives.py: (si.V / si.m, "electrical field strength"),
+    elec_field_type = PRIMITIVE_TYPE_MAP["electrical field strength"]
+    assert elec_field_type.validate("100 V/m") == "100 V/m"
+    with pytest.raises(ValueError, match="Physical type mismatch"):
+        elec_field_type.validate("10 V")
+
+
 # --- YASL Integration Tests ---
 
 
-def test_yasl_duration_integration():
+def test_yasl_time_integration():
     yasl_schema = """
 definitions:
   main:
@@ -117,7 +156,7 @@ definitions:
       event:
         properties:
           duration:
-            type: duration
+            type: time
 """
     # Valid
     yaml_data_good = """
@@ -178,3 +217,30 @@ max_speed: 120 km
 curb_weight: 1500 kg
 """
     run_eval_command(yaml_data_bad, yasl_schema, "car", False)
+
+
+def test_yasl_complex_units_integration():
+    yasl_schema = """
+definitions:
+  main:
+    types:
+      material_properties:
+        properties:
+          conductivity:
+            type: thermal conductivity
+          specific_heat:
+            type: specific heat capacity
+"""
+    # Valid
+    yaml_data_good = """
+conductivity: 200 W / (m K)
+specific_heat: 900 J / (kg K)
+"""
+    run_eval_command(yaml_data_good, yasl_schema, "material_properties", True)
+
+    # Invalid
+    yaml_data_bad = """
+conductivity: 200 J
+specific_heat: 900 W
+"""
+    run_eval_command(yaml_data_bad, yasl_schema, "material_properties", False)
