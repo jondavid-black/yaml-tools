@@ -1,5 +1,4 @@
 # validate_config_with_lines.py
-import datetime
 import json
 import logging
 import os
@@ -13,61 +12,15 @@ from pathlib import Path
 from typing import Any, Optional, TextIO, cast
 
 from pydantic import (
-    UUID1,
-    UUID3,
-    UUID4,
-    UUID5,
-    UUID6,
-    UUID7,
-    UUID8,
-    AmqpDsn,
-    AnyHttpUrl,
-    AnyUrl,
-    AnyWebsocketUrl,
-    Base64Bytes,
-    Base64Str,
-    Base64UrlBytes,
-    Base64UrlStr,
     BaseModel,
-    ClickHouseDsn,
-    CockroachDsn,
-    DirectoryPath,
-    EmailStr,
     Field,
-    FilePath,
-    FileUrl,
-    FiniteFloat,
-    FtpUrl,
-    HttpUrl,
-    IPvAnyAddress,
-    KafkaDsn,
-    MariaDBDsn,
-    MongoDsn,
-    MySQLDsn,
-    NameEmail,
-    NatsDsn,
-    NegativeFloat,
-    NegativeInt,
-    NonNegativeFloat,
-    NonNegativeInt,
-    NonPositiveFloat,
-    NonPositiveInt,
-    PositiveFloat,
-    PositiveInt,
-    PostgresDsn,
-    RedisDsn,
-    SnowflakeDsn,
-    StrictBool,
-    StrictFloat,
-    StrictInt,
-    StrictStr,
     ValidationError,
-    WebsocketUrl,
     create_model,
 )
 from ruamel.yaml import YAML, YAMLError
 
 from yasl.cache import YaslRegistry
+from yasl.primitives import PRIMITIVE_TYPE_MAP
 from yasl.pydantic_types import Enumeration, TypeDef, YASLBaseModel, YaslRoot
 from yasl.validators import property_validator_factory, type_validator_factory
 
@@ -272,67 +225,7 @@ def gen_pydantic_type_models(namespace: str, type_defs: dict[str, TypeDef]):
         for prop_name, prop in type_def.properties.items():
             # Determine type annotation for the property
             # For now, map basic types; extend as needed for complex types
-            type_map = {
-                "str": str,
-                "string": str,
-                "date": datetime.date,
-                "datetime": datetime.datetime,
-                "time": datetime.time,
-                "int": int,
-                "float": float,
-                "bool": bool,
-                "path": str,
-                "url": str,
-                "any": Any,
-                "markdown": str,
-                "StrictBool": StrictBool,
-                "PositiveInt": PositiveInt,
-                "NegativeInt": NegativeInt,
-                "NonPositiveInt": NonPositiveInt,
-                "NonNegativeInt": NonNegativeInt,
-                "StrictInt": StrictInt,
-                "PositiveFloat": PositiveFloat,
-                "NegativeFloat": NegativeFloat,
-                "NonPositiveFloat": NonPositiveFloat,
-                "NonNegativeFloat": NonNegativeFloat,
-                "StrictFloat": StrictFloat,
-                "FiniteFloat": FiniteFloat,
-                "StrictStr": StrictStr,
-                "UUID1": UUID1,
-                "UUID3": UUID3,
-                "UUID4": UUID4,
-                "UUID5": UUID5,
-                "UUID6": UUID6,
-                "UUID7": UUID7,
-                "UUID8": UUID8,
-                "FilePath": FilePath,
-                "DirectoryPath": DirectoryPath,
-                "Base64Bytes": Base64Bytes,
-                "Base64Str": Base64Str,
-                "Base64UrlBytes": Base64UrlBytes,
-                "Base64UrlStr": Base64UrlStr,
-                "AnyUrl": AnyUrl,
-                "AnyHttpUrl": AnyHttpUrl,
-                "HttpUrl": HttpUrl,
-                "AnyWebsocketUrl": AnyWebsocketUrl,
-                "WebsocketUrl": WebsocketUrl,
-                "FileUrl": FileUrl,
-                "FtpUrl": FtpUrl,
-                "PostgresDsn": PostgresDsn,
-                "CockroachDsn": CockroachDsn,
-                "AmqpDsn": AmqpDsn,
-                "RedisDsn": RedisDsn,
-                "MongoDsn": MongoDsn,
-                "KafkaDsn": KafkaDsn,
-                "NatsDsn": NatsDsn,
-                "MySQLDsn": MySQLDsn,
-                "MariaDBDsn": MariaDBDsn,
-                "ClickHouseDsn": ClickHouseDsn,
-                "SnowflakeDsn": SnowflakeDsn,
-                "EmailStr": EmailStr,
-                "NameEmail": NameEmail,
-                "IPvAnyAddress": IPvAnyAddress,
-            }
+            type_map = PRIMITIVE_TYPE_MAP
             type_lookup = prop.type
             type_lookup_namespace = None
             is_list = False
