@@ -2,7 +2,7 @@ import os
 import tomllib
 
 
-def yaml_tools_version() -> str:
+def advanced_yaml_version() -> str:
     try:
         pyproject_path = os.path.join(os.path.dirname(__file__), "../../pyproject.toml")
         with open(pyproject_path, "rb") as f:

@@ -1,8 +1,8 @@
 ![advanced-yaml](./advanced-yaml-logo.svg)
 
-# YAML Tools
+# Advanced YAML
 
-YAML tools is a suite of tools that streamline data management of structured data in YAML.
+Advanced YAML is a suite of tools that streamline data management of structured data in YAML.
 
 These tools include:
  - [YASL](./src/yasl/README.md) - YAML Advanced Schema Language
@@ -36,7 +36,7 @@ Over time additional tools will be added to support other use cases and streamli
 
 ## Developer Setup
 
-YAML tools is written in python and managed with the `UV` tool.
+Advanced YAML is written in python and managed with the `UV` tool.
 
 - Install UV:
     ```bash

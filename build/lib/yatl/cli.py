@@ -5,7 +5,7 @@ YATL CLI main entry point.
 import argparse
 import sys
 
-from common import yaml_tools_version
+from common import advanced_yaml_version
 
 
 def main():
@@ -34,7 +34,7 @@ def main():
         sys.exit(1)
 
     if args.version:
-        print(f"YATL version {yaml_tools_version()}")
+        print(f"YATL version {advanced_yaml_version()}")
         sys.exit(0)
 
     print(
