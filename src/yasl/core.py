@@ -181,7 +181,7 @@ def yasl_eval(
     results = []
 
     for yaml_file in yaml_files:
-        results = load_data_files(model_name, yaml_file)
+        results = load_data_files(yaml_file, model_name)
 
         if not results or len(results) == 0:
             log.error(
@@ -528,7 +528,25 @@ def get_line_for_error(data: Any, loc: tuple[str | int, ...]) -> int | None:
 
 
 def load_schema(data: dict[str, Any]) -> YaslRoot:
-    """Load and validate YASL schema from a dictionary.  Imports are not processed in this function."""
+    """
+    Load and validate a YASL schema from a dictionary and add the generated types to the registry.
+
+    This function parses a raw dictionary into a YaslRoot object, generating
+    any defined enumerations and Pydantic models in the process. Note that
+    schema imports are NOT supported when loading directly from a dictionary;
+    use `load_schema_files` if import resolution is required.
+
+    Args:
+        data (dict[str, Any]): The raw dictionary containing the YASL schema definition.
+
+    Returns:
+        YaslRoot: The validated and parsed YASL root object.
+
+    Raises:
+        ValueError: If the schema defines imports (which are not supported in this mode),
+            or if type generation fails (e.g. duplicate definitions, invalid references).
+        ValidationError: If the input data does not match the expected YASL structure.
+    """
     log = logging.getLogger("yasl")
     yasl = YaslRoot(**data)
     if yasl is None:
@@ -555,6 +573,25 @@ def load_schema(data: dict[str, Any]) -> YaslRoot:
 
 # --- Main schema validation logic ---
 def load_schema_files(path: str) -> list[YaslRoot] | None:
+    """
+    Load and validate YASL schema(s) from a file.
+
+    This function reads a YAML file containing one or more YASL schema definitions.
+    It recursively resolves any imports specified in the schemas.
+    For each valid schema, it generates the corresponding Python Enums and Pydantic models
+    and registers them in the YaslRegistry.
+
+    Args:
+        path (str): The file path to the YASL schema file.
+
+    Returns:
+        list[YaslRoot] | None: A list of validated YaslRoot objects if successful,
+        or None if validation fails or the file cannot be read.
+
+    Raises:
+        The function catches most exceptions (FileNotFoundError, YAMLError, ValidationError)
+        and logs them as errors, returning None.
+    """
     log = logging.getLogger("yasl")
     log.debug(f"--- Attempting to validate schema '{path}' ---")
     data = None
@@ -627,8 +664,28 @@ def load_schema_files(path: str) -> list[YaslRoot] | None:
 
 
 def load_data(
-    schema_name: str, schema_namespace: str, yaml_data: dict[str, Any]
+    yaml_data: dict[str, Any], schema_name: str, schema_namespace: str | None = None
 ) -> Any:
+    """
+    Validate a dictionary of data against a specific registered YASL schema.
+
+    This function retrieves the Pydantic model corresponding to the given schema name
+    and namespace from the YaslRegistry, and then attempts to validate the provided
+    data against it.
+
+    Args:
+        yaml_data (dict[str, Any]): The raw dictionary containing the YAML data to validate.
+        schema_name (str): The name of the schema type to validate against.
+        schema_namespace (str | None): The namespace where the schema is defined.
+
+    Returns:
+        Any: An instance of the validated Pydantic model if successful,
+        or None if validation fails or the schema cannot be found.
+
+    Raises:
+        The function catches ValidationError and SyntaxError, logs the details,
+        and returns None.
+    """
     log = logging.getLogger("yasl")
     try:
         result = None
@@ -662,7 +719,30 @@ def load_data(
 
 
 # --- Main data validation logic ---
-def load_data_files(model_name: str | None, path: str) -> Any:
+def load_data_files(path: str, model_name: str | None = None) -> Any:
+    """
+    Load and validate YAML data from a file against YASL schemas.
+
+    This function reads a YAML file (which may contain multiple documents) and attempts
+    to validate each document against a registered YASL schema.
+
+    If `model_name` is provided, validation is attempted against that specific schema.
+    If `model_name` is None, the function attempts to auto-detect the appropriate schema
+    by matching the root keys of the YAML data against the fields of registered types.
+
+    Args:
+        path (str): The file path to the YAML data file.
+        model_name (str | None): The name of the schema to validate against.
+            If None, schema auto-detection is performed.
+
+    Returns:
+        Any: A list of validated Pydantic models (one for each document in the YAML file)
+        if successful, or None if validation fails or the file cannot be read.
+
+    Raises:
+        The function catches exceptions like FileNotFoundError, SyntaxError, YAMLError,
+        and ValidationError, logging them as errors and returning None.
+    """
     log = logging.getLogger("yasl")
     log.debug(f"--- Attempting to validate data '{path}' ---")
     docs = []

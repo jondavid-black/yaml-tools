@@ -334,3 +334,8 @@ class YaslRegistry:
 
 # Singleton instance
 yasl_registry = YaslRegistry()
+
+
+def get_yasl_registry() -> YaslRegistry:
+    """Get the singleton YaslRegistry instance."""
+    return yasl_registry

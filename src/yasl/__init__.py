@@ -1,6 +1,6 @@
 # from .cli import main
 from common.utils import advanced_yaml_version
-from yasl.cache import yasl_registry
+from yasl.cache import get_yasl_registry
 from yasl.core import (
     load_data,
     load_data_files,
@@ -15,6 +15,6 @@ __all__ = [
     "load_schema_files",
     "load_data",
     "load_data_files",
-    "yasl_registry",
+    "get_yasl_registry",
     "advanced_yaml_version",
 ]
