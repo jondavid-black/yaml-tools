@@ -171,7 +171,7 @@ def yasl_eval(
 
     yasl_results = []
     for yasl_file in yasl_files:
-        yasl = load_and_validate_yasl_with_lines(yasl_file)
+        yasl = load_and_validate_yasl_files(yasl_file)
         if yasl is None:
             log.error("❌ YASL schema validation failed. Exiting.")
             registry.clear_caches()
@@ -181,7 +181,7 @@ def yasl_eval(
     results = []
 
     for yaml_file in yaml_files:
-        results = load_and_validate_data_with_lines(model_name, yaml_file)
+        results = load_and_validate_yaml_files(model_name, yaml_file)
 
         if not results or len(results) == 0:
             log.error(
@@ -291,7 +291,7 @@ def gen_pydantic_type_models(namespace: str, type_defs: dict[str, TypeDef]):
                         "str",
                         "string",
                         "int",
-                    ] + registry.get_enum_names()
+                    ] + registry.get_enums()
                     raise ValueError(
                         f"Map key type '{key}' for property '{prop_name}' must be one of {acceptable_keys}."
                     )
@@ -459,8 +459,34 @@ def get_line_for_error(data: Any, loc: tuple[str | int, ...]) -> int | None:
             return None
 
 
+def load_and_validate_yasl(data: dict[str, Any]) -> YaslRoot:
+    """Load and validate YASL schema from a dictionary.  Imports are not processed in this function."""
+    log = logging.getLogger("yasl")
+    yasl = YaslRoot(**data)
+    if yasl is None:
+        raise ValueError("Failed to parse YASL schema from data {data}")
+    if yasl.imports is not None:
+        log.error(
+            "Imports are not supported by the 'load_and_validate_yasl' function.  Use 'load_and_validate_yasl_files' instead."
+        )
+        raise ValueError(
+            "YASL import not supported when processing from data dictionary."
+        )
+    if yasl.metadata is not None:
+        log.debug(f"YASL Metadata: {yasl.metadata}")
+    if yasl.definitions is not None:
+        for namespace, yasl_item in yasl.definitions.items():
+            # generate enums first so enum map keys are known when generating types
+            if yasl_item.enums is not None:
+                gen_enum_from_enumerations(namespace, yasl_item.enums)
+        for namespace, yasl_item in yasl.definitions.items():
+            if yasl_item.types is not None:
+                gen_pydantic_type_models(namespace, yasl_item.types)
+    return yasl
+
+
 # --- Main schema validation logic ---
-def load_and_validate_yasl_with_lines(path: str) -> list[YaslRoot] | None:
+def load_and_validate_yasl_files(path: str) -> list[YaslRoot] | None:
     log = logging.getLogger("yasl")
     log.debug(f"--- Attempting to validate schema '{path}' ---")
     data = None
@@ -487,7 +513,7 @@ def load_and_validate_yasl_with_lines(path: str) -> list[YaslRoot] | None:
                     log.debug(
                         f"Importing additional schema '{imp}' - resolved to '{imp_path}'"
                     )
-                    imported_yasl = load_and_validate_yasl_with_lines(imp_path)
+                    imported_yasl = load_and_validate_yasl_files(imp_path)
                     if not imported_yasl:
                         raise ValueError(f"Failed to import YASL schema from '{imp}'")
             if yasl.metadata is not None:
@@ -532,8 +558,43 @@ def load_and_validate_yasl_with_lines(path: str) -> list[YaslRoot] | None:
         return None
 
 
+def load_and_validate_yaml(
+    schema_name: str, schema_namespace: str, yaml_data: dict[str, Any]
+) -> Any:
+    log = logging.getLogger("yasl")
+    try:
+        result = None
+        registry = YaslRegistry()
+
+        model = registry.get_type(schema_name, schema_namespace)
+
+        if model is None:
+            log.error(
+                f"❌ No schema found with name '{schema_name}' and namespece '{schema_namespace}'."
+            )
+            return None
+        else:
+            result = cast(type[BaseModel], model)(**yaml_data)  # type: ignore
+            if result is None:
+                log.error(f"YAML did not validate against schema '{schema_name}'.")
+                return None
+
+        log.info("✅ YAML data validation successful!")
+        return result
+    except ValidationError as e:
+        log.error(f"❌ Validation failed with {len(e.errors())} error(s):")
+        for error in e.errors():
+            log.error(f"  - {error['msg']}")
+        return None
+    except SyntaxError as e:
+        log.error(f"❌ SyntaxError in file YAML data - {getattr(e, 'msg', str(e))}")
+        if hasattr(e, "text") and e.text:
+            log.error(f"  > {e.text.strip()}")
+        return None
+
+
 # --- Main data validation logic ---
-def load_and_validate_data_with_lines(model_name: str | None, path: str) -> Any:
+def load_and_validate_yaml_files(model_name: str | None, path: str) -> Any:
     log = logging.getLogger("yasl")
     log.debug(f"--- Attempting to validate data '{path}' ---")
     docs = []
