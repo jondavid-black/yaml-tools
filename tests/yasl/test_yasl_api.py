@@ -3,8 +3,8 @@ import yaml
 from pydantic import ValidationError
 
 from yasl.core import (
-    load_and_validate_yaml,
-    load_and_validate_yasl,
+    load_data,
+    load_schema,
 )
 
 try:
@@ -25,7 +25,7 @@ def test_load_and_validate_yasl_with_dictionary():
     yasl_data = yaml.safe_load(TODO_YASL)
 
     # 2. Validate the YASL schema
-    yasl_model = load_and_validate_yasl(yasl_data)
+    yasl_model = load_schema(yasl_data)
     assert yasl_model is not None
 
     # 3. Create sample YAML data (matching the schema) as a dictionary
@@ -43,7 +43,7 @@ def test_load_and_validate_yasl_with_dictionary():
     # 4. Validate the YAML data against the loaded schema
     #    The TODO_YASL schema defines types in the 'dynamic' namespace.
     #    The root type for the data is 'list_of_tasks'
-    validated_model = load_and_validate_yaml(
+    validated_model = load_data(
         schema_name="list_of_tasks",
         schema_namespace="dynamic",
         yaml_data=yaml_data_dict,
@@ -76,12 +76,12 @@ def test_yasl_validation_errors():
     with pytest.raises(
         (ValueError, ValidationError)
     ):  # Catching general exception as it might be Pydantic validation error
-        load_and_validate_yasl(invalid_yasl_data)
+        load_schema(invalid_yasl_data)
 
     # 2. Schema with invalid structure
     invalid_structure_yasl = {"definitions": "this should be a dict"}
     with pytest.raises((ValueError, ValidationError)):
-        load_and_validate_yasl(invalid_structure_yasl)
+        load_schema(invalid_structure_yasl)
 
 
 def test_yaml_data_validation_errors():
@@ -93,7 +93,7 @@ def test_yaml_data_validation_errors():
     YaslRegistry().clear_caches()
 
     yasl_data = yaml.safe_load(TODO_YASL)
-    load_and_validate_yasl(yasl_data)
+    load_schema(yasl_data)
 
     # 1. Data with missing required field
     yaml_data_missing_field = {
@@ -106,7 +106,7 @@ def test_yaml_data_validation_errors():
         }
     }
 
-    result = load_and_validate_yaml(
+    result = load_data(
         schema_name="list_of_tasks",
         schema_namespace="dynamic",
         yaml_data=yaml_data_missing_field,
@@ -123,7 +123,7 @@ def test_yaml_data_validation_errors():
         }
     }
 
-    result = load_and_validate_yaml(
+    result = load_data(
         schema_name="list_of_tasks",
         schema_namespace="dynamic",
         yaml_data=yaml_data_wrong_type,
@@ -141,7 +141,7 @@ def test_yaml_data_validation_errors():
         }
     }
 
-    result = load_and_validate_yaml(
+    result = load_data(
         schema_name="list_of_tasks",
         schema_namespace="dynamic",
         yaml_data=yaml_data_extra_field,

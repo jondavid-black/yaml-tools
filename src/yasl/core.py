@@ -171,7 +171,7 @@ def yasl_eval(
 
     yasl_results = []
     for yasl_file in yasl_files:
-        yasl = load_and_validate_yasl_files(yasl_file)
+        yasl = load_schema_files(yasl_file)
         if yasl is None:
             log.error("❌ YASL schema validation failed. Exiting.")
             registry.clear_caches()
@@ -181,7 +181,7 @@ def yasl_eval(
     results = []
 
     for yaml_file in yaml_files:
-        results = load_and_validate_yaml_files(model_name, yaml_file)
+        results = load_data_files(model_name, yaml_file)
 
         if not results or len(results) == 0:
             log.error(
@@ -527,7 +527,7 @@ def get_line_for_error(data: Any, loc: tuple[str | int, ...]) -> int | None:
             return None
 
 
-def load_and_validate_yasl(data: dict[str, Any]) -> YaslRoot:
+def load_schema(data: dict[str, Any]) -> YaslRoot:
     """Load and validate YASL schema from a dictionary.  Imports are not processed in this function."""
     log = logging.getLogger("yasl")
     yasl = YaslRoot(**data)
@@ -554,7 +554,7 @@ def load_and_validate_yasl(data: dict[str, Any]) -> YaslRoot:
 
 
 # --- Main schema validation logic ---
-def load_and_validate_yasl_files(path: str) -> list[YaslRoot] | None:
+def load_schema_files(path: str) -> list[YaslRoot] | None:
     log = logging.getLogger("yasl")
     log.debug(f"--- Attempting to validate schema '{path}' ---")
     data = None
@@ -581,7 +581,7 @@ def load_and_validate_yasl_files(path: str) -> list[YaslRoot] | None:
                     log.debug(
                         f"Importing additional schema '{imp}' - resolved to '{imp_path}'"
                     )
-                    imported_yasl = load_and_validate_yasl_files(imp_path)
+                    imported_yasl = load_schema_files(imp_path)
                     if not imported_yasl:
                         raise ValueError(f"Failed to import YASL schema from '{imp}'")
             if yasl.metadata is not None:
@@ -626,7 +626,7 @@ def load_and_validate_yasl_files(path: str) -> list[YaslRoot] | None:
         return None
 
 
-def load_and_validate_yaml(
+def load_data(
     schema_name: str, schema_namespace: str, yaml_data: dict[str, Any]
 ) -> Any:
     log = logging.getLogger("yasl")
@@ -662,7 +662,7 @@ def load_and_validate_yaml(
 
 
 # --- Main data validation logic ---
-def load_and_validate_yaml_files(model_name: str | None, path: str) -> Any:
+def load_data_files(model_name: str | None, path: str) -> Any:
     log = logging.getLogger("yasl")
     log.debug(f"--- Attempting to validate data '{path}' ---")
     docs = []

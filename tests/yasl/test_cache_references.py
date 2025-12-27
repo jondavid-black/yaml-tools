@@ -4,7 +4,7 @@ import pytest
 import yaml
 from pydantic import BaseModel
 
-from yasl import load_and_validate_yasl
+from yasl import load_schema
 from yasl.cache import YaslRegistry
 from yasl.primitives import ReferenceMarker
 
@@ -67,7 +67,7 @@ definitions:
             presence: required
 """
     yasl_data = yaml.safe_load(yasl_schema)
-    load_and_validate_yasl(yasl_data)
+    load_schema(yasl_data)
 
     yaml_str = registry.export_schema()
 
