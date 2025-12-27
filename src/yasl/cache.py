@@ -165,8 +165,10 @@ class YaslRegistry:
         Groups definitions by namespace.
         """
         from io import StringIO
+        from typing import Union, get_args, get_origin
+
+        from pydantic_core import PydanticUndefined
         from ruamel.yaml import YAML
-        from typing import get_origin, get_args, Union
 
         yaml = YAML()
         yaml.preserve_quotes = True
@@ -190,10 +192,10 @@ class YaslRegistry:
             if "enums" not in schema["definitions"][namespace]:
                 schema["definitions"][namespace]["enums"] = {}
 
-            enum_def = {"values": [e.value for e in enum_cls]}
+            enum_def = {"values": [e.value for e in enum_cls]} # type: ignore
             # Add description if we can find one
             if enum_cls.__doc__ and enum_cls.__doc__ != "An enumeration.":
-                enum_def["description"] = enum_cls.__doc__
+                enum_def["description"] = enum_cls.__doc__ # type: ignore
 
             schema["definitions"][namespace]["enums"][name] = enum_def
 
@@ -220,7 +222,7 @@ class YaslRegistry:
                 prop_def: dict[str, Any] = {}
 
                 # Determine YASL type from Python type annotation
-                def py_type_to_yasl(t):
+                def py_type_to_yasl(t, ns=namespace):
                     origin = get_origin(t)
                     args = get_args(t)
 
@@ -236,16 +238,16 @@ class YaslRegistry:
                         return "map[str, str]"  # Fallback generic
 
                     if origin is list:
-                        return f"{py_type_to_yasl(args[0])}[]"
+                        return f"{py_type_to_yasl(args[0], ns)}[]"
 
                     if origin is dict:
-                        return f"map[{py_type_to_yasl(args[0])}, {py_type_to_yasl(args[1])}]"
+                        return f"map[{py_type_to_yasl(args[0], ns)}, {py_type_to_yasl(args[1], ns)}]"
 
                     if origin is Union:
                         # Handle Optional[T] which is Union[T, NoneType]
                         non_none = [a for a in args if a is not type(None)]
                         if len(non_none) == 1:
-                            return py_type_to_yasl(non_none[0])
+                            return py_type_to_yasl(non_none[0], ns)
 
                     if isinstance(t, type):
                         # It might be a registered Enum or Model
@@ -254,14 +256,14 @@ class YaslRegistry:
                         # Check enums
                         for (ename, ens), ecls in self.yasl_enumerations.items():
                             if ecls is t:
-                                if ens == namespace:
+                                if ens == ns:
                                     return ename
                                 return f"{ens}.{ename}" if ens else ename
 
                         # Check types
                         for (tname, tns), tcls in self.yasl_type_defs.items():
                             if tcls is t:
-                                if tns == namespace:
+                                if tns == ns:
                                     return tname
                                 return f"{tns}.{tname}" if tns else tname
 
@@ -285,7 +287,11 @@ class YaslRegistry:
                 else:
                     prop_def["presence"] = "optional"
                     # Add default if it exists and is not None/PydanticUndefined
-                    if field.default is not None and field.default is not Ellipsis:
+                    if (
+                        field.default is not None
+                        and field.default is not Ellipsis
+                        and field.default is not PydanticUndefined
+                    ):
                         # We need to be careful with Enum defaults, we want the value
                         if isinstance(field.default, Enum):
                             prop_def["default"] = field.default.value
