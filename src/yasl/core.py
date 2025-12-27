@@ -245,6 +245,68 @@ def gen_pydantic_type_models(namespace: str, type_defs: dict[str, TypeDef]):
                 type_lookup = parts[-1]
                 type_lookup_namespace = ".".join(parts[:-1])
 
+            # Prepare to wrap type with Annotated for ReferenceMarker if it's a ref[...]
+
+            if type_lookup.startswith("ref[") and type_lookup.endswith("]"):
+                from yasl.primitives import ReferenceMarker
+
+                ref_target = type_lookup[4:-1]
+
+                # Parse the target to find the underlying primitive type
+                if "." not in ref_target:
+                    raise ValueError(
+                        f"Reference '{ref_target}' for property '{prop_name}' must be in the format TypeName.PropertyName or Namespace.TypeName.PropertyName"
+                    )
+                ref_type_name, property_name = ref_target.rsplit(".", 1)
+                ref_type_namespace = None
+                if "." in ref_type_name:
+                    ref_type_namespace, ref_type_name = ref_type_name.rsplit(".", 1)
+
+                # We need to temporarily resolve the target type to get the underlying primitive type
+                # For now, we will assume it resolves to a primitive type eventually.
+                # In the original code, it was resolving and checking immediately.
+                # We should keep that logic to determine 'py_type'
+
+                target_type = registry.get_type(
+                    ref_type_name, ref_type_namespace, namespace
+                )
+                if not target_type:
+                    raise ValueError(
+                        f"Referenced type '{ref_type_name}' for property '{prop_name}' not found in type definitions"
+                    )
+                else:
+                    target_prop = next(
+                        (
+                            p
+                            for p_name, p in type_defs[
+                                target_type.__name__
+                            ].properties.items()
+                            if p_name == property_name
+                        ),
+                        None,
+                    )
+                    if not target_prop:
+                        raise ValueError(
+                            f"Referenced property '{property_name}' in type '{ref_type_name}' not found for property '{prop_name}'"
+                        )
+                    else:
+                        if not target_prop.unique:
+                            raise ValueError(
+                                f"Referenced property '{ref_type_name}.{property_name}' must be unique to be used as a reference for property '{typedef_name}.{prop_name}'"
+                            )
+                        elif target_prop.type not in type_map:
+                            raise ValueError(
+                                f"Referenced property '{ref_type_name}.{property_name}' must be a primitive type to be used as a reference for property '{typedef_name}.{prop_name}'"
+                            )
+                        else:
+                            py_type = type_map[target_prop.type]
+                            # We found the type, now we mark it has handled so it skips the other checks
+                            # But wait, the original logic had 'elif type_lookup.startswith("ref[")'
+                            # So we should probably restructure this loop to be cleaner or just hook into that block.
+
+            # Re-evaluating structure to avoid massive rewrite.
+            # I will modify the existing block for ref handling to wrap the result in Annotated.
+
             if type_lookup in type_map:
                 py_type = type_map[type_lookup]
             elif (
@@ -339,6 +401,10 @@ def gen_pydantic_type_models(namespace: str, type_defs: dict[str, TypeDef]):
                 if map_value_is_list:
                     py_type = list[py_type]
             elif type_lookup.startswith("ref[") and type_lookup.endswith("]"):
+                from typing import Annotated
+
+                from yasl.primitives import ReferenceMarker
+
                 ref_target = type_lookup[4:-1]
                 if "." not in ref_target:
                     raise ValueError(
@@ -380,7 +446,9 @@ def gen_pydantic_type_models(namespace: str, type_defs: dict[str, TypeDef]):
                                 f"Referenced property '{ref_type_name}.{property_name}' must be a primitive type to be used as a reference for property '{typedef_name}.{prop_name}'"
                             )
                         else:
-                            py_type = type_map[target_prop.type]
+                            base_type = type_map[target_prop.type]
+                            # Wrap the base type with Annotated and ReferenceMarker
+                            py_type = Annotated[base_type, ReferenceMarker(ref_target)]
             else:
                 raise ValueError(
                     f"Unknown type '{prop.type}' for property '{prop_name}'"

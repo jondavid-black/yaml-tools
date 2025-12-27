@@ -1,6 +1,8 @@
-import pytest
 from enum import Enum
+
+import pytest
 from pydantic import BaseModel, Field
+
 from yasl.cache import YaslRegistry
 
 

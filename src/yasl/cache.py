@@ -165,7 +165,7 @@ class YaslRegistry:
         Groups definitions by namespace.
         """
         from io import StringIO
-        from typing import Union, get_args, get_origin
+        from typing import Annotated, Union, get_args, get_origin
 
         from pydantic_core import PydanticUndefined
         from ruamel.yaml import YAML
@@ -192,10 +192,10 @@ class YaslRegistry:
             if "enums" not in schema["definitions"][namespace]:
                 schema["definitions"][namespace]["enums"] = {}
 
-            enum_def = {"values": [e.value for e in enum_cls]} # type: ignore
+            enum_def = {"values": [e.value for e in enum_cls]}  # type: ignore
             # Add description if we can find one
             if enum_cls.__doc__ and enum_cls.__doc__ != "An enumeration.":
-                enum_def["description"] = enum_cls.__doc__ # type: ignore
+                enum_def["description"] = enum_cls.__doc__  # type: ignore
 
             schema["definitions"][namespace]["enums"][name] = enum_def
 
@@ -223,8 +223,20 @@ class YaslRegistry:
 
                 # Determine YASL type from Python type annotation
                 def py_type_to_yasl(t, ns=namespace):
+                    # Check if Annotated is wrapped due to Pydantic internals
+                    # Sometimes Pydantic might wrap things or resolve them
                     origin = get_origin(t)
                     args = get_args(t)
+
+                    # Handle Annotated types for References
+                    if origin is Annotated:
+                        from yasl.primitives import ReferenceMarker
+
+                        for arg in args:
+                            if isinstance(arg, ReferenceMarker):
+                                return f"ref[{arg.target}]"
+                        # If no ReferenceMarker found, continue with the underlying type
+                        return py_type_to_yasl(args[0], ns)
 
                     if t is int:
                         return "int"
@@ -275,7 +287,20 @@ class YaslRegistry:
 
                     return str(t)
 
-                prop_def["type"] = py_type_to_yasl(field.annotation)
+                # Check for metadata first (Pydantic v2 moves Annotated args to metadata for top-level fields)
+                yasl_type = None
+                from yasl.primitives import ReferenceMarker
+
+                if field.metadata:
+                    for meta in field.metadata:
+                        if isinstance(meta, ReferenceMarker):
+                            yasl_type = f"ref[{meta.target}]"
+                            break
+
+                if yasl_type is None:
+                    yasl_type = py_type_to_yasl(field.annotation)
+
+                prop_def["type"] = yasl_type
 
                 # Description
                 if field.description:
