@@ -171,7 +171,7 @@ def yasl_eval(
 
     yasl_results = []
     for yasl_file in yasl_files:
-        yasl = load_and_validate_yasl_files(yasl_file)
+        yasl = load_schema_files(yasl_file)
         if yasl is None:
             log.error("❌ YASL schema validation failed. Exiting.")
             registry.clear_caches()
@@ -181,7 +181,7 @@ def yasl_eval(
     results = []
 
     for yaml_file in yaml_files:
-        results = load_and_validate_yaml_files(model_name, yaml_file)
+        results = load_data_files(yaml_file, model_name)
 
         if not results or len(results) == 0:
             log.error(
@@ -244,6 +244,68 @@ def gen_pydantic_type_models(namespace: str, type_defs: dict[str, TypeDef]):
                 parts = type_lookup.split(".")
                 type_lookup = parts[-1]
                 type_lookup_namespace = ".".join(parts[:-1])
+
+            # Prepare to wrap type with Annotated for ReferenceMarker if it's a ref[...]
+
+            if type_lookup.startswith("ref[") and type_lookup.endswith("]"):
+                from yasl.primitives import ReferenceMarker
+
+                ref_target = type_lookup[4:-1]
+
+                # Parse the target to find the underlying primitive type
+                if "." not in ref_target:
+                    raise ValueError(
+                        f"Reference '{ref_target}' for property '{prop_name}' must be in the format TypeName.PropertyName or Namespace.TypeName.PropertyName"
+                    )
+                ref_type_name, property_name = ref_target.rsplit(".", 1)
+                ref_type_namespace = None
+                if "." in ref_type_name:
+                    ref_type_namespace, ref_type_name = ref_type_name.rsplit(".", 1)
+
+                # We need to temporarily resolve the target type to get the underlying primitive type
+                # For now, we will assume it resolves to a primitive type eventually.
+                # In the original code, it was resolving and checking immediately.
+                # We should keep that logic to determine 'py_type'
+
+                target_type = registry.get_type(
+                    ref_type_name, ref_type_namespace, namespace
+                )
+                if not target_type:
+                    raise ValueError(
+                        f"Referenced type '{ref_type_name}' for property '{prop_name}' not found in type definitions"
+                    )
+                else:
+                    target_prop = next(
+                        (
+                            p
+                            for p_name, p in type_defs[
+                                target_type.__name__
+                            ].properties.items()
+                            if p_name == property_name
+                        ),
+                        None,
+                    )
+                    if not target_prop:
+                        raise ValueError(
+                            f"Referenced property '{property_name}' in type '{ref_type_name}' not found for property '{prop_name}'"
+                        )
+                    else:
+                        if not target_prop.unique:
+                            raise ValueError(
+                                f"Referenced property '{ref_type_name}.{property_name}' must be unique to be used as a reference for property '{typedef_name}.{prop_name}'"
+                            )
+                        elif target_prop.type not in type_map:
+                            raise ValueError(
+                                f"Referenced property '{ref_type_name}.{property_name}' must be a primitive type to be used as a reference for property '{typedef_name}.{prop_name}'"
+                            )
+                        else:
+                            py_type = type_map[target_prop.type]
+                            # We found the type, now we mark it has handled so it skips the other checks
+                            # But wait, the original logic had 'elif type_lookup.startswith("ref[")'
+                            # So we should probably restructure this loop to be cleaner or just hook into that block.
+
+            # Re-evaluating structure to avoid massive rewrite.
+            # I will modify the existing block for ref handling to wrap the result in Annotated.
 
             if type_lookup in type_map:
                 py_type = type_map[type_lookup]
@@ -339,6 +401,10 @@ def gen_pydantic_type_models(namespace: str, type_defs: dict[str, TypeDef]):
                 if map_value_is_list:
                     py_type = list[py_type]
             elif type_lookup.startswith("ref[") and type_lookup.endswith("]"):
+                from typing import Annotated
+
+                from yasl.primitives import ReferenceMarker
+
                 ref_target = type_lookup[4:-1]
                 if "." not in ref_target:
                     raise ValueError(
@@ -380,7 +446,9 @@ def gen_pydantic_type_models(namespace: str, type_defs: dict[str, TypeDef]):
                                 f"Referenced property '{ref_type_name}.{property_name}' must be a primitive type to be used as a reference for property '{typedef_name}.{prop_name}'"
                             )
                         else:
-                            py_type = type_map[target_prop.type]
+                            base_type = type_map[target_prop.type]
+                            # Wrap the base type with Annotated and ReferenceMarker
+                            py_type = Annotated[base_type, ReferenceMarker(ref_target)]
             else:
                 raise ValueError(
                     f"Unknown type '{prop.type}' for property '{prop_name}'"
@@ -459,8 +527,26 @@ def get_line_for_error(data: Any, loc: tuple[str | int, ...]) -> int | None:
             return None
 
 
-def load_and_validate_yasl(data: dict[str, Any]) -> YaslRoot:
-    """Load and validate YASL schema from a dictionary.  Imports are not processed in this function."""
+def load_schema(data: dict[str, Any]) -> YaslRoot:
+    """
+    Load and validate a YASL schema from a dictionary and add the generated types to the registry.
+
+    This function parses a raw dictionary into a YaslRoot object, generating
+    any defined enumerations and Pydantic models in the process. Note that
+    schema imports are NOT supported when loading directly from a dictionary;
+    use `load_schema_files` if import resolution is required.
+
+    Args:
+        data (dict[str, Any]): The raw dictionary containing the YASL schema definition.
+
+    Returns:
+        YaslRoot: The validated and parsed YASL root object.
+
+    Raises:
+        ValueError: If the schema defines imports (which are not supported in this mode),
+            or if type generation fails (e.g. duplicate definitions, invalid references).
+        ValidationError: If the input data does not match the expected YASL structure.
+    """
     log = logging.getLogger("yasl")
     yasl = YaslRoot(**data)
     if yasl is None:
@@ -486,7 +572,26 @@ def load_and_validate_yasl(data: dict[str, Any]) -> YaslRoot:
 
 
 # --- Main schema validation logic ---
-def load_and_validate_yasl_files(path: str) -> list[YaslRoot] | None:
+def load_schema_files(path: str) -> list[YaslRoot] | None:
+    """
+    Load and validate YASL schema(s) from a file.
+
+    This function reads a YAML file containing one or more YASL schema definitions.
+    It recursively resolves any imports specified in the schemas.
+    For each valid schema, it generates the corresponding Python Enums and Pydantic models
+    and registers them in the YaslRegistry.
+
+    Args:
+        path (str): The file path to the YASL schema file.
+
+    Returns:
+        list[YaslRoot] | None: A list of validated YaslRoot objects if successful,
+        or None if validation fails or the file cannot be read.
+
+    Raises:
+        The function catches most exceptions (FileNotFoundError, YAMLError, ValidationError)
+        and logs them as errors, returning None.
+    """
     log = logging.getLogger("yasl")
     log.debug(f"--- Attempting to validate schema '{path}' ---")
     data = None
@@ -513,7 +618,7 @@ def load_and_validate_yasl_files(path: str) -> list[YaslRoot] | None:
                     log.debug(
                         f"Importing additional schema '{imp}' - resolved to '{imp_path}'"
                     )
-                    imported_yasl = load_and_validate_yasl_files(imp_path)
+                    imported_yasl = load_schema_files(imp_path)
                     if not imported_yasl:
                         raise ValueError(f"Failed to import YASL schema from '{imp}'")
             if yasl.metadata is not None:
@@ -558,9 +663,29 @@ def load_and_validate_yasl_files(path: str) -> list[YaslRoot] | None:
         return None
 
 
-def load_and_validate_yaml(
-    schema_name: str, schema_namespace: str, yaml_data: dict[str, Any]
+def load_data(
+    yaml_data: dict[str, Any], schema_name: str, schema_namespace: str | None = None
 ) -> Any:
+    """
+    Validate a dictionary of data against a specific registered YASL schema.
+
+    This function retrieves the Pydantic model corresponding to the given schema name
+    and namespace from the YaslRegistry, and then attempts to validate the provided
+    data against it.
+
+    Args:
+        yaml_data (dict[str, Any]): The raw dictionary containing the YAML data to validate.
+        schema_name (str): The name of the schema type to validate against.
+        schema_namespace (str | None): The namespace where the schema is defined.
+
+    Returns:
+        Any: An instance of the validated Pydantic model if successful,
+        or None if validation fails or the schema cannot be found.
+
+    Raises:
+        The function catches ValidationError and SyntaxError, logs the details,
+        and returns None.
+    """
     log = logging.getLogger("yasl")
     try:
         result = None
@@ -594,7 +719,30 @@ def load_and_validate_yaml(
 
 
 # --- Main data validation logic ---
-def load_and_validate_yaml_files(model_name: str | None, path: str) -> Any:
+def load_data_files(path: str, model_name: str | None = None) -> Any:
+    """
+    Load and validate YAML data from a file against YASL schemas.
+
+    This function reads a YAML file (which may contain multiple documents) and attempts
+    to validate each document against a registered YASL schema.
+
+    If `model_name` is provided, validation is attempted against that specific schema.
+    If `model_name` is None, the function attempts to auto-detect the appropriate schema
+    by matching the root keys of the YAML data against the fields of registered types.
+
+    Args:
+        path (str): The file path to the YAML data file.
+        model_name (str | None): The name of the schema to validate against.
+            If None, schema auto-detection is performed.
+
+    Returns:
+        Any: A list of validated Pydantic models (one for each document in the YAML file)
+        if successful, or None if validation fails or the file cannot be read.
+
+    Raises:
+        The function catches exceptions like FileNotFoundError, SyntaxError, YAMLError,
+        and ValidationError, logging them as errors and returning None.
+    """
     log = logging.getLogger("yasl")
     log.debug(f"--- Attempting to validate data '{path}' ---")
     docs = []

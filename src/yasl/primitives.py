@@ -290,3 +290,11 @@ STANDARD_TYPES = {
 
 # --- Unified Map ---
 PRIMITIVE_TYPE_MAP = {**STANDARD_TYPES, **ASTROPY_TYPES}
+
+
+class ReferenceMarker:
+    def __init__(self, target: str):
+        self.target = target
+
+    def __repr__(self):
+        return f"ref[{self.target}]"

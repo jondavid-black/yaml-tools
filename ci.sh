@@ -28,6 +28,16 @@ run_format() {
     fi
 }
 
+# Run type check
+run_type_check() {
+    echo "Running type check..."
+    uv run pyright
+    if [[ $? -ne 0 ]]; then
+        echo "Error: Type check failed."
+        exit 1
+    fi
+}
+
 # Run linter
 run_lint() {
     echo "Running linter..."
@@ -83,6 +93,7 @@ run_all() {
     run_test
     run_format
     run_lint
+    run_type_check
     run_bdd
     run_docs
     run_build
@@ -98,6 +109,7 @@ case "$1" in
     format)  run_format ;;
     lint)  run_lint ;;
     lint-fix)  run_lint_fix ;;
+    type-check)  run_type_check ;;
     bdd)   run_bdd ;;
     docs)  run_docs ;;
     build) run_build ;;

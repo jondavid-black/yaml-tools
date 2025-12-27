@@ -26,6 +26,7 @@ env/
 venv/
 *.egg-info/
 dist/
+build/
 
 # Mkdocs site
 /site/
