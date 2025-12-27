@@ -76,7 +76,7 @@ class YaslRegistry:
         self.yasl_enumerations[key] = enum_def
         log.debug(f"Registered enum '{name}' in namespace '{namespace}'")
 
-    def get_enum_names(self) -> list[tuple[str, str | None]]:
+    def get_enums(self) -> list[tuple[str, str | None]]:
         return [(n, ns) for (n, ns) in self.yasl_enumerations.keys()]
 
     def get_enum(

@@ -291,7 +291,7 @@ def gen_pydantic_type_models(namespace: str, type_defs: dict[str, TypeDef]):
                         "str",
                         "string",
                         "int",
-                    ] + registry.get_enum_names()
+                    ] + registry.get_enums()
                     raise ValueError(
                         f"Map key type '{key}' for property '{prop_name}' must be one of {acceptable_keys}."
                     )

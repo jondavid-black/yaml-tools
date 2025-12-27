@@ -361,7 +361,7 @@ def property_validator_factory(
 
     # enum validators
     registry = YaslRegistry()
-    enum_names: list[tuple[str, str | None]] = registry.get_enum_names()
+    enum_names: list[tuple[str, str | None]] = registry.get_enums()
 
     if property.type in dict(enum_names).keys():
         enum_type = registry.get_enum(property.type, type_def.namespace)
